@@ -1,5 +1,5 @@
 /****************************************************
- * Project Savannah v1.0
+ * Project Savannah v1.0.1
  * OpenAI.gs
  * Purpose: OpenAI Responses API client
  ****************************************************/
@@ -64,7 +64,7 @@ function buildOpenAIResponsesPayload(options) {
         content: [
           {
             type: "input_text",
-            text: "You are Project Savannah, an AI content strategist for YouTube Shorts. Return only structured JSON."
+            text: options.systemMessage || "You are Project Savannah. Return only structured JSON."
           }
         ]
       },
@@ -81,39 +81,7 @@ function buildOpenAIResponsesPayload(options) {
     temperature: options.temperature || 0.8,
     max_output_tokens: options.maxTokens || 1200,
     text: {
-      format: {
-        type: "json_schema",
-        name: "project_savannah_video_ideas",
-        strict: true,
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            ideas: {
-              type: "array",
-              minItems: 1,
-              maxItems: 10,
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  videoIdea: {
-                    type: "string"
-                  },
-                  hook: {
-                    type: "string"
-                  },
-                  targetAudience: {
-                    type: "string"
-                  }
-                },
-                required: ["videoIdea", "hook", "targetAudience"]
-              }
-            }
-          },
-          required: ["ideas"]
-        }
-      }
+      format: options.schema || Schemas.getVideoIdeasSchema()
     }
   };
 }
@@ -158,7 +126,8 @@ function testOpenAIConnection() {
     prompt: prompt,
     temperature: Settings.getTemperature(),
     maxTokens: Settings.getMaxTokens(),
-    responseFormat: "json"
+    responseFormat: "json",
+    schema: Schemas.getVideoIdeasSchema()
   });
 
   Logger.log(JSON.stringify(response.data, null, 2));

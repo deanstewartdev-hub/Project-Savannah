@@ -16,34 +16,48 @@ function deleteSheetIfExists(ss, sheetName) {
  ****************************************************/
 
 function setupSettingsSheet(ss) {
-  const sheet = getOrCreateSheet(ss, SHEETS.SETTINGS);
-  resetSheet(sheet);
 
-  const rows = [
-    ["Setting", "Value", "Notes"],
-    ["OPENAI_API_KEY", "", "Paste your OpenAI API key here later"],
-    ["AI_PROVIDER", "OpenAI", "Current AI provider"],
-    ["OPENAI_MODEL", DEFAULT_MODEL, "Default low-cost model"],
-    ["AI_TEMPERATURE", 0.8, "Creativity level"],
-    ["AI_MAX_TOKENS", 1200, "Maximum response size"],
-    ["IDEAS_PER_RUN", 3, "How many ideas to generate per click"],
-    ["NICHE", "Travel facts", "Main content niche"],
-    ["TARGET_AUDIENCE", "People who enjoy short educational videos", "Who the Shorts are for"],
-    ["PROJECT_VERSION", PROJECT_VERSION, "Current system version"]
-  ];
+  const result = getOrCreateSheet(ss, SHEETS.SETTINGS);
+  const sheet = result.sheet;
 
-  sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
-  formatHeaderRow(sheet, 1, 3);
+  // Only populate the sheet the first time it is created.
+  if (result.created) {
 
-  sheet.setColumnWidth(1, 220);
-  sheet.setColumnWidth(2, 300);
-  sheet.setColumnWidth(3, 500);
-  sheet.setFrozenRows(1);
+    const rows = [
+      ["Setting", "Value", "Notes"],
+      ["OPENAI_API_KEY", "", "Paste your OpenAI API key here later"],
+      ["AI_PROVIDER", "OpenAI", "Current AI provider"],
+      ["OPENAI_MODEL", DEFAULT_MODEL, "Default low-cost model"],
+      ["AI_TEMPERATURE", 0.8, "Creativity level"],
+      ["AI_MAX_TOKENS", 1200, "Maximum response size"],
+      ["IDEAS_PER_RUN", 3, "How many ideas to generate per click"],
+      ["NICHE", "Travel facts", "Main content niche"],
+      ["TARGET_AUDIENCE", "People who enjoy short educational videos", "Who the Shorts are for"],
+      ["PROJECT_VERSION", PROJECT_VERSION, "Current system version"]
+    ];
+
+    sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+
+    formatHeaderRow(sheet, 1, 3);
+
+    sheet.setColumnWidth(1, 220);
+    sheet.setColumnWidth(2, 300);
+    sheet.setColumnWidth(3, 500);
+    sheet.setFrozenRows(1);
+  }
+
+  // Future migrations for Settings sheet will go here.
 }
 
 function setupIdeasSheet(ss) {
-  const sheet = getOrCreateSheet(ss, SHEETS.IDEAS);
-  resetSheet(sheet);
+
+  const result = getOrCreateSheet(ss, SHEETS.IDEAS);
+  const sheet = result.sheet;
+
+  // If the sheet already exists, leave the user's data alone.
+  if (!result.created) {
+    return;
+  }
 
   const headers = [
     "Idea ID",
@@ -59,7 +73,9 @@ function setupIdeasSheet(ss) {
   ];
 
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
   formatHeaderRow(sheet, 1, headers.length);
+
   sheet.setFrozenRows(1);
 }
 
@@ -165,13 +181,19 @@ function setupCostsSheet(ss) {
 }
 
 function getOrCreateSheet(ss, sheetName) {
-  let sheet = ss.getSheetByName(sheetName);
+  const existingSheet = ss.getSheetByName(sheetName);
 
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
+  if (existingSheet) {
+    return {
+      sheet: existingSheet,
+      created: false
+    };
   }
 
-  return sheet;
+  return {
+    sheet: ss.insertSheet(sheetName),
+    created: true
+  };
 }
 
 function resetSheet(sheet) {

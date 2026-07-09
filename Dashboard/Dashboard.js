@@ -25,7 +25,7 @@ function buildDashboard(sheet) {
   createTable(sheet, "A10", [
     ["Metric", "Current", "Target", "Status"],
     ["Ideas Generated", '=COUNTIF(Ideas!B:B,">="&TODAY())', 3, "Sprint 1"],
-    ["Scripts Created", '=COUNTIF(Scripts!C:C,">="&TODAY())', 0, "Coming Sprint 3"],
+    ["Scripts Created", '=COUNTIF(Scripts!C:C,">="&TODAY())', 0, "Coming Sprint 4"],
     ["SEO Packs Created", '=COUNTIF(\'SEO Pack\'!C:C,">="&TODAY())', 0, "Coming Sprint 4"],
     ["Videos Published", 0, 0, "Coming later"]
   ]);
@@ -49,13 +49,19 @@ function buildDashboard(sheet) {
 
   createSectionHeader(sheet, "F19:H19", "API STATUS");
 
-  createTable(sheet, "F21", [
-    ["Service", "Status", "Notes"],
-    ["OpenAI", "🔴 Not Connected", "Next build step"],
-    ["Google Sheets", "🟢 Connected", "Working"],
-    ["Google Drive", "🟢 Connected", "Working"],
-    ["YouTube", "⚪ Not Connected", "Later version"]
-  ]);
+    const openAiConnected = Secrets.hasOpenAIApiKey();
+
+    createTable(sheet, "F21", [
+      ["Service", "Status", "Notes"],
+      [
+        "OpenAI",
+        openAiConnected ? "🟢 Connected" : "🔴 Not Connected",
+        openAiConnected ? "API key stored" : "Configure API key"
+      ],
+      ["Google Sheets", "🟢 Connected", "Working"],
+      ["Google Drive", "🟢 Connected", "Working"],
+      ["YouTube", "⚪ Not Connected", "Later version"]
+    ]);
 
   createSectionHeader(sheet, "A26:C26", "COST OVERVIEW");
 

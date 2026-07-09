@@ -1,5 +1,5 @@
 /****************************************************
- * Project Savannah v1.0
+ * Project Savannah v1.0.1
  * AIService.gs
  * Purpose: Provider-independent AI service layer
  ****************************************************/
@@ -14,7 +14,11 @@ function callAIService(prompt, options) {
     prompt: prompt,
     temperature: options && options.temperature ? options.temperature : Settings.getTemperature(),
     maxTokens: options && options.maxTokens ? options.maxTokens : Settings.getMaxTokens(),
-    responseFormat: options && options.responseFormat ? options.responseFormat : "json"
+    responseFormat: options && options.responseFormat ? options.responseFormat : "json",
+    schema: options && options.schema ? options.schema : Schemas.getVideoIdeasSchema(),
+    systemMessage: options && options.systemMessage
+      ? options.systemMessage
+      : "You are Project Savannah, an AI content strategist for YouTube Shorts. Return only structured JSON."
   };
 
   if (provider === "OpenAI") {
@@ -37,7 +41,25 @@ Return ONLY valid JSON:
   const response = callAIService(testPrompt, {
     temperature: 0.2,
     maxTokens: 200,
-    responseFormat: "json"
+    responseFormat: "json",
+    schema: {
+      type: "json_schema",
+      name: "project_savannah_ai_service_test",
+      strict: true,
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          status: {
+            type: "string"
+          },
+          message: {
+            type: "string"
+          }
+        },
+        required: ["status", "message"]
+      }
+    }
   });
 
   Logger.log(response);
