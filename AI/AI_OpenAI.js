@@ -126,11 +126,21 @@ function testOpenAIConnection() {
     prompt: prompt,
     temperature: Settings.getTemperature(),
     maxTokens: Settings.getMaxTokens(),
-    responseFormat: "json",
-    schema: Schemas.getVideoIdeasSchema()
+    responseFormat: "json_schema",
+    schema: Schemas.getVideoIdeasSchema(),
+    systemMessage:
+      "You are Project Savannah, an AI content strategist " +
+      "for YouTube Shorts. Return only data matching the " +
+      "supplied schema."
   });
 
-  Logger.log(JSON.stringify(response.data, null, 2));
+  Logger.log(
+    JSON.stringify(response.data, null, 2)
+  );
 
-  SpreadsheetApp.getUi().alert("OpenAI test complete. Check the execution log.");
+  Logger.log(
+    "OpenAI connection test completed successfully."
+  );
+
+  return response;
 }
