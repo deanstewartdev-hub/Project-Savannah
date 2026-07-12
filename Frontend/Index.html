@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+
+    <meta charset="UTF-8">
+
+    <title>
+      <?= currentRoute.title ?> | <?= appName ?>
+    </title>
+
+    <?!= includeFrontend("Frontend/Assets/Styles"); ?>
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="app-brand-group">
+          <div
+            class="app-logo"
+            aria-hidden="true"
+          >
+            S
+          </div>
+
+          <div>
+            <p class="app-eyebrow">
+              AI CONTENT PLATFORM
+            </p>
+
+            <h1 class="app-brand">
+              <?= appName ?>
+            </h1>
+          </div>
+        </div>
+
+        <span class="app-version">
+          <?= appVersion ?>
+        </span>
+      </header>
+
+      <nav
+        class="app-navigation"
+        aria-label="Primary navigation"
+      >
+        <? navigationItems.forEach(function (item) { ?>
+          <a
+            class="nav-link <?= item.key === currentRoute.key
+              ? 'nav-link-active'
+              : '' ?>"
+            href="?page=<?= item.key ?>"
+            <?= item.key === currentRoute.key
+              ? 'aria-current="page"'
+              : '' ?>
+          >
+            <?= item.title ?>
+          </a>
+        <? }); ?>
+      </nav>
+
+      <main class="app-content">
+        <?!= renderAppView(currentRoute); ?>
+      </main>
+    </div>
+
+    <?!= includeFrontend("Frontend/Assets/Scripts"); ?>
+  </body>
+</html>
