@@ -1,8 +1,15 @@
-<section class="page">
+<section
+  id="dashboard-page"
+  class="page"
+  data-page="dashboard"
+>
   <header class="page-header">
     <div>
-      <span class="badge badge-success">
-        System operational
+      <span
+        id="dashboard-system-status"
+        class="badge badge-info"
+      >
+        Loading system status…
       </span>
 
       <h2 class="page-title">
@@ -32,6 +39,21 @@
     </div>
   </header>
 
+  <div
+    id="dashboard-loading-message"
+    class="alert alert-info"
+  >
+    Loading live Project Savannah data…
+  </div>
+
+  <div
+    id="dashboard-error-message"
+    class="alert alert-danger"
+    hidden
+  >
+    Dashboard data could not be loaded.
+  </div>
+
   <section class="section">
     <div class="section-header">
       <div>
@@ -40,7 +62,7 @@
         </h3>
 
         <p class="section-description">
-          Current progress across the Savannah pipeline.
+          Live progress across the Savannah pipeline.
         </p>
       </div>
     </div>
@@ -51,11 +73,17 @@
           Ideas generated
         </p>
 
-        <p class="kpi-value">
-          0
+        <p
+          id="dashboard-ideas-today"
+          class="kpi-value"
+        >
+          —
         </p>
 
-        <p class="kpi-meta">
+        <p
+          id="dashboard-ideas-target"
+          class="kpi-meta"
+        >
           Daily target: 3
         </p>
       </article>
@@ -65,26 +93,18 @@
           Scripts created
         </p>
 
-        <p class="kpi-value">
-          0
+        <p
+          id="dashboard-scripts-today"
+          class="kpi-value"
+        >
+          —
         </p>
 
-        <p class="kpi-meta">
+        <p
+          id="dashboard-scripts-target"
+          class="kpi-meta"
+        >
           Daily target: 3
-        </p>
-      </article>
-
-      <article class="card kpi-card">
-        <p class="kpi-label">
-          SEO packs ready
-        </p>
-
-        <p class="kpi-value">
-          0
-        </p>
-
-        <p class="kpi-meta">
-          Not active yet
         </p>
       </article>
 
@@ -93,12 +113,32 @@
           Approval queue
         </p>
 
-        <p class="kpi-value">
-          0
+        <p
+          id="dashboard-approval-count"
+          class="kpi-value"
+        >
+          —
         </p>
 
         <p class="kpi-meta">
-          Waiting for review
+          Records waiting for review
+        </p>
+      </article>
+
+      <article class="card kpi-card">
+        <p class="kpi-label">
+          Estimated AI cost
+        </p>
+
+        <p
+          id="dashboard-total-cost"
+          class="kpi-value"
+        >
+          —
+        </p>
+
+        <p class="kpi-meta">
+          Recorded lifetime usage
         </p>
       </article>
     </div>
@@ -127,45 +167,11 @@
               </tr>
             </thead>
 
-            <tbody>
+            <tbody id="dashboard-pipeline-body">
               <tr>
-                <td>Ideas</td>
-                <td>
-                  <span class="badge badge-success">
-                    Active
-                  </span>
+                <td colspan="3">
+                  Loading pipeline…
                 </td>
-                <td>0</td>
-              </tr>
-
-              <tr>
-                <td>Scripts</td>
-                <td>
-                  <span class="badge badge-warning">
-                    Building
-                  </span>
-                </td>
-                <td>0</td>
-              </tr>
-
-              <tr>
-                <td>SEO</td>
-                <td>
-                  <span class="badge">
-                    Planned
-                  </span>
-                </td>
-                <td>0</td>
-              </tr>
-
-              <tr>
-                <td>Approval</td>
-                <td>
-                  <span class="badge">
-                    Planned
-                  </span>
-                </td>
-                <td>0</td>
               </tr>
             </tbody>
           </table>
@@ -185,9 +191,13 @@
       </div>
 
       <div class="card-body">
-        <div class="alert alert-info">
-          Activity data will appear here after the
-          dashboard controller is connected.
+        <div
+          id="dashboard-recent-activity"
+          class="stack"
+        >
+          <div class="alert alert-info">
+            Loading recent activity…
+          </div>
         </div>
       </div>
     </article>
@@ -197,76 +207,67 @@
     <div class="section-header">
       <div>
         <h3 class="section-title">
-          Design system preview
+          Pipeline totals
         </h3>
 
         <p class="section-description">
-          Reusable controls available to every page.
+          Lifetime records stored in the Savannah database.
         </p>
       </div>
     </div>
 
-    <article class="card">
-      <div class="card-body stack">
-        <div class="page-actions">
-          <button class="button button-primary">
-            Primary action
-          </button>
+    <div class="grid grid-4">
+      <article class="card kpi-card">
+        <p class="kpi-label">
+          Total ideas
+        </p>
 
-          <button class="button button-secondary">
-            Secondary action
-          </button>
+        <p
+          id="dashboard-total-ideas"
+          class="kpi-value"
+        >
+          —
+        </p>
+      </article>
 
-          <button class="button button-danger">
-            Destructive action
-          </button>
-        </div>
+      <article class="card kpi-card">
+        <p class="kpi-label">
+          Total scripts
+        </p>
 
-        <hr class="divider">
+        <p
+          id="dashboard-total-scripts"
+          class="kpi-value"
+        >
+          —
+        </p>
+      </article>
 
-        <div class="page-actions">
-          <span class="badge badge-success">
-            Approved
-          </span>
+      <article class="card kpi-card">
+        <p class="kpi-label">
+          Total SEO packs
+        </p>
 
-          <span class="badge badge-warning">
-            Draft
-          </span>
+        <p
+          id="dashboard-total-seo"
+          class="kpi-value"
+        >
+          —
+        </p>
+      </article>
 
-          <span class="badge badge-info">
-            Processing
-          </span>
+      <article class="card kpi-card">
+        <p class="kpi-label">
+          Logged activities
+        </p>
 
-          <span class="badge badge-danger">
-            Failed
-          </span>
-        </div>
-
-        <hr class="divider">
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label
-              class="form-label"
-              for="design-system-input"
-            >
-              Example input
-            </label>
-
-            <input
-              id="design-system-input"
-              class="form-control"
-              type="text"
-              placeholder="Enter a value"
-            >
-
-            <span class="form-help">
-              Form controls will use this style throughout
-              the application.
-            </span>
-          </div>
-        </div>
-      </div>
-    </article>
+        <p
+          id="dashboard-total-logs"
+          class="kpi-value"
+        >
+          —
+        </p>
+      </article>
+    </div>
   </section>
 </section>

@@ -1,79 +1,181 @@
 /****************************************************
- * Project Savannah v1.1
+ * Project Savannah v1.2
  * Idea_Engine.js
  *
  * Purpose:
- * Coordinate the idea-generation workflow.
+ * Coordinate the complete idea-generation workflow.
  *
  * Responsibilities:
- * - Load idea-generation settings.
- * - Build the idea-generation prompt.
- * - Select the expected response schema.
- * - Request ideas through AIService.
- * - Validate the returned idea collection.
- * - Save ideas through IdeasRepository.
+ * - Load settings.
+ * - Build the idea prompt.
+ * - Call AIService.
+ * - Validate generated ideas.
+ * - Save ideas.
+ * - Record usage cost.
+ * - Record workflow activity.
  *
  * Must not:
- * - Call OpenAI directly.
  * - Access sheet ranges directly.
- * - Construct provider-specific payloads.
+ * - Build provider-specific payloads.
+ * - Display frontend UI.
  ****************************************************/
 
 /**
- * Generates and saves video ideas.
+ * Generates, validates, saves and records video ideas.
  *
  * @return {Object} Workflow result.
  */
 function generateIdeasWorkflow() {
-  const niche = Settings.getNiche();
-  const targetAudience = Settings.getTargetAudience();
-  const ideasPerRun = Settings.getIdeasPerRun();
+  const runId = createRunId();
+  const action = "IDEA_GENERATION";
 
-  const prompt = buildVideoIdeasPrompt(
-    niche,
-    targetAudience,
-    ideasPerRun
+  LoggingService.started(
+    runId,
+    action,
+    "Idea generation started."
   );
 
-  const response = callAIService(prompt, {
-    temperature: Settings.getTemperature(),
-    maxTokens: Settings.getMaxTokens(),
-    responseFormat: "json_schema",
-    schema: Schemas.getVideoIdeasSchema(),
-    systemMessage:
-      "You are Project Savannah, an AI content strategist " +
-      "for YouTube Shorts. Produce original video ideas and " +
-      "return only data matching the supplied schema."
-  });
+  try {
+    const niche = Settings.getNiche();
 
-  validateGeneratedIdeas_(response.data, ideasPerRun);
+    const targetAudience =
+      Settings.getTargetAudience();
 
-  const saveResult = IdeasRepository.saveIdeas(
-    response.data.ideas
-  );
+    const ideasPerRun =
+      Settings.getIdeasPerRun();
 
-  const result = {
-    success: true,
-    runId: saveResult.runId,
-    generatedCount: response.data.ideas.length,
-    savedCount: saveResult.savedCount,
-    provider: response.provider,
-    model: response.model,
-    usage: response.usage
-  };
+    const prompt = buildVideoIdeasPrompt(
+      niche,
+      targetAudience,
+      ideasPerRun
+    );
 
-  Logger.log(
-    JSON.stringify(result, null, 2)
-  );
+    const response = callAIService(prompt, {
+      temperature:
+        Settings.getTemperature(),
 
-  return result;
+      maxTokens:
+        Settings.getMaxTokens(),
+
+      responseFormat:
+        "json_schema",
+
+      schema:
+        Schemas.getVideoIdeasSchema(),
+
+      systemMessage:
+        "You are Project Savannah, an AI content " +
+        "strategist for YouTube Shorts. Produce " +
+        "original video ideas and return only data " +
+        "matching the supplied schema."
+    });
+
+    validateGeneratedIdeas_(
+      response.data,
+      ideasPerRun
+    );
+
+    const saveResult =
+      IdeasRepository.saveIdeas(
+        response.data.ideas,
+        {
+          runId: runId,
+          model:
+            response.model ||
+            Settings.getModel(),
+
+          promptVersion:
+            APP.PROMPT_VERSION
+        }
+      );
+
+    let costRecord = null;
+
+    try {
+      costRecord =
+        CostService.recordAIUsage({
+          runId: runId,
+
+          model:
+            response.model ||
+            Settings.getModel(),
+
+          usage:
+            response.usage || {},
+
+          action: action
+        });
+    } catch (costError) {
+      LoggingService.log({
+        runId: runId,
+        action: "COST_RECORDING",
+        status:
+          LoggingService.STATUS.WARNING,
+        message:
+          "Ideas were saved, but AI cost tracking failed.",
+        errorDetails: costError
+      });
+    }
+
+    LoggingService.success(
+      runId,
+      action,
+      saveResult.savedCount +
+        " ideas successfully generated and saved."
+    );
+
+    const result = {
+      success: true,
+      runId: runId,
+      generatedCount:
+        response.data.ideas.length,
+      savedCount:
+        saveResult.savedCount,
+      provider:
+        response.provider,
+      model:
+        response.model ||
+        Settings.getModel(),
+      usage:
+        response.usage || {},
+      estimatedCost:
+        costRecord
+          ? costRecord.estimatedCost
+          : 0
+    };
+
+    Logger.log(
+      JSON.stringify(result, null, 2)
+    );
+
+    return result;
+  } catch (error) {
+    try {
+      LoggingService.failure(
+        runId,
+        action,
+        "Idea generation failed.",
+        error
+      );
+    } catch (loggingError) {
+      Logger.log(
+        "Unable to write failure log: " +
+        (
+          loggingError.message ||
+          loggingError
+        )
+      );
+    }
+
+    throw error;
+  }
 }
 
 /**
- * Validates the idea-generation response before persistence.
+ * Validates generated ideas before persistence.
  *
- * @param {Object} responseData Parsed AI response.
- * @param {number} expectedCount Expected number of ideas.
+ * @param {Object} responseData Parsed AI output.
+ * @param {number} expectedCount Expected idea count.
  */
 function validateGeneratedIdeas_(
   responseData,
@@ -102,7 +204,8 @@ function validateGeneratedIdeas_(
 
   if (
     expectedCount &&
-    responseData.ideas.length !== expectedCount
+    responseData.ideas.length !==
+      expectedCount
   ) {
     throw new Error(
       "AI returned " +
@@ -113,77 +216,78 @@ function validateGeneratedIdeas_(
     );
   }
 
-  responseData.ideas.forEach(function (idea, index) {
-    if (!idea || typeof idea !== "object") {
-      throw new Error(
-        "Idea " + (index + 1) + " is invalid."
-      );
+  responseData.ideas.forEach(
+    function (idea, index) {
+      if (!idea || typeof idea !== "object") {
+        throw new Error(
+          "Idea " +
+          (index + 1) +
+          " is invalid."
+        );
+      }
+
+      if (
+        !idea.videoIdea ||
+        typeof idea.videoIdea !== "string"
+      ) {
+        throw new Error(
+          "Idea " +
+          (index + 1) +
+          " is missing videoIdea."
+        );
+      }
+
+      if (
+        !idea.hook ||
+        typeof idea.hook !== "string"
+      ) {
+        throw new Error(
+          "Idea " +
+          (index + 1) +
+          " is missing hook."
+        );
+      }
+
+      if (
+        !idea.targetAudience ||
+        typeof idea.targetAudience !==
+          "string"
+      ) {
+        throw new Error(
+          "Idea " +
+          (index + 1) +
+          " is missing targetAudience."
+        );
+      }
     }
+  );
+}
 
-    if (
-      !idea.videoIdea ||
-      typeof idea.videoIdea !== "string"
-    ) {
-      throw new Error(
-        "Idea " +
-        (index + 1) +
-        " is missing videoIdea."
-      );
-    }
+/**
+ * Tests the complete production idea workflow.
+ *
+ * This calls OpenAI and creates real Ideas,
+ * Logs and Costs records.
+ *
+ * @return {Object} Workflow result.
+ */
+function testIdeaGenerationWithTracking() {
+  const result =
+    generateIdeasWorkflow();
 
-    if (
-      !idea.hook ||
-      typeof idea.hook !== "string"
-    ) {
-      throw new Error(
-        "Idea " +
-        (index + 1) +
-        " is missing hook."
-      );
-    }
+  if (
+    !result ||
+    result.success !== true ||
+    result.savedCount <= 0
+  ) {
+    throw new Error(
+      "Tracked idea-generation test failed."
+    );
+  }
 
-    if (
-      !idea.targetAudience ||
-      typeof idea.targetAudience !== "string"
-    ) {
-      throw new Error(
-        "Idea " +
-        (index + 1) +
-        " is missing targetAudience."
-      );
-    }
-  });
-}/****************************************************
- * Project Savannah v1.0
- * IdeaEngine.gs
- * Purpose: Idea generation workflow
- ****************************************************/
-
-function generateIdeasWorkflow() {
-
-  const niche = Settings.getNiche();
-  const targetAudience = Settings.getTargetAudience();
-  const ideasPerRun = Settings.getIdeasPerRun();
-
-  const prompt = buildVideoIdeasPrompt(
-    niche,
-    targetAudience,
-    ideasPerRun
+  Logger.log(
+    "Tracked idea-generation test completed successfully."
   );
 
-  const response = callAIService(prompt, {
-    temperature: Settings.getTemperature(),
-    maxTokens: Settings.getMaxTokens(),
-    responseFormat: "json"
-  });
-
-  IdeasRepository.saveIdeas(response.data.ideas);
-
-  Logger.log(response);
-
-    Logger.log(
-    response.data.ideas.length +
-    " ideas successfully generated and saved."
-  );
-
+  return result;
 }

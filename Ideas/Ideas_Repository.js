@@ -1,68 +1,150 @@
 /****************************************************
- * Project Savannah v1.0
- * IdeasRepository.gs
- * Purpose: Save and read generated ideas
+ * Project Savannah v1.2
+ * Ideas_Repository.js
+ *
+ * Purpose:
+ * Persist and retrieve generated video ideas.
+ *
+ * Responsibilities:
+ * - Validate idea collections.
+ * - Save ideas to the Ideas sheet.
+ * - Preserve workflow metadata.
+ *
+ * Must not:
+ * - Call AI services.
+ * - Log workflow events.
+ * - Calculate provider costs.
  ****************************************************/
 
 const IdeasRepository = {
+  /**
+   * Saves generated ideas.
+   *
+   * @param {Object[]} ideas Generated ideas.
+   * @param {Object=} options Persistence options.
+   * @return {Object} Save result.
+   */
+  saveIdeas: function (ideas, options) {
+    const saveOptions = options || {};
 
-  saveIdeas: function(ideas) {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEETS.IDEAS);
+    const spreadsheet =
+      SpreadsheetApp.getActiveSpreadsheet();
+
+    const sheet =
+      spreadsheet.getSheetByName(SHEETS.IDEAS);
 
     if (!sheet) {
-      throw new Error("Ideas sheet not found.");
+      throw new Error(
+        "Ideas sheet was not found."
+      );
     }
 
-    if (!ideas || !Array.isArray(ideas)) {
-      throw new Error("No valid ideas were provided to save.");
+    if (
+      !ideas ||
+      !Array.isArray(ideas) ||
+      ideas.length === 0
+    ) {
+      throw new Error(
+        "No valid ideas were provided to save."
+      );
     }
 
     const niche = Settings.getNiche();
-    const runId = createRunId();
-    const createdAt = new Date();
 
-    const rows = ideas.map(function(idea) {
+    const runId =
+      saveOptions.runId || createRunId();
+
+    const createdAt =
+      saveOptions.createdAt instanceof Date
+        ? saveOptions.createdAt
+        : new Date();
+
+    const model =
+      saveOptions.model ||
+      Settings.getModel();
+
+    const promptVersion =
+      saveOptions.promptVersion ||
+      APP.PROMPT_VERSION;
+
+    const rows = ideas.map(function (idea) {
       return [
         createIdeaId(),
         createdAt,
         niche,
-        idea.videoIdea || "",
-        idea.hook || "",
-        idea.targetAudience || "",
+        String(idea.videoIdea || ""),
+        String(idea.hook || ""),
+        String(idea.targetAudience || ""),
         IDEA_STATUS.NEW,
-        Settings.getModel(),
-        APP.PROMPT_VERSION,
+        model,
+        promptVersion,
         runId
       ];
     });
 
-    if (rows.length > 0) {
-      sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-    }
+    sheet
+      .getRange(
+        sheet.getLastRow() + 1,
+        1,
+        rows.length,
+        rows[0].length
+      )
+      .setValues(rows);
 
     return {
       runId: runId,
-      savedCount: rows.length
+      savedCount: rows.length,
+      createdAt: createdAt
     };
   },
 
-  getIdeaCount: function() {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEETS.IDEAS);
+  /**
+   * Returns the current number of saved ideas.
+   *
+   * @return {number}
+   */
+  getIdeaCount: function () {
+    const spreadsheet =
+      SpreadsheetApp.getActiveSpreadsheet();
+
+    const sheet =
+      spreadsheet.getSheetByName(SHEETS.IDEAS);
 
     if (!sheet) {
       return 0;
     }
 
-    return Math.max(sheet.getLastRow() - 1, 0);
+    return Math.max(
+      sheet.getLastRow() - 1,
+      0
+    );
   }
 };
 
+/**
+ * Generates an idea identifier.
+ *
+ * @return {string}
+ */
 function createIdeaId() {
-  return "IDEA-" + Utilities.getUuid().slice(0, 8).toUpperCase();
+  return (
+    "IDEA-" +
+    Utilities.getUuid()
+      .slice(0, 8)
+      .toUpperCase()
+  );
 }
 
+/**
+ * Generates a workflow run identifier.
+ *
+ * @return {string}
+ */
 function createRunId() {
-  return "RUN-" + Utilities.getUuid().slice(0, 8).toUpperCase();
+  return (
+    "RUN-" +
+    Utilities.getUuid()
+      .slice(0, 8)
+      .toUpperCase()
+  );
 }
