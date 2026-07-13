@@ -1,6 +1,7 @@
 <nav
   class="app-navigation"
   aria-label="Primary navigation"
+  data-web-app-url="<?= webAppUrl ?>"
 >
   <div class="navigation-list">
     <? navigationItems.forEach(function (item) { ?>
@@ -10,11 +11,8 @@
             ? 'navigation-link-active'
             : ''
         ?>"
-        href="<?=
-          webAppUrl +
-          '?page=' +
-          encodeURIComponent(item.key)
-        ?>"
+        href="<?= webAppUrl ?>?page=<?= encodeURIComponent(item.key) ?>"
+        data-app-route="<?= item.key ?>"
         target="_top"
         <? if (currentRoute.key === item.key) { ?>
           aria-current="page"

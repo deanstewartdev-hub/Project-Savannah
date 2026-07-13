@@ -6,25 +6,30 @@
     /**
      * Starts page-specific frontend behaviour.
      */
-    initialise: function () {
-      const dashboardPage =
-        document.querySelector(
-          '[data-page="dashboard"]'
-        );
+    /**
+ * Starts shared and page-specific frontend behaviour.
+ */
+  initialise: function () {
+    this.navigation.initialise();
 
-      const scriptsPage =
-        document.querySelector(
-          '[data-page="scripts"]'
-        );
+    const dashboardPage =
+      document.querySelector(
+        '[data-page="dashboard"]'
+      );
 
-      if (dashboardPage) {
-        this.dashboard.load();
-      }
+    const scriptsPage =
+      document.querySelector(
+        '[data-page="scripts"]'
+      );
 
-      if (scriptsPage) {
-        this.scripts.initialise();
-      }
-    },
+    if (dashboardPage) {
+      this.dashboard.load();
+    }
+
+    if (scriptsPage) {
+      this.scripts.initialise();
+    }
+  },
 
     /**
      * Shared DOM utilities.
@@ -88,6 +93,68 @@
         }
       }
     },
+
+    /**
+ * Application navigation behaviour.
+ */
+navigation: {
+  /**
+   * Forces route changes through the absolute deployed
+   * Apps Script URL instead of Google's internal iframe.
+   */
+  initialise: function () {
+    const navigation =
+      document.querySelector(
+        ".app-navigation"
+      );
+
+    if (!navigation) {
+      return;
+    }
+
+    const webAppUrl = String(
+      navigation.dataset.webAppUrl || ""
+    ).trim();
+
+    if (!webAppUrl) {
+      console.error(
+        "Project Savannah web-app URL is unavailable."
+      );
+
+      return;
+    }
+
+    const links =
+      navigation.querySelectorAll(
+        "[data-app-route]"
+      );
+
+    links.forEach(function (link) {
+      link.addEventListener(
+        "click",
+        function (event) {
+          event.preventDefault();
+
+          const route = String(
+            link.dataset.appRoute || "dashboard"
+          ).trim();
+
+          const destination =
+            webAppUrl +
+            "?page=" +
+            encodeURIComponent(route);
+
+          /*
+           * Assignment to window.top is permitted from
+           * a user click and exits the Apps Script iframe.
+           */
+          window.top.location.href =
+            destination;
+        }
+      );
+    });
+  }
+},
 
     /**
      * Shared display formatting.
