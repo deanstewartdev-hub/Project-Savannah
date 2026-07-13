@@ -12,8 +12,17 @@
           '[data-page="dashboard"]'
         );
 
+      const scriptsPage =
+        document.querySelector(
+          '[data-page="scripts"]'
+        );
+
       if (dashboardPage) {
         this.dashboard.load();
+      }
+
+      if (scriptsPage) {
+        this.scripts.initialise();
       }
     },
 
@@ -56,6 +65,72 @@
         if (element) {
           element.hidden = true;
         }
+      },
+
+      clear: function (elementId) {
+        const element =
+          document.getElementById(elementId);
+
+        if (element) {
+          element.innerHTML = "";
+        }
+      },
+
+      setDisabled: function (
+        elementId,
+        disabled
+      ) {
+        const element =
+          document.getElementById(elementId);
+
+        if (element) {
+          element.disabled = Boolean(disabled);
+        }
+      }
+    },
+
+    /**
+     * Shared display formatting.
+     */
+    format: {
+      dateTime: function (value) {
+        if (!value) {
+          return "";
+        }
+
+        const date = new Date(value);
+
+        if (isNaN(date.getTime())) {
+          return String(value);
+        }
+
+        return date.toLocaleString();
+      },
+
+      duration: function (seconds) {
+        const numericValue = Number(seconds);
+
+        if (!isFinite(numericValue)) {
+          return "—";
+        }
+
+        return (
+          Math.round(numericValue) +
+          " sec"
+        );
+      },
+
+      cost: function (value) {
+        const numericValue = Number(value);
+
+        if (!isFinite(numericValue)) {
+          return "£0.0000";
+        }
+
+        return (
+          "£" +
+          numericValue.toFixed(4)
+        );
       }
     },
 
@@ -87,9 +162,6 @@
 
       /**
        * Handles a successful server invocation.
-       *
-       * A successful invocation may still contain an
-       * application-level failure response.
        *
        * @param {Object} response Controller response.
        */
@@ -152,7 +224,11 @@
           return;
         }
 
-        errorElement.textContent = message;
+        errorElement.textContent =
+          typeof message === "string"
+            ? message
+            : "Dashboard data could not be loaded.";
+
         errorElement.hidden = false;
       },
 
@@ -276,7 +352,7 @@
       },
 
       /**
-       * Renders lifetime pipeline totals.
+       * Renders lifetime totals.
        *
        * @param {Object} totals Totals model.
        */
@@ -328,10 +404,16 @@
           const emptyRow =
             document.createElement("tr");
 
-          emptyRow.innerHTML =
-            '<td colspan="3">No pipeline data available.</td>';
+          const emptyCell =
+            document.createElement("td");
 
+          emptyCell.colSpan = 3;
+          emptyCell.textContent =
+            "No pipeline data available.";
+
+          emptyRow.appendChild(emptyCell);
           tableBody.appendChild(emptyRow);
+
           return;
         }
 
@@ -361,7 +443,9 @@
           statusBadge.textContent =
             stage.statusLabel || "Unknown";
 
-          statusCell.appendChild(statusBadge);
+          statusCell.appendChild(
+            statusBadge
+          );
 
           recordsCell.textContent =
             Number(stage.recordCount) || 0;
@@ -375,7 +459,7 @@
       },
 
       /**
-       * Renders recent log activity.
+       * Renders recent activity.
        *
        * @param {Object[]} activityRecords Activity items.
        */
@@ -413,60 +497,1142 @@
           return;
         }
 
-        activityRecords.forEach(function (activity) {
+        activityRecords.forEach(
+          function (activity) {
+            const card =
+              document.createElement("article");
+
+            const header =
+              document.createElement("div");
+
+            const content =
+              document.createElement("div");
+
+            const badge =
+              document.createElement("span");
+
+            const time =
+              document.createElement("span");
+
+            const message =
+              document.createElement("p");
+
+            card.className = "card";
+
+            header.className =
+              "card-body page-header";
+
+            badge.className =
+              "badge " +
+              (activity.badgeClass || "");
+
+            badge.textContent =
+              activity.status || "Info";
+
+            time.className =
+              "text-muted text-small";
+
+            time.textContent =
+              activity.displayTime || "";
+
+            message.className =
+              "card-description";
+
+            message.textContent =
+              activity.message ||
+              activity.action ||
+              "Activity recorded";
+
+            content.appendChild(badge);
+            content.appendChild(message);
+
+            header.appendChild(content);
+            header.appendChild(time);
+
+            card.appendChild(header);
+
+            activityContainer.appendChild(
+              card
+            );
+          }
+        );
+      }
+    },
+
+    /**
+     * Scripts page behaviour.
+     */
+    scripts: {
+      state: {
+        scripts: [],
+        isGenerating: false
+      },
+
+      /**
+       * Initialises Scripts page events and data.
+       */
+      initialise: function () {
+        const refreshButton =
+          SavannahApp.dom.getById(
+            "scripts-refresh-button"
+          );
+
+        const generationForm =
+          SavannahApp.dom.getById(
+            "scripts-generation-form"
+          );
+
+        const statusFilter =
+          SavannahApp.dom.getById(
+            "scripts-status-filter"
+          );
+
+        const modalCloseButton =
+          SavannahApp.dom.getById(
+            "scripts-detail-close"
+          );
+
+        if (refreshButton) {
+          refreshButton.addEventListener(
+            "click",
+            function () {
+              SavannahApp.scripts.load();
+            }
+          );
+        }
+
+        if (generationForm) {
+          generationForm.addEventListener(
+            "submit",
+            function (event) {
+              event.preventDefault();
+
+              SavannahApp.scripts.generate();
+            }
+          );
+        }
+
+        if (statusFilter) {
+          statusFilter.addEventListener(
+            "change",
+            function () {
+              SavannahApp.scripts.loadList();
+            }
+          );
+        }
+
+        if (modalCloseButton) {
+          modalCloseButton.addEventListener(
+            "click",
+            SavannahApp.scripts.closeDetail
+          );
+        }
+
+        SavannahApp.scripts.load();
+      },
+
+      /**
+       * Loads scripts and metrics.
+       */
+      load: function () {
+        SavannahApp.scripts.clearMessages();
+
+        SavannahApp.dom.show(
+          "scripts-loading-message"
+        );
+
+        SavannahApp.scripts.loadMetrics();
+        SavannahApp.scripts.loadList();
+      },
+
+      /**
+       * Loads Scripts page metrics.
+       */
+      loadMetrics: function () {
+        google.script.run
+          .withSuccessHandler(
+            SavannahApp.scripts
+              .handleMetricsSuccess
+          )
+          .withFailureHandler(
+            SavannahApp.scripts
+              .handleServerFailure
+          )
+          .scriptsGetMetrics();
+      },
+
+      /**
+       * Loads stored scripts.
+       */
+      loadList: function () {
+        const statusFilter =
+          SavannahApp.dom.getById(
+            "scripts-status-filter"
+          );
+
+        const request = {
+          limit: 100,
+          status:
+            statusFilter
+              ? statusFilter.value
+              : ""
+        };
+
+        google.script.run
+          .withSuccessHandler(
+            SavannahApp.scripts
+              .handleListSuccess
+          )
+          .withFailureHandler(
+            SavannahApp.scripts
+              .handleServerFailure
+          )
+          .scriptsList(request);
+      },
+
+      /**
+       * Handles metric response.
+       *
+       * @param {Object} response Controller response.
+       */
+      handleMetricsSuccess: function (
+        response
+      ) {
+        if (
+          !response ||
+          response.success !== true ||
+          !response.data
+        ) {
+          SavannahApp.scripts.showError(
+            SavannahApp.scripts
+              .resolveResponseError(
+                response,
+                "Script metrics could not be loaded."
+              )
+          );
+
+          return;
+        }
+
+        const metrics = response.data;
+        const statuses =
+          metrics.statusCounts || {};
+
+        SavannahApp.dom.setText(
+          "scripts-total-count",
+          metrics.totalScripts || 0
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-created-today",
+          metrics.createdToday || 0
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-formatted-count",
+          statuses.FORMATTED || 0
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-pending-count",
+          statuses.PENDING_APPROVAL || 0
+        );
+      },
+
+      /**
+       * Handles script-list response.
+       *
+       * @param {Object} response Controller response.
+       */
+      handleListSuccess: function (
+        response
+      ) {
+        SavannahApp.dom.hide(
+          "scripts-loading-message"
+        );
+
+        if (
+          !response ||
+          response.success !== true ||
+          !response.data ||
+          !Array.isArray(
+            response.data.scripts
+          )
+        ) {
+          SavannahApp.scripts.showError(
+            SavannahApp.scripts
+              .resolveResponseError(
+                response,
+                "Scripts could not be loaded."
+              )
+          );
+
+          return;
+        }
+
+        SavannahApp.scripts.state.scripts =
+          response.data.scripts;
+
+        SavannahApp.scripts.renderTable(
+          response.data.scripts
+        );
+      },
+
+      /**
+       * Creates one script-generation request.
+       */
+      generate: function () {
+        if (
+          SavannahApp.scripts.state
+            .isGenerating
+        ) {
+          return;
+        }
+
+        SavannahApp.scripts.clearMessages();
+
+        const ideaId =
+          SavannahApp.scripts
+            .readInputValue(
+              "scripts-idea-id"
+            );
+
+        const videoIdea =
+          SavannahApp.scripts
+            .readInputValue(
+              "scripts-idea-title"
+            );
+
+        if (!ideaId || !videoIdea) {
+          SavannahApp.scripts.showError(
+            "Idea ID and video idea are required."
+          );
+
+          return;
+        }
+
+        const durationElement =
+          SavannahApp.dom.getById(
+            "scripts-target-duration"
+          );
+
+        const request = {
+          idea: {
+            id: ideaId,
+
+            videoIdea: videoIdea,
+
+            hook:
+              SavannahApp.scripts
+                .readInputValue(
+                  "scripts-idea-hook"
+                ),
+
+            targetAudience:
+              SavannahApp.scripts
+                .readInputValue(
+                  "scripts-target-audience"
+                ),
+
+            niche:
+              SavannahApp.scripts
+                .readInputValue(
+                  "scripts-niche"
+                )
+          },
+
+          options: {
+            targetDurationSeconds:
+              durationElement
+                ? Number(
+                    durationElement.value
+                  )
+                : 50,
+
+            maxValidationAttempts: 3,
+            status: "FORMATTED"
+          }
+        };
+
+        SavannahApp.scripts
+          .setGeneratingState(true);
+
+        google.script.run
+          .withSuccessHandler(
+            SavannahApp.scripts
+              .handleGenerationSuccess
+          )
+          .withFailureHandler(
+            SavannahApp.scripts
+              .handleGenerationFailure
+          )
+          .scriptsGenerateScript(request);
+      },
+
+      /**
+       * Handles a generated script response.
+       *
+       * @param {Object} response Controller response.
+       */
+      handleGenerationSuccess: function (
+        response
+      ) {
+        SavannahApp.scripts
+          .setGeneratingState(false);
+
+        if (
+          !response ||
+          response.success !== true ||
+          !response.data ||
+          !response.data.script
+        ) {
+          SavannahApp.scripts.showError(
+            SavannahApp.scripts
+              .resolveResponseError(
+                response,
+                "Script generation failed."
+              )
+          );
+
+          return;
+        }
+
+        SavannahApp.scripts.showSuccess(
+          "Script generated and saved successfully."
+        );
+
+        SavannahApp.scripts.renderGeneratedResult(
+          response.data
+        );
+
+        SavannahApp.scripts.loadMetrics();
+        SavannahApp.scripts.loadList();
+
+        if (
+          document.querySelector(
+            '[data-page="dashboard"]'
+          )
+        ) {
+          SavannahApp.dashboard.load();
+        }
+      },
+
+      /**
+       * Handles a failed generation invocation.
+       *
+       * @param {*} error Browser/server error.
+       */
+      handleGenerationFailure: function (
+        error
+      ) {
+        SavannahApp.scripts
+          .setGeneratingState(false);
+
+        SavannahApp.scripts.showError(
+          error && error.message
+            ? error.message
+            : "Script generation failed."
+        );
+      },
+
+      /**
+       * Handles general server failures.
+       *
+       * @param {*} error Browser/server error.
+       */
+      handleServerFailure: function (
+        error
+      ) {
+        SavannahApp.dom.hide(
+          "scripts-loading-message"
+        );
+
+        SavannahApp.scripts.showError(
+          error && error.message
+            ? error.message
+            : "The server request failed."
+        );
+      },
+
+      /**
+       * Renders script table rows.
+       *
+       * @param {Object[]} scripts Script summaries.
+       */
+      renderTable: function (scripts) {
+        const tableBody =
+          SavannahApp.dom.getById(
+            "scripts-table-body"
+          );
+
+        if (!tableBody) {
+          return;
+        }
+
+        tableBody.innerHTML = "";
+
+        if (
+          !Array.isArray(scripts) ||
+          scripts.length === 0
+        ) {
+          const row =
+            document.createElement("tr");
+
+          const cell =
+            document.createElement("td");
+
+          cell.colSpan = 7;
+          cell.textContent =
+            "No scripts match the selected filters.";
+
+          row.appendChild(cell);
+          tableBody.appendChild(row);
+
+          return;
+        }
+
+        scripts.forEach(function (script) {
+          const row =
+            document.createElement("tr");
+
+          const titleCell =
+            document.createElement("td");
+
+          const statusCell =
+            document.createElement("td");
+
+          const durationCell =
+            document.createElement("td");
+
+          const wordsCell =
+            document.createElement("td");
+
+          const modelCell =
+            document.createElement("td");
+
+          const updatedCell =
+            document.createElement("td");
+
+          const actionsCell =
+            document.createElement("td");
+
+          const statusBadge =
+            document.createElement("span");
+
+          const viewButton =
+            document.createElement("button");
+
+          titleCell.textContent =
+            script.title || "Untitled script";
+
+          statusBadge.className =
+            "badge " +
+            SavannahApp.scripts
+              .getStatusBadgeClass(
+                script.status
+              );
+
+          statusBadge.textContent =
+            script.status || "Unknown";
+
+          statusCell.appendChild(
+            statusBadge
+          );
+
+          durationCell.textContent =
+            SavannahApp.format.duration(
+              script
+                .estimatedDurationSeconds
+            );
+
+          wordsCell.textContent =
+            Number(script.wordCount) || 0;
+
+          modelCell.textContent =
+            script.aiModel || "—";
+
+          updatedCell.textContent =
+            SavannahApp.format.dateTime(
+              script.updatedAt
+            );
+
+          viewButton.type = "button";
+          viewButton.className =
+            "button button-secondary";
+
+          viewButton.textContent =
+            "View";
+
+          viewButton.addEventListener(
+            "click",
+            function () {
+              SavannahApp.scripts.openDetail(
+                script.id
+              );
+            }
+          );
+
+          actionsCell.appendChild(
+            viewButton
+          );
+
+          row.appendChild(titleCell);
+          row.appendChild(statusCell);
+          row.appendChild(durationCell);
+          row.appendChild(wordsCell);
+          row.appendChild(modelCell);
+          row.appendChild(updatedCell);
+          row.appendChild(actionsCell);
+
+          tableBody.appendChild(row);
+        });
+      },
+
+      /**
+       * Displays the latest generated result.
+       *
+       * @param {Object} data Controller data.
+       */
+      renderGeneratedResult: function (
+        data
+      ) {
+        const script = data.script || {};
+
+        SavannahApp.dom.setText(
+          "scripts-result-title",
+          script.title || "Generated script"
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-result-status",
+          script.status || "FORMATTED"
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-result-meta",
+          [
+            SavannahApp.format.duration(
+              script
+                .estimatedDurationSeconds
+            ),
+            "Validation attempts: " +
+              (
+                Number(
+                  data.validationAttempts
+                ) || 1
+              ),
+            "Estimated cost: " +
+              SavannahApp.format.cost(
+                data.estimatedCost
+              )
+          ].join(" · ")
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-result-hook",
+          script.hook || ""
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-result-voiceover",
+          script.voiceoverScript || ""
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-result-cta",
+          script.callToAction || ""
+        );
+
+        SavannahApp.scripts.renderScenes(
+          "scripts-result-scenes",
+          script.scenes
+        );
+
+        SavannahApp.dom.show(
+          "scripts-generated-result"
+        );
+      },
+
+      /**
+       * Loads one complete script.
+       *
+       * @param {string} scriptId Script ID.
+       */
+      openDetail: function (scriptId) {
+        SavannahApp.scripts.clearMessages();
+
+        google.script.run
+          .withSuccessHandler(
+            SavannahApp.scripts
+              .handleDetailSuccess
+          )
+          .withFailureHandler(
+            SavannahApp.scripts
+              .handleServerFailure
+          )
+          .scriptsGet({
+            scriptId: scriptId
+          });
+      },
+
+      /**
+       * Handles one complete script response.
+       *
+       * @param {Object} response Controller response.
+       */
+      handleDetailSuccess: function (
+        response
+      ) {
+        if (
+          !response ||
+          response.success !== true ||
+          !response.data ||
+          !response.data.script
+        ) {
+          SavannahApp.scripts.showError(
+            SavannahApp.scripts
+              .resolveResponseError(
+                response,
+                "Script could not be loaded."
+              )
+          );
+
+          return;
+        }
+
+        SavannahApp.scripts.renderDetail(
+          response.data.script
+        );
+      },
+
+      /**
+       * Renders the detail modal.
+       *
+       * @param {Object} script Complete script.
+       */
+      renderDetail: function (script) {
+        const container =
+          SavannahApp.dom.getById(
+            "scripts-detail-content"
+          );
+
+        if (!container) {
+          return;
+        }
+
+        container.innerHTML = "";
+
+        SavannahApp.dom.setText(
+          "scripts-detail-title",
+          script.title || "Script"
+        );
+
+        container.appendChild(
+          SavannahApp.scripts
+            .createDetailSection(
+              "Status",
+              script.status || ""
+            )
+        );
+
+        container.appendChild(
+          SavannahApp.scripts
+            .createDetailSection(
+              "Hook",
+              script.hook || ""
+            )
+        );
+
+        container.appendChild(
+          SavannahApp.scripts
+            .createDetailSection(
+              "Voiceover",
+              script.voiceoverScript || ""
+            )
+        );
+
+        container.appendChild(
+          SavannahApp.scripts
+            .createDetailSection(
+              "Call to action",
+              script.callToAction || ""
+            )
+        );
+
+        const scenesSection =
+          document.createElement("section");
+
+        const scenesTitle =
+          document.createElement("h3");
+
+        const scenesContainer =
+          document.createElement("div");
+
+        scenesTitle.textContent =
+          "Scenes";
+
+        scenesContainer.id =
+          "scripts-detail-scenes";
+
+        scenesSection.appendChild(
+          scenesTitle
+        );
+
+        scenesSection.appendChild(
+          scenesContainer
+        );
+
+        container.appendChild(
+          scenesSection
+        );
+
+        SavannahApp.scripts.renderScenes(
+          "scripts-detail-scenes",
+          script.scenes
+        );
+
+        container.appendChild(
+          SavannahApp.scripts
+            .createDetailSection(
+              "Technical details",
+              [
+                "Script ID: " +
+                  (script.id || ""),
+                "Idea ID: " +
+                  (script.ideaId || ""),
+                "Duration: " +
+                  SavannahApp.format.duration(
+                    script
+                      .estimatedDurationSeconds
+                  ),
+                "AI model: " +
+                  (script.aiModel || ""),
+                "Prompt version: " +
+                  (script.promptVersion || ""),
+                "Created: " +
+                  SavannahApp.format.dateTime(
+                    script.createdAt
+                  ),
+                "Updated: " +
+                  SavannahApp.format.dateTime(
+                    script.updatedAt
+                  )
+              ].join("\n")
+            )
+        );
+
+        SavannahApp.dom.show(
+          "scripts-detail-modal"
+        );
+      },
+
+      /**
+       * Creates one modal section.
+       *
+       * @param {string} title Section title.
+       * @param {string} content Section content.
+       * @return {HTMLElement} Section element.
+       */
+      createDetailSection: function (
+        title,
+        content
+      ) {
+        const section =
+          document.createElement("section");
+
+        const heading =
+          document.createElement("h3");
+
+        const paragraph =
+          document.createElement("p");
+
+        heading.textContent = title;
+
+        paragraph.textContent =
+          content || "";
+
+        paragraph.style.whiteSpace =
+          "pre-wrap";
+
+        section.appendChild(heading);
+        section.appendChild(paragraph);
+
+        return section;
+      },
+
+      /**
+       * Renders scene cards.
+       *
+       * @param {string} containerId Container ID.
+       * @param {Object[]} scenes Scene collection.
+       */
+      renderScenes: function (
+        containerId,
+        scenes
+      ) {
+        const container =
+          SavannahApp.dom.getById(
+            containerId
+          );
+
+        if (!container) {
+          return;
+        }
+
+        container.innerHTML = "";
+
+        if (
+          !Array.isArray(scenes) ||
+          scenes.length === 0
+        ) {
+          const empty =
+            document.createElement("p");
+
+          empty.textContent =
+            "No scene data is available.";
+
+          container.appendChild(empty);
+
+          return;
+        }
+
+        scenes.forEach(function (scene) {
           const card =
             document.createElement("article");
 
-          const header =
+          const body =
             document.createElement("div");
 
-          const badge =
-            document.createElement("span");
+          const title =
+            document.createElement("h4");
 
-          const time =
-            document.createElement("span");
+          const narration =
+            document.createElement("p");
 
-          const message =
+          const onScreen =
+            document.createElement("p");
+
+          const visual =
             document.createElement("p");
 
           card.className = "card";
-          header.className =
-            "card-body page-header";
+          body.className = "card-body";
 
-          badge.className =
-            "badge " +
-            (activity.badgeClass || "");
+          title.textContent =
+            "Scene " +
+            (
+              scene.sceneNumber || ""
+            ) +
+            " · " +
+            SavannahApp.format.duration(
+              scene.estimatedSeconds
+            );
 
-          badge.textContent =
-            activity.status || "Info";
+          narration.textContent =
+            "Narration: " +
+            (scene.narration || "");
 
-          time.className =
-            "text-muted text-small";
+          onScreen.textContent =
+            "On-screen text: " +
+            (scene.onScreenText || "");
 
-          time.textContent =
-            activity.displayTime || "";
+          visual.textContent =
+            "Visual direction: " +
+            (scene.visualDirection || "");
 
-          message.className =
-            "card-description";
+          body.appendChild(title);
+          body.appendChild(narration);
+          body.appendChild(onScreen);
+          body.appendChild(visual);
 
-          message.textContent =
-            activity.message ||
-            activity.action ||
-            "Activity recorded";
-
-          const content =
-            document.createElement("div");
-
-          content.appendChild(badge);
-          content.appendChild(message);
-
-          header.appendChild(content);
-          header.appendChild(time);
-
-          card.appendChild(header);
-
-          activityContainer.appendChild(card);
+          card.appendChild(body);
+          container.appendChild(card);
         });
+      },
+
+      /**
+       * Closes the detail modal.
+       */
+      closeDetail: function () {
+        SavannahApp.dom.hide(
+          "scripts-detail-modal"
+        );
+      },
+
+      /**
+       * Enables or disables generation UI.
+       *
+       * @param {boolean} isGenerating Loading state.
+       */
+      setGeneratingState: function (
+        isGenerating
+      ) {
+        SavannahApp.scripts.state
+          .isGenerating =
+          Boolean(isGenerating);
+
+        SavannahApp.dom.setDisabled(
+          "scripts-generate-button",
+          isGenerating
+        );
+
+        if (isGenerating) {
+          SavannahApp.dom.show(
+            "scripts-generation-status"
+          );
+
+          SavannahApp.dom.setText(
+            "scripts-generate-button",
+            "Generating..."
+          );
+        } else {
+          SavannahApp.dom.hide(
+            "scripts-generation-status"
+          );
+
+          SavannahApp.dom.setText(
+            "scripts-generate-button",
+            "Generate Script"
+          );
+        }
+      },
+
+      /**
+       * Reads one form input.
+       *
+       * @param {string} elementId Element ID.
+       * @return {string} Trimmed value.
+       */
+      readInputValue: function (
+        elementId
+      ) {
+        const element =
+          SavannahApp.dom.getById(
+            elementId
+          );
+
+        return element
+          ? String(
+              element.value || ""
+            ).trim()
+          : "";
+      },
+
+      /**
+       * Displays a success message.
+       *
+       * @param {string} message Message text.
+       */
+      showSuccess: function (message) {
+        const element =
+          SavannahApp.dom.getById(
+            "scripts-success-message"
+          );
+
+        if (!element) {
+          return;
+        }
+
+        element.textContent = message;
+        element.hidden = false;
+
+        SavannahApp.dom.hide(
+          "scripts-error-message"
+        );
+      },
+
+      /**
+       * Displays an error message.
+       *
+       * @param {string} message Message text.
+       */
+      showError: function (message) {
+        const element =
+          SavannahApp.dom.getById(
+            "scripts-error-message"
+          );
+
+        if (!element) {
+          return;
+        }
+
+        element.textContent =
+          message ||
+          "An unexpected error occurred.";
+
+        element.hidden = false;
+
+        SavannahApp.dom.hide(
+          "scripts-success-message"
+        );
+      },
+
+      /**
+       * Clears page messages.
+       */
+      clearMessages: function () {
+        SavannahApp.dom.hide(
+          "scripts-success-message"
+        );
+
+        SavannahApp.dom.hide(
+          "scripts-error-message"
+        );
+      },
+
+      /**
+       * Resolves a controller error response.
+       *
+       * @param {Object} response Controller response.
+       * @param {string} fallback Fallback message.
+       * @return {string} Error message.
+       */
+      resolveResponseError: function (
+        response,
+        fallback
+      ) {
+        if (
+          response &&
+          response.error &&
+          response.error.message
+        ) {
+          return response.error.message;
+        }
+
+        if (
+          response &&
+          response.message
+        ) {
+          return response.message;
+        }
+
+        return fallback;
+      },
+
+      /**
+       * Resolves a status badge class.
+       *
+       * @param {string} status Script status.
+       * @return {string} Badge class.
+       */
+      getStatusBadgeClass: function (
+        status
+      ) {
+        const statusClasses = {
+          DRAFT: "badge-warning",
+          GENERATED: "badge-info",
+          VALIDATED: "badge-info",
+          FORMATTED: "badge-success",
+          PENDING_APPROVAL:
+            "badge-warning",
+          APPROVED: "badge-success",
+          REJECTED: "badge-error",
+          ARCHIVED: ""
+        };
+
+        return (
+          statusClasses[status] || ""
+        );
       }
     }
   };

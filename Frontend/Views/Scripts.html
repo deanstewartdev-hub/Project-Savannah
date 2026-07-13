@@ -1,0 +1,491 @@
+<section
+  class="page"
+  data-page="scripts"
+>
+  <header class="page-header">
+    <div>
+      <p class="page-eyebrow">
+        Content Engine
+      </p>
+
+      <h1 class="page-title">
+        Scripts
+      </h1>
+
+      <p class="page-description">
+        Generate, review and manage validated YouTube Shorts scripts.
+      </p>
+    </div>
+
+    <div>
+      <button
+        id="scripts-refresh-button"
+        class="button button-secondary"
+        type="button"
+      >
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <div
+    id="scripts-success-message"
+    class="alert alert-success"
+    role="status"
+    hidden
+  ></div>
+
+  <div
+    id="scripts-error-message"
+    class="alert alert-error"
+    role="alert"
+    hidden
+  ></div>
+
+  <div
+    id="scripts-loading-message"
+    class="alert alert-info"
+    role="status"
+    hidden
+  >
+    Loading scripts...
+  </div>
+
+  <section
+    class="dashboard-grid"
+    aria-label="Script metrics"
+  >
+    <article class="card">
+      <div class="card-body">
+        <p class="card-label">
+          Total scripts
+        </p>
+
+        <p
+          id="scripts-total-count"
+          class="card-value"
+        >
+          0
+        </p>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-body">
+        <p class="card-label">
+          Created today
+        </p>
+
+        <p
+          id="scripts-created-today"
+          class="card-value"
+        >
+          0
+        </p>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-body">
+        <p class="card-label">
+          Formatted
+        </p>
+
+        <p
+          id="scripts-formatted-count"
+          class="card-value"
+        >
+          0
+        </p>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-body">
+        <p class="card-label">
+          Pending approval
+        </p>
+
+        <p
+          id="scripts-pending-count"
+          class="card-value"
+        >
+          0
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">
+          Generate a script
+        </h2>
+
+        <p class="card-description">
+          Enter an existing idea and Savannah will generate, validate,
+          repair, format and save the script.
+        </p>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <form id="scripts-generation-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="scripts-idea-id"
+            >
+              Idea ID
+            </label>
+
+            <input
+              id="scripts-idea-id"
+              class="form-control"
+              name="ideaId"
+              type="text"
+              placeholder="IDEA-12345678"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="scripts-idea-title"
+            >
+              Video idea
+            </label>
+
+            <input
+              id="scripts-idea-title"
+              class="form-control"
+              name="videoIdea"
+              type="text"
+              placeholder="Five mistakes first-time visitors make in Rome"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="scripts-idea-hook"
+            >
+              Hook
+            </label>
+
+            <input
+              id="scripts-idea-hook"
+              class="form-control"
+              name="hook"
+              type="text"
+              placeholder="Visiting Rome soon? Avoid these five mistakes."
+            >
+          </div>
+
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="scripts-target-audience"
+            >
+              Target audience
+            </label>
+
+            <input
+              id="scripts-target-audience"
+              class="form-control"
+              name="targetAudience"
+              type="text"
+              placeholder="First-time travellers"
+            >
+          </div>
+
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="scripts-niche"
+            >
+              Niche
+            </label>
+
+            <input
+              id="scripts-niche"
+              class="form-control"
+              name="niche"
+              type="text"
+              placeholder="Travel advice"
+            >
+          </div>
+
+          <div class="form-group">
+            <label
+              class="form-label"
+              for="scripts-target-duration"
+            >
+              Target duration
+            </label>
+
+            <select
+              id="scripts-target-duration"
+              class="form-control"
+              name="targetDurationSeconds"
+            >
+              <option value="40">
+                40 seconds
+              </option>
+
+              <option
+                value="50"
+                selected
+              >
+                50 seconds
+              </option>
+
+              <option value="60">
+                60 seconds
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="page-actions">
+          <button
+            id="scripts-generate-button"
+            class="button button-primary"
+            type="submit"
+          >
+            Generate Script
+          </button>
+
+          <span
+            id="scripts-generation-status"
+            class="text-muted"
+            hidden
+          >
+            Savannah is generating and validating your script...
+          </span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section
+    id="scripts-generated-result"
+    class="card"
+    hidden
+  >
+    <div class="card-header">
+      <div>
+        <p class="page-eyebrow">
+          Latest generation
+        </p>
+
+        <h2
+          id="scripts-result-title"
+          class="card-title"
+        ></h2>
+
+        <p
+          id="scripts-result-meta"
+          class="card-description"
+        ></p>
+      </div>
+
+      <span
+        id="scripts-result-status"
+        class="badge badge-success"
+      >
+        Formatted
+      </span>
+    </div>
+
+    <div class="card-body">
+      <div class="form-group">
+        <h3>
+          Hook
+        </h3>
+
+        <p id="scripts-result-hook"></p>
+      </div>
+
+      <div class="form-group">
+        <h3>
+          Voiceover
+        </h3>
+
+        <p id="scripts-result-voiceover"></p>
+      </div>
+
+      <div class="form-group">
+        <h3>
+          Call to action
+        </h3>
+
+        <p id="scripts-result-cta"></p>
+      </div>
+
+      <div class="form-group">
+        <h3>
+          Scenes
+        </h3>
+
+        <div id="scripts-result-scenes"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">
+          Saved scripts
+        </h2>
+
+        <p class="card-description">
+          Scripts are ordered by their most recent update.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label
+          class="form-label"
+          for="scripts-status-filter"
+        >
+          Status
+        </label>
+
+        <select
+          id="scripts-status-filter"
+          class="form-control"
+        >
+          <option value="">
+            All statuses
+          </option>
+
+          <option value="DRAFT">
+            Draft
+          </option>
+
+          <option value="GENERATED">
+            Generated
+          </option>
+
+          <option value="VALIDATED">
+            Validated
+          </option>
+
+          <option value="FORMATTED">
+            Formatted
+          </option>
+
+          <option value="PENDING_APPROVAL">
+            Pending approval
+          </option>
+
+          <option value="APPROVED">
+            Approved
+          </option>
+
+          <option value="REJECTED">
+            Rejected
+          </option>
+
+          <option value="ARCHIVED">
+            Archived
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>
+                Title
+              </th>
+
+              <th>
+                Status
+              </th>
+
+              <th>
+                Duration
+              </th>
+
+              <th>
+                Words
+              </th>
+
+              <th>
+                AI model
+              </th>
+
+              <th>
+                Updated
+              </th>
+
+              <th>
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody id="scripts-table-body">
+            <tr>
+              <td colspan="7">
+                No scripts loaded.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div
+    id="scripts-detail-modal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="scripts-detail-title"
+    hidden
+  >
+    <div class="modal-backdrop"></div>
+
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <p class="page-eyebrow">
+            Script details
+          </p>
+
+          <h2
+            id="scripts-detail-title"
+            class="modal-title"
+          >
+            Script
+          </h2>
+        </div>
+
+        <button
+          id="scripts-detail-close"
+          class="button button-secondary"
+          type="button"
+          aria-label="Close script details"
+        >
+          Close
+        </button>
+      </div>
+
+      <div
+        id="scripts-detail-content"
+        class="modal-body"
+      ></div>
+    </div>
+  </div>
+</section>
