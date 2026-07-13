@@ -17,6 +17,18 @@
  * @param {Object=} event Apps Script web request event.
  * @return {GoogleAppsScript.HTML.HtmlOutput} Rendered page.
  */
+/**
+ * Serves the Project Savannah web application.
+ *
+ * Route examples:
+ * ?page=dashboard
+ * ?page=ideas
+ * ?page=scripts
+ *
+ * @param {Object=} event Apps Script web request event.
+ * @return {GoogleAppsScript.HTML.HtmlOutput} Rendered page.
+ */
+
 function doGet(event) {
   const requestedPage =
     event &&
@@ -25,21 +37,39 @@ function doGet(event) {
       ? event.parameter.page
       : APP_ROUTES.DASHBOARD;
 
-  const route = resolveAppRoute(requestedPage);
+  const route =
+    resolveAppRoute(requestedPage);
 
-  const template = HtmlService.createTemplateFromFile(
-    "Frontend/Index"
-  );
+  const template =
+    HtmlService.createTemplateFromFile(
+      "Frontend/Index"
+    );
 
-  template.appName = "Project Savannah";
-  template.appVersion = "v1.2";
-  template.currentRoute = route;
-  template.navigationItems = getAppNavigation();
+  template.appName =
+    "Project Savannah";
+
+  template.appVersion =
+    "v1.2";
+
+  template.currentRoute =
+    route;
+
+  template.navigationItems =
+    getAppNavigation();
+
+  /*
+   * The deployed web-app URL is supplied to the HTML
+   * template so navigation links do not resolve against
+   * Google's embedded googleusercontent iframe.
+   */
+  template.webAppUrl =
+    ScriptApp.getService().getUrl();
 
   return template
     .evaluate()
     .setTitle(
-      route.title + " | Project Savannah"
+      route.title +
+      " | Project Savannah"
     )
     .addMetaTag(
       "viewport",

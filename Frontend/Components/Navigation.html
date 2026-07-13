@@ -1,0 +1,27 @@
+<nav
+  class="app-navigation"
+  aria-label="Primary navigation"
+>
+  <div class="navigation-list">
+    <? navigationItems.forEach(function (item) { ?>
+      <a
+        class="navigation-link <?=
+          currentRoute.key === item.key
+            ? 'navigation-link-active'
+            : ''
+        ?>"
+        href="<?=
+          webAppUrl +
+          '?page=' +
+          encodeURIComponent(item.key)
+        ?>"
+        target="_top"
+        <? if (currentRoute.key === item.key) { ?>
+          aria-current="page"
+        <? } ?>
+      >
+        <?= item.title ?>
+      </a>
+    <? }); ?>
+  </div>
+</nav>
