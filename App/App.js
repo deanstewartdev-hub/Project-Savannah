@@ -146,17 +146,83 @@ function includeFrontend(filename) {
   return HtmlService
     .createHtmlOutputFromFile(filename.trim())
     .getContent();
+}/**
+ * Loads a static frontend HTML file using its full project path.
+ *
+ * Use this helper for files that do not contain Apps Script
+ * template expressions.
+ *
+ * @param {string} filename Full Apps Script HTML file path.
+ * @return {string} HTML file contents.
+ */
+function includeFrontend(filename) {
+  if (
+    !filename ||
+    typeof filename !== "string" ||
+    !filename.trim()
+  ) {
+    throw new Error(
+      "A valid frontend filename is required."
+    );
+  }
+
+  return HtmlService
+    .createHtmlOutputFromFile(filename.trim())
+    .getContent();
 }
 
 /**
- * Renders the navigation component as an Apps Script
- * HTML template.
+ * Evaluates a frontend HTML template using supplied data.
  *
- * Unlike includeFrontend(), this function evaluates the
- * template expressions contained inside Navigation.html.
+ * Use this helper for components containing template
+ * expressions such as:
  *
- * @param {Object} currentRoute Active route.
- * @param {Object[]} navigationItems Navigation links.
+ * <?= appName ?>
+ * <? navigationItems.forEach(...) ?>
+ *
+ * @param {string} filename Full Apps Script HTML file path.
+ * @param {Object=} templateData Values exposed to the template.
+ * @return {string} Evaluated HTML content.
+ */
+function renderFrontendTemplate(
+  filename,
+  templateData
+) {
+  if (
+    !filename ||
+    typeof filename !== "string" ||
+    !filename.trim()
+  ) {
+    throw new Error(
+      "A valid frontend template filename is required."
+    );
+  }
+
+  const template =
+    HtmlService.createTemplateFromFile(
+      filename.trim()
+    );
+
+  const data =
+    templateData &&
+    typeof templateData === "object"
+      ? templateData
+      : {};
+
+  Object.keys(data).forEach(function (key) {
+    template[key] = data[key];
+  });
+
+  return template
+    .evaluate()
+    .getContent();
+}
+
+/**
+ * Renders the primary navigation component.
+ *
+ * @param {Object} currentRoute Active application route.
+ * @param {Object[]} navigationItems Navigation routes.
  * @param {string} webAppUrl Deployed web-app URL.
  * @return {string} Evaluated navigation HTML.
  */
@@ -182,30 +248,22 @@ function renderNavigation(
 
   if (
     !webAppUrl ||
-    typeof webAppUrl !== "string"
+    typeof webAppUrl !== "string" ||
+    !webAppUrl.trim()
   ) {
     throw new Error(
       "A valid web-app URL is required."
     );
   }
 
-  const template =
-    HtmlService.createTemplateFromFile(
-      "Frontend/Components/Navigation"
-    );
-
-  template.currentRoute =
-    currentRoute;
-
-  template.navigationItems =
-    navigationItems;
-
-  template.webAppUrl =
-    webAppUrl;
-
-  return template
-    .evaluate()
-    .getContent();
+  return renderFrontendTemplate(
+    "Frontend/Components/Navigation/Navigation",
+    {
+      currentRoute: currentRoute,
+      navigationItems: navigationItems,
+      webAppUrl: webAppUrl.trim()
+    }
+  );
 }
 
 /**

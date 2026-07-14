@@ -1,14 +1,19 @@
 <nav
-  class="app-navigation"
+  class="sidebar-navigation"
   aria-label="Primary navigation"
   data-web-app-url="<?= webAppUrl ?>"
 >
-  <div class="navigation-list">
+  <p class="sidebar-section-label">
+    Workspace
+  </p>
+
+  <div class="sidebar-navigation-list">
     <? navigationItems.forEach(function (item) { ?>
+
       <a
-        class="nav-link <?=
+        class="sidebar-nav-link <?=
           currentRoute.key === item.key
-            ? 'nav-link-active'
+            ? 'sidebar-nav-link-active'
             : ''
         ?>"
         href="<?= webAppUrl ?>?page=<?=
@@ -20,8 +25,130 @@
           aria-current="page"
         <? } ?>
       >
-        <?= item.title ?>
+        <span
+          class="sidebar-nav-icon"
+          aria-hidden="true"
+        >
+          <? if (item.key === 'dashboard') { ?>
+
+            <svg viewBox="0 0 24 24">
+              <rect
+                x="3"
+                y="3"
+                width="7"
+                height="7"
+                rx="1"
+              ></rect>
+
+              <rect
+                x="14"
+                y="3"
+                width="7"
+                height="7"
+                rx="1"
+              ></rect>
+
+              <rect
+                x="3"
+                y="14"
+                width="7"
+                height="7"
+                rx="1"
+              ></rect>
+
+              <rect
+                x="14"
+                y="14"
+                width="7"
+                height="7"
+                rx="1"
+              ></rect>
+            </svg>
+
+          <? } else if (item.key === 'ideas') { ?>
+
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M9 18h6"
+              ></path>
+
+              <path
+                d="M10 22h4"
+              ></path>
+
+              <path
+                d="M8.5 14.5A7 7 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"
+              ></path>
+            </svg>
+
+          <? } else if (item.key === 'scripts') { ?>
+
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M6 3h9l3 3v15H6z"
+              ></path>
+
+              <path d="M14 3v4h4"></path>
+              <path d="M9 12h6"></path>
+              <path d="M9 16h6"></path>
+            </svg>
+
+          <? } else if (item.key === 'seo') { ?>
+
+            <svg viewBox="0 0 24 24">
+              <circle
+                cx="10"
+                cy="10"
+                r="6"
+              ></circle>
+
+              <path d="m15 15 5 5"></path>
+              <path d="M7 10h6"></path>
+              <path d="M10 7v6"></path>
+            </svg>
+
+          <? } else if (
+            item.key === 'queue' ||
+            item.key === 'approval'
+          ) { ?>
+
+            <svg viewBox="0 0 24 24">
+              <path d="M9 11l3 3L22 4"></path>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+            </svg>
+
+          <? } else if (item.key === 'settings') { ?>
+
+            <svg viewBox="0 0 24 24">
+              <circle
+                cx="12"
+                cy="12"
+                r="3"
+              ></circle>
+
+              <path
+                d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"
+              ></path>
+            </svg>
+
+          <? } else { ?>
+
+            <svg viewBox="0 0 24 24">
+              <circle
+                cx="12"
+                cy="12"
+                r="8"
+              ></circle>
+            </svg>
+
+          <? } ?>
+        </span>
+
+        <span class="sidebar-nav-label">
+          <?= item.title ?>
+        </span>
       </a>
+
     <? }); ?>
   </div>
 </nav>

@@ -1,0 +1,144 @@
+<style>
+  /* ==================================================
+     Global reset
+     ================================================== */
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-height: 100%;
+    background: var(--color-background);
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-normal);
+  }
+
+  /* ==================================================
+     Form element typography
+     ================================================== */
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  /* ==================================================
+     Links
+     ================================================== */
+
+  a {
+    color: inherit;
+  }
+
+  /* ==================================================
+     Application branding
+     ================================================== */
+
+  .app-eyebrow {
+    margin: 0 0 var(--space-1);
+    color: var(--color-brand-600);
+    font-size: var(--font-size-eyebrow);
+    font-weight: var(--font-weight-extra-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .app-brand {
+    margin: 0;
+    font-size: clamp(25px, 4vw, var(--font-size-display));
+    font-weight: var(--font-weight-extra-bold);
+    line-height: 1.05;
+  }
+
+  .app-version {
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-bold);
+  }
+
+  /* ==================================================
+     Page typography
+     ================================================== */
+
+  .page-title {
+    margin: 0 0 7px;
+    font-size: clamp(26px, 4vw, var(--font-size-page-title));
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+  }
+
+  .page-description {
+    max-width: 720px;
+    margin: 0;
+    color: var(--color-text-secondary);
+  }
+
+  /* ==================================================
+     Section typography
+     ================================================== */
+
+  .section-title {
+    margin: 0;
+    font-size: var(--font-size-section-title);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .section-description {
+    margin: var(--space-1) 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+  }
+
+  /* ==================================================
+     Card typography
+     ================================================== */
+
+  .card-title {
+    margin: 0;
+    font-size: var(--font-size-card-title);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .card-description {
+    margin: 5px 0 0;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+  }
+
+  /* ==================================================
+     KPI typography
+     ================================================== */
+
+  .kpi-label {
+    margin: 0 0 10px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .kpi-value {
+    margin: 0;
+    font-size: 32px;
+    font-weight: var(--font-weight-extra-bold);
+    line-height: 1;
+  }
+
+  .kpi-meta {
+    margin: 10px 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-label);
+  }
+</style>

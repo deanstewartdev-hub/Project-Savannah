@@ -1,0 +1,141 @@
+<div class="application-frame">
+  <?!= renderFrontendTemplate(
+    "Frontend/Components/Layout/Sidebar",
+    {
+      appName: appName,
+      currentRoute: currentRoute,
+      navigationItems: navigationItems,
+      webAppUrl: webAppUrl
+    }
+  ); ?>
+
+  <div class="application-workspace">
+    <?!= renderFrontendTemplate(
+      "Frontend/Components/Layout/Header",
+      {
+        currentRoute: currentRoute
+      }
+    ); ?>
+
+    <main
+      id="mainContent"
+      class="application-main"
+      tabindex="-1"
+    >
+      <div class="application-content-container">
+        <?!= renderAppView(currentRoute); ?>
+      </div>
+    </main>
+
+    <?!= renderFrontendTemplate(
+      "Frontend/Components/Layout/Footer",
+      {
+        appName: appName,
+        appVersion: appVersion
+      }
+    ); ?>
+  </div>
+</div>
+
+<script>
+  (function initialiseApplicationShell() {
+    const body = document.body;
+    const sidebar = document.getElementById("appSidebar");
+    const overlay = document.getElementById("sidebarOverlay");
+    const toggleButton =
+      document.getElementById("sidebarToggle");
+    const closeButton =
+      document.getElementById("sidebarClose");
+    const searchInput =
+      document.getElementById("appSearch");
+
+    function setSidebarOpen(isOpen) {
+      if (!sidebar || !overlay) {
+        return;
+      }
+
+      sidebar.classList.toggle(
+        "app-sidebar-open",
+        isOpen
+      );
+
+      overlay.classList.toggle(
+        "sidebar-overlay-visible",
+        isOpen
+      );
+
+      body.classList.toggle(
+        "sidebar-mobile-open",
+        isOpen
+      );
+
+      if (toggleButton) {
+        toggleButton.setAttribute(
+          "aria-expanded",
+          String(isOpen)
+        );
+      }
+    }
+
+    if (toggleButton) {
+      toggleButton.addEventListener(
+        "click",
+        function () {
+          setSidebarOpen(
+            !sidebar.classList.contains(
+              "app-sidebar-open"
+            )
+          );
+        }
+      );
+    }
+
+    if (closeButton) {
+      closeButton.addEventListener(
+        "click",
+        function () {
+          setSidebarOpen(false);
+        }
+      );
+    }
+
+    if (overlay) {
+      overlay.addEventListener(
+        "click",
+        function () {
+          setSidebarOpen(false);
+        }
+      );
+    }
+
+    document.addEventListener(
+      "keydown",
+      function (event) {
+        if (event.key === "Escape") {
+          setSidebarOpen(false);
+        }
+
+        if (
+          event.key === "/" &&
+          searchInput &&
+          document.activeElement !== searchInput &&
+          !["INPUT", "TEXTAREA", "SELECT"].includes(
+            document.activeElement.tagName
+          )
+        ) {
+          event.preventDefault();
+          searchInput.focus();
+        }
+      }
+    );
+
+    window.addEventListener(
+      "resize",
+      function () {
+        if (window.innerWidth > 900) {
+          setSidebarOpen(false);
+        }
+      }
+    );
+  })();
+</script>
