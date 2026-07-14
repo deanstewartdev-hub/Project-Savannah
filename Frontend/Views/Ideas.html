@@ -1,0 +1,527 @@
+<section
+  id="ideas-page"
+  class="page ideas-page"
+  data-page="ideas"
+>
+  <!-- ==================================================
+       Page introduction
+       ================================================== -->
+
+  <header class="ideas-hero">
+    <div class="ideas-hero-content">
+      <p class="ideas-hero-eyebrow">
+        Content discovery
+      </p>
+
+      <h2 class="page-title">
+        Idea workspace
+      </h2>
+
+      <p class="page-description">
+        Generate, review and organise YouTube Shorts ideas
+        before progressing them into script production.
+      </p>
+    </div>
+
+    <div class="ideas-hero-actions">
+      <button
+        id="ideas-refresh-button"
+        class="button button-secondary"
+        type="button"
+      >
+        <svg
+          class="button-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="M20 6v5h-5"></path>
+          <path d="M4 18v-5h5"></path>
+          <path
+            d="M6.1 9a7 7 0 0 1 11.7-2.6L20 11"
+          ></path>
+          <path
+            d="M17.9 15a7 7 0 0 1-11.7 2.6L4 13"
+          ></path>
+        </svg>
+
+        Refresh
+      </button>
+
+      <button
+        id="ideas-generate-button"
+        class="button button-primary"
+        type="button"
+      >
+        <svg
+          class="button-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        Generate ideas
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================================================
+       Generation status
+       ================================================== -->
+
+  <div
+    id="ideas-generation-status"
+    class="ideas-status-banner"
+    hidden
+  >
+    <span
+      class="ideas-status-spinner"
+      aria-hidden="true"
+    ></span>
+
+    <div>
+      <strong id="ideas-generation-status-title">
+        Generating ideas
+      </strong>
+
+      <p id="ideas-generation-status-message">
+        Savannah is researching and preparing new content
+        concepts.
+      </p>
+    </div>
+  </div>
+
+  <div
+    id="ideas-error-message"
+    class="alert alert-danger"
+    role="alert"
+    hidden
+  >
+    Ideas could not be loaded.
+  </div>
+
+  <!-- ==================================================
+       Workspace summary
+       ================================================== -->
+
+  <section
+    class="ideas-summary-grid"
+    aria-label="Idea summary"
+  >
+    <article class="ideas-summary-card">
+      <span
+        class="ideas-summary-icon ideas-summary-icon-all"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M9 18h6"></path>
+          <path d="M10 22h4"></path>
+          <path
+            d="M8.5 14.5A7 7 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"
+          ></path>
+        </svg>
+      </span>
+
+      <div>
+        <span class="ideas-summary-label">
+          Total ideas
+        </span>
+
+        <strong id="ideas-total-count">
+          —
+        </strong>
+      </div>
+    </article>
+
+    <article class="ideas-summary-card">
+      <span
+        class="ideas-summary-icon ideas-summary-icon-review"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M4 6h16"></path>
+          <path d="M4 12h16"></path>
+          <path d="M4 18h10"></path>
+        </svg>
+      </span>
+
+      <div>
+        <span class="ideas-summary-label">
+          Awaiting review
+        </span>
+
+        <strong id="ideas-review-count">
+          —
+        </strong>
+      </div>
+    </article>
+
+    <article class="ideas-summary-card">
+      <span
+        class="ideas-summary-icon ideas-summary-icon-approved"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M9 11l3 3L22 4"></path>
+          <path
+            d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+          ></path>
+        </svg>
+      </span>
+
+      <div>
+        <span class="ideas-summary-label">
+          Approved
+        </span>
+
+        <strong id="ideas-approved-count">
+          —
+        </strong>
+      </div>
+    </article>
+
+    <article class="ideas-summary-card">
+      <span
+        class="ideas-summary-icon ideas-summary-icon-scripts"
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M6 3h9l3 3v15H6z"></path>
+          <path d="M14 3v4h4"></path>
+          <path d="M9 12h6"></path>
+          <path d="M9 16h6"></path>
+        </svg>
+      </span>
+
+      <div>
+        <span class="ideas-summary-label">
+          Script ready
+        </span>
+
+        <strong id="ideas-script-ready-count">
+          —
+        </strong>
+      </div>
+    </article>
+  </section>
+
+  <!-- ==================================================
+       Workspace toolbar
+       ================================================== -->
+
+  <section
+    class="ideas-toolbar"
+    aria-label="Idea filters and search"
+  >
+    <div class="ideas-search">
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle
+          cx="11"
+          cy="11"
+          r="7"
+        ></circle>
+
+        <path d="m20 20-3.5-3.5"></path>
+      </svg>
+
+      <input
+        id="ideas-search-input"
+        type="search"
+        placeholder="Search ideas"
+        aria-label="Search ideas"
+        autocomplete="off"
+      >
+    </div>
+
+    <div
+      class="ideas-filter-group"
+      role="group"
+      aria-label="Filter ideas"
+    >
+      <button
+        class="ideas-filter-button ideas-filter-button-active"
+        type="button"
+        data-ideas-filter="all"
+        aria-pressed="true"
+      >
+        All
+      </button>
+
+      <button
+        class="ideas-filter-button"
+        type="button"
+        data-ideas-filter="review"
+        aria-pressed="false"
+      >
+        Review
+      </button>
+
+      <button
+        class="ideas-filter-button"
+        type="button"
+        data-ideas-filter="approved"
+        aria-pressed="false"
+      >
+        Approved
+      </button>
+
+      <button
+        class="ideas-filter-button"
+        type="button"
+        data-ideas-filter="script-ready"
+        aria-pressed="false"
+      >
+        Script ready
+      </button>
+    </div>
+
+    <div class="ideas-view-actions">
+      <button
+        class="ideas-view-button ideas-view-button-active"
+        type="button"
+        data-ideas-view="board"
+        aria-label="Board view"
+        aria-pressed="true"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <rect
+            x="3"
+            y="3"
+            width="7"
+            height="18"
+            rx="1"
+          ></rect>
+
+          <rect
+            x="14"
+            y="3"
+            width="7"
+            height="12"
+            rx="1"
+          ></rect>
+        </svg>
+      </button>
+
+      <button
+        class="ideas-view-button"
+        type="button"
+        data-ideas-view="list"
+        aria-label="List view"
+        aria-pressed="false"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="M8 6h13"></path>
+          <path d="M8 12h13"></path>
+          <path d="M8 18h13"></path>
+          <path d="M3 6h.01"></path>
+          <path d="M3 12h.01"></path>
+          <path d="M3 18h.01"></path>
+        </svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================================================
+       Ideas board
+       ================================================== -->
+
+  <section
+    id="ideas-board"
+    class="ideas-board"
+    aria-label="Idea workflow board"
+  >
+    <!-- Review column -->
+
+    <article
+      class="ideas-board-column"
+      data-ideas-column="review"
+    >
+      <header class="ideas-board-column-header">
+        <div>
+          <span
+            class="ideas-column-indicator ideas-column-indicator-review"
+            aria-hidden="true"
+          ></span>
+
+          <h3>Awaiting review</h3>
+        </div>
+
+        <span
+          id="ideas-review-column-count"
+          class="ideas-column-count"
+        >
+          0
+        </span>
+      </header>
+
+      <p class="ideas-board-column-description">
+        New ideas that need review before progressing.
+      </p>
+
+      <div
+        id="ideas-review-list"
+        class="ideas-column-list"
+      >
+        <div class="ideas-column-loading">
+          Loading ideas…
+        </div>
+      </div>
+    </article>
+
+    <!-- Approved column -->
+
+    <article
+      class="ideas-board-column"
+      data-ideas-column="approved"
+    >
+      <header class="ideas-board-column-header">
+        <div>
+          <span
+            class="ideas-column-indicator ideas-column-indicator-approved"
+            aria-hidden="true"
+          ></span>
+
+          <h3>Approved</h3>
+        </div>
+
+        <span
+          id="ideas-approved-column-count"
+          class="ideas-column-count"
+        >
+          0
+        </span>
+      </header>
+
+      <p class="ideas-board-column-description">
+        Reviewed concepts ready for script generation.
+      </p>
+
+      <div
+        id="ideas-approved-list"
+        class="ideas-column-list"
+      >
+        <div class="ideas-column-empty">
+          <span
+            class="ideas-column-empty-icon"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M9 11l3 3L22 4"></path>
+              <path
+                d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+              ></path>
+            </svg>
+          </span>
+
+          <strong>No approved ideas</strong>
+
+          <p>
+            Approved ideas will appear here.
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- Script-ready column -->
+
+    <article
+      class="ideas-board-column"
+      data-ideas-column="script-ready"
+    >
+      <header class="ideas-board-column-header">
+        <div>
+          <span
+            class="ideas-column-indicator ideas-column-indicator-script"
+            aria-hidden="true"
+          ></span>
+
+          <h3>Script ready</h3>
+        </div>
+
+        <span
+          id="ideas-script-ready-column-count"
+          class="ideas-column-count"
+        >
+          0
+        </span>
+      </header>
+
+      <p class="ideas-board-column-description">
+        Ideas that have progressed into script production.
+      </p>
+
+      <div
+        id="ideas-script-ready-list"
+        class="ideas-column-list"
+      >
+        <div class="ideas-column-empty">
+          <span
+            class="ideas-column-empty-icon"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M6 3h9l3 3v15H6z"></path>
+              <path d="M14 3v4h4"></path>
+              <path d="M9 12h6"></path>
+              <path d="M9 16h6"></path>
+            </svg>
+          </span>
+
+          <strong>No script-ready ideas</strong>
+
+          <p>
+            Ideas will appear here after script generation.
+          </p>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ==================================================
+       Empty state
+       ================================================== -->
+
+  <section
+    id="ideas-empty-state"
+    class="ideas-empty-state"
+    hidden
+  >
+    <span
+      class="ideas-empty-state-icon"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="M9 18h6"></path>
+        <path d="M10 22h4"></path>
+        <path
+          d="M8.5 14.5A7 7 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"
+        ></path>
+      </svg>
+    </span>
+
+    <h3>No ideas yet</h3>
+
+    <p>
+      Generate your first set of YouTube Shorts ideas to
+      begin the Project Savannah workflow.
+    </p>
+
+    <button
+      id="ideas-empty-generate-button"
+      class="button button-primary"
+      type="button"
+    >
+      Generate ideas
+    </button>
+  </section>
+</section>
