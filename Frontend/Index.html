@@ -9,7 +9,9 @@
       <?= currentRoute.title ?> | <?= appName ?>
     </title>
 
-    <?!= includeFrontend("Frontend/Assets/Styles"); ?>
+    <?!= includeFrontend(
+      "Frontend/Assets/Styles"
+    ); ?>
   </head>
 
   <body>
@@ -39,30 +41,21 @@
         </span>
       </header>
 
-      <nav
-        class="app-navigation"
-        aria-label="Primary navigation"
-      >
-        <? navigationItems.forEach(function (item) { ?>
-          <a
-            class="nav-link <?= item.key === currentRoute.key
-              ? 'nav-link-active'
-              : '' ?>"
-            href="?page=<?= item.key ?>"
-            <?= item.key === currentRoute.key
-              ? 'aria-current="page"'
-              : '' ?>
-          >
-            <?= item.title ?>
-          </a>
-        <? }); ?>
-      </nav>
+      <?!= renderNavigation(
+        currentRoute,
+        navigationItems,
+        webAppUrl
+      ); ?>
 
       <main class="app-content">
-        <?!= renderAppView(currentRoute); ?>
+        <?!= renderAppView(
+          currentRoute
+        ); ?>
       </main>
     </div>
 
-    <?!= includeFrontend("Frontend/Assets/Scripts"); ?>
+    <?!= includeFrontend(
+      "Frontend/Assets/Scripts"
+    ); ?>
   </body>
 </html>

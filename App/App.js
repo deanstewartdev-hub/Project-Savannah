@@ -29,6 +29,17 @@
  * @return {GoogleAppsScript.HTML.HtmlOutput} Rendered page.
  */
 
+/**
+ * Serves the Project Savannah web application.
+ *
+ * Route examples:
+ * ?page=dashboard
+ * ?page=ideas
+ * ?page=scripts
+ *
+ * @param {Object=} event Apps Script web request event.
+ * @return {GoogleAppsScript.HTML.HtmlOutput} Rendered page.
+ */
 function doGet(event) {
   const requestedPage =
     event &&
@@ -57,13 +68,8 @@ function doGet(event) {
   template.navigationItems =
     getAppNavigation();
 
-  /*
-   * The deployed web-app URL is supplied to the HTML
-   * template so navigation links do not resolve against
-   * Google's embedded googleusercontent iframe.
-   */
   template.webAppUrl =
-    ScriptApp.getService().getUrl();
+    resolveWebAppUrl_(event);
 
   return template
     .evaluate()
@@ -75,6 +81,44 @@ function doGet(event) {
       "viewport",
       "width=device-width, initial-scale=1"
     );
+}
+
+/**
+ * Resolves the deployed web-app URL.
+ *
+ * A test URL may be supplied by internal template tests
+ * because ScriptApp.getService().getUrl() can be empty
+ * when executed directly from the Apps Script editor.
+ *
+ * @param {Object=} event Request or test event.
+ * @return {string} Absolute web-app URL.
+ */
+function resolveWebAppUrl_(event) {
+  const testUrl =
+    event &&
+    typeof event.__testWebAppUrl === "string"
+      ? event.__testWebAppUrl.trim()
+      : "";
+
+  if (testUrl) {
+    return testUrl;
+  }
+
+  const deployedUrl =
+    ScriptApp.getService().getUrl();
+
+  if (
+    !deployedUrl ||
+    typeof deployedUrl !== "string" ||
+    !deployedUrl.trim()
+  ) {
+    throw new Error(
+      "The deployed web-app URL is unavailable. " +
+      "Run this through an active web-app deployment."
+    );
+  }
+
+  return deployedUrl.trim();
 }
 
 /**
@@ -105,6 +149,66 @@ function includeFrontend(filename) {
 }
 
 /**
+ * Renders the navigation component as an Apps Script
+ * HTML template.
+ *
+ * Unlike includeFrontend(), this function evaluates the
+ * template expressions contained inside Navigation.html.
+ *
+ * @param {Object} currentRoute Active route.
+ * @param {Object[]} navigationItems Navigation links.
+ * @param {string} webAppUrl Deployed web-app URL.
+ * @return {string} Evaluated navigation HTML.
+ */
+function renderNavigation(
+  currentRoute,
+  navigationItems,
+  webAppUrl
+) {
+  if (
+    !currentRoute ||
+    typeof currentRoute !== "object"
+  ) {
+    throw new Error(
+      "A valid current route is required."
+    );
+  }
+
+  if (!Array.isArray(navigationItems)) {
+    throw new Error(
+      "Navigation items must be an array."
+    );
+  }
+
+  if (
+    !webAppUrl ||
+    typeof webAppUrl !== "string"
+  ) {
+    throw new Error(
+      "A valid web-app URL is required."
+    );
+  }
+
+  const template =
+    HtmlService.createTemplateFromFile(
+      "Frontend/Components/Navigation"
+    );
+
+  template.currentRoute =
+    currentRoute;
+
+  template.navigationItems =
+    navigationItems;
+
+  template.webAppUrl =
+    webAppUrl;
+
+  return template
+    .evaluate()
+    .getContent();
+}
+
+/**
  * Loads the view configured for a route.
  *
  * @param {Object} route Resolved route configuration.
@@ -124,7 +228,8 @@ function renderAppView(route) {
 }
 
 /**
- * Tests the application template without deployment.
+ * Tests the application template without requiring an
+ * active web-app execution context.
  *
  * @return {string} Evaluated application HTML.
  */
@@ -132,7 +237,10 @@ function testApplicationTemplate() {
   const output = doGet({
     parameter: {
       page: APP_ROUTES.DASHBOARD
-    }
+    },
+
+    __testWebAppUrl:
+      "https://script.google.com/macros/s/TEST_DEPLOYMENT/exec"
   });
 
   const html = output.getContent();
@@ -150,6 +258,16 @@ function testApplicationTemplate() {
   ) {
     throw new Error(
       "Dashboard view was not rendered."
+    );
+  }
+
+  if (
+    html.indexOf(
+      "https://script.google.com/macros/s/TEST_DEPLOYMENT/exec"
+    ) === -1
+  ) {
+    throw new Error(
+      "The navigation web-app URL was not rendered."
     );
   }
 

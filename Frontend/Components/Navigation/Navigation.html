@@ -6,12 +6,14 @@
   <div class="navigation-list">
     <? navigationItems.forEach(function (item) { ?>
       <a
-        class="navigation-link <?=
+        class="nav-link <?=
           currentRoute.key === item.key
-            ? 'navigation-link-active'
+            ? 'nav-link-active'
             : ''
         ?>"
-        href="<?= webAppUrl ?>?page=<?= encodeURIComponent(item.key) ?>"
+        href="<?= webAppUrl ?>?page=<?=
+          encodeURIComponent(item.key)
+        ?>"
         data-app-route="<?= item.key ?>"
         target="_top"
         <? if (currentRoute.key === item.key) { ?>
