@@ -1,47 +1,60 @@
 <script>
   /**
-   * Project Savannah frontend application utilities.
+   * Project Savannah frontend application.
    */
   const SavannahApp = {
     /**
-     * Starts page-specific frontend behaviour.
+     * Starts shared and page-specific behaviour.
      */
-    /**
- * Starts shared and page-specific frontend behaviour.
- */
-  initialise: function () {
-    this.navigation.initialise();
+    initialise: function () {
+      this.navigation.initialise();
 
-    const dashboardPage =
-      document.querySelector(
-        '[data-page="dashboard"]'
-      );
+      const dashboardPage =
+        document.querySelector(
+          '[data-page="dashboard"]'
+        );
 
-    const scriptsPage =
-      document.querySelector(
-        '[data-page="scripts"]'
-      );
+      const ideasPage =
+        document.querySelector(
+          '[data-page="ideas"]'
+        );
 
-    if (dashboardPage) {
-      this.dashboard.load();
-    }
+      const scriptsPage =
+        document.querySelector(
+          '[data-page="scripts"]'
+        );
 
-    if (scriptsPage) {
-      this.scripts.initialise();
-    }
-  },
+      if (dashboardPage) {
+        this.dashboard.load();
+      }
+
+      if (ideasPage) {
+        this.ideas.initialise();
+      }
+
+      if (scriptsPage) {
+        this.scripts.initialise();
+      }
+    },
 
     /**
      * Shared DOM utilities.
      */
     dom: {
       getById: function (elementId) {
-        return document.getElementById(elementId);
+        return document.getElementById(
+          elementId
+        );
       },
 
-      setText: function (elementId, value) {
+      setText: function (
+        elementId,
+        value
+      ) {
         const element =
-          document.getElementById(elementId);
+          document.getElementById(
+            elementId
+          );
 
         if (!element) {
           return;
@@ -56,7 +69,9 @@
 
       show: function (elementId) {
         const element =
-          document.getElementById(elementId);
+          document.getElementById(
+            elementId
+          );
 
         if (element) {
           element.hidden = false;
@@ -65,7 +80,9 @@
 
       hide: function (elementId) {
         const element =
-          document.getElementById(elementId);
+          document.getElementById(
+            elementId
+          );
 
         if (element) {
           element.hidden = true;
@@ -74,7 +91,9 @@
 
       clear: function (elementId) {
         const element =
-          document.getElementById(elementId);
+          document.getElementById(
+            elementId
+          );
 
         if (element) {
           element.innerHTML = "";
@@ -86,75 +105,71 @@
         disabled
       ) {
         const element =
-          document.getElementById(elementId);
+          document.getElementById(
+            elementId
+          );
 
         if (element) {
-          element.disabled = Boolean(disabled);
+          element.disabled =
+            Boolean(disabled);
         }
       }
     },
 
     /**
- * Application navigation behaviour.
- */
-navigation: {
-  /**
-   * Forces route changes through the absolute deployed
-   * Apps Script URL instead of Google's internal iframe.
-   */
-  initialise: function () {
-    const navigation =
-      document.querySelector(
-        ".app-navigation"
-      );
+     * Application navigation behaviour.
+     */
+    navigation: {
+      /**
+       * Routes links through the deployed web-app URL.
+       */
+      initialise: function () {
+        const navigation =
+          document.querySelector(
+            ".sidebar-navigation"
+          );
 
-    if (!navigation) {
-      return;
-    }
-
-    const webAppUrl = String(
-      navigation.dataset.webAppUrl || ""
-    ).trim();
-
-    if (!webAppUrl) {
-      console.error(
-        "Project Savannah web-app URL is unavailable."
-      );
-
-      return;
-    }
-
-    const links =
-      navigation.querySelectorAll(
-        "[data-app-route]"
-      );
-
-    links.forEach(function (link) {
-      link.addEventListener(
-        "click",
-        function (event) {
-          event.preventDefault();
-
-          const route = String(
-            link.dataset.appRoute || "dashboard"
-          ).trim();
-
-          const destination =
-            webAppUrl +
-            "?page=" +
-            encodeURIComponent(route);
-
-          /*
-           * Assignment to window.top is permitted from
-           * a user click and exits the Apps Script iframe.
-           */
-          window.top.location.href =
-            destination;
+        if (!navigation) {
+          return;
         }
-      );
-    });
-  }
-},
+
+        const webAppUrl = String(
+          navigation.dataset.webAppUrl || ""
+        ).trim();
+
+        if (!webAppUrl) {
+          console.error(
+            "Project Savannah web-app URL is unavailable."
+          );
+
+          return;
+        }
+
+        const links =
+          navigation.querySelectorAll(
+            "[data-app-route]"
+          );
+
+        links.forEach(function (link) {
+          link.addEventListener(
+            "click",
+            function (event) {
+              event.preventDefault();
+
+              const route = String(
+                link.dataset.appRoute ||
+                "dashboard"
+              ).trim();
+
+              window.top.location.href =
+                webAppUrl +
+                "?page=" +
+                encodeURIComponent(route);
+            }
+          );
+        });
+      }
+    },
 
     /**
      * Shared display formatting.
@@ -174,8 +189,30 @@ navigation: {
         return date.toLocaleString();
       },
 
+      shortDate: function (value) {
+        if (!value) {
+          return "";
+        }
+
+        const date = new Date(value);
+
+        if (isNaN(date.getTime())) {
+          return String(value);
+        }
+
+        return date.toLocaleDateString(
+          undefined,
+          {
+            day: "numeric",
+            month: "short",
+            year: "numeric"
+          }
+        );
+      },
+
       duration: function (seconds) {
-        const numericValue = Number(seconds);
+        const numericValue =
+          Number(seconds);
 
         if (!isFinite(numericValue)) {
           return "—";
@@ -188,7 +225,8 @@ navigation: {
       },
 
       cost: function (value) {
-        const numericValue = Number(value);
+        const numericValue =
+          Number(value);
 
         if (!isFinite(numericValue)) {
           return "£0.0000";
@@ -205,9 +243,6 @@ navigation: {
      * Dashboard page behaviour.
      */
     dashboard: {
-      /**
-       * Requests the live dashboard model from Apps Script.
-       */
       load: function () {
         SavannahApp.dom.show(
           "dashboard-loading-message"
@@ -219,20 +254,19 @@ navigation: {
 
         google.script.run
           .withSuccessHandler(
-            SavannahApp.dashboard.handleSuccess
+            SavannahApp.dashboard
+              .handleSuccess
           )
           .withFailureHandler(
-            SavannahApp.dashboard.handleFailure
+            SavannahApp.dashboard
+              .handleFailure
           )
           .getDashboardDataForApp();
       },
 
-      /**
-       * Handles a successful server invocation.
-       *
-       * @param {Object} response Controller response.
-       */
-      handleSuccess: function (response) {
+      handleSuccess: function (
+        response
+      ) {
         SavannahApp.dom.hide(
           "dashboard-loading-message"
         );
@@ -243,8 +277,12 @@ navigation: {
           !response.data
         ) {
           SavannahApp.dashboard.showError(
-            response && response.error
-              ? response.error
+            response &&
+            response.error
+              ? (
+                  response.error.message ||
+                  response.error
+                )
               : "Dashboard data could not be loaded."
           );
 
@@ -256,31 +294,20 @@ navigation: {
         );
       },
 
-      /**
-       * Handles a failed google.script.run invocation.
-       *
-       * @param {*} error Browser/server error.
-       */
-      handleFailure: function (error) {
+      handleFailure: function (
+        error
+      ) {
         SavannahApp.dom.hide(
           "dashboard-loading-message"
         );
 
-        const message =
+        SavannahApp.dashboard.showError(
           error && error.message
             ? error.message
-            : "Dashboard data could not be loaded.";
-
-        SavannahApp.dashboard.showError(
-          message
+            : "Dashboard data could not be loaded."
         );
       },
 
-      /**
-       * Displays a dashboard error.
-       *
-       * @param {string} message Safe error message.
-       */
       showError: function (message) {
         const errorElement =
           SavannahApp.dom.getById(
@@ -299,39 +326,36 @@ navigation: {
         errorElement.hidden = false;
       },
 
-      /**
-       * Renders the complete dashboard model.
-       *
-       * @param {Object} model Dashboard view model.
-       */
       render: function (model) {
-        SavannahApp.dashboard.renderSystemStatus(
-          model.system
-        );
+        SavannahApp.dashboard
+          .renderSystemStatus(
+            model.system
+          );
 
-        SavannahApp.dashboard.renderKpis(
-          model.kpis
-        );
+        SavannahApp.dashboard
+          .renderKpis(
+            model.kpis
+          );
 
-        SavannahApp.dashboard.renderTotals(
-          model.totals
-        );
+        SavannahApp.dashboard
+          .renderTotals(
+            model.totals
+          );
 
-        SavannahApp.dashboard.renderPipeline(
-          model.pipeline
-        );
+        SavannahApp.dashboard
+          .renderPipeline(
+            model.pipeline
+          );
 
-        SavannahApp.dashboard.renderActivity(
-          model.recentActivity
-        );
+        SavannahApp.dashboard
+          .renderActivity(
+            model.recentActivity
+          );
       },
 
-      /**
-       * Renders the system status badge.
-       *
-       * @param {Object} system System model.
-       */
-      renderSystemStatus: function (system) {
+      renderSystemStatus: function (
+        system
+      ) {
         const statusElement =
           SavannahApp.dom.getById(
             "dashboard-system-status"
@@ -343,10 +367,12 @@ navigation: {
 
         const isOperational =
           system &&
-          system.status === "operational";
+          system.status ===
+            "operational";
 
         statusElement.textContent =
-          system && system.statusLabel
+          system &&
+          system.statusLabel
             ? system.statusLabel
             : "System status unknown";
 
@@ -359,19 +385,16 @@ navigation: {
           );
       },
 
-      /**
-       * Renders today's KPI cards.
-       *
-       * @param {Object} kpis KPI model.
-       */
       renderKpis: function (kpis) {
         const safeKpis = kpis || {};
 
         const ideas =
-          safeKpis.ideasGeneratedToday || {};
+          safeKpis
+            .ideasGeneratedToday || {};
 
         const scripts =
-          safeKpis.scriptsCreatedToday || {};
+          safeKpis
+            .scriptsCreatedToday || {};
 
         const approval =
           safeKpis.approvalQueue || {};
@@ -389,7 +412,10 @@ navigation: {
           "Daily target: " +
             (ideas.target || 0) +
             " · " +
-            (ideas.progressPercentage || 0) +
+            (
+              ideas
+                .progressPercentage || 0
+            ) +
             "%"
         );
 
@@ -403,7 +429,10 @@ navigation: {
           "Daily target: " +
             (scripts.target || 0) +
             " · " +
-            (scripts.progressPercentage || 0) +
+            (
+              scripts
+                .progressPercentage || 0
+            ) +
             "%"
         );
 
@@ -414,15 +443,11 @@ navigation: {
 
         SavannahApp.dom.setText(
           "dashboard-total-cost",
-          totalCost.formattedValue || "£0.0000"
+          totalCost.formattedValue ||
+            "£0.0000"
         );
       },
 
-      /**
-       * Renders lifetime totals.
-       *
-       * @param {Object} totals Totals model.
-       */
       renderTotals: function (totals) {
         const safeTotals = totals || {};
 
@@ -447,12 +472,9 @@ navigation: {
         );
       },
 
-      /**
-       * Renders the pipeline table.
-       *
-       * @param {Object[]} pipeline Pipeline stages.
-       */
-      renderPipeline: function (pipeline) {
+      renderPipeline: function (
+        pipeline
+      ) {
         const tableBody =
           SavannahApp.dom.getById(
             "dashboard-pipeline-body"
@@ -475,61 +497,73 @@ navigation: {
             document.createElement("td");
 
           emptyCell.colSpan = 3;
+
           emptyCell.textContent =
             "No pipeline data available.";
 
-          emptyRow.appendChild(emptyCell);
-          tableBody.appendChild(emptyRow);
+          emptyRow.appendChild(
+            emptyCell
+          );
+
+          tableBody.appendChild(
+            emptyRow
+          );
 
           return;
         }
 
-        pipeline.forEach(function (stage) {
-          const row =
-            document.createElement("tr");
+        pipeline.forEach(
+          function (stage) {
+            const row =
+              document.createElement("tr");
 
-          const nameCell =
-            document.createElement("td");
+            const nameCell =
+              document.createElement("td");
 
-          const statusCell =
-            document.createElement("td");
+            const statusCell =
+              document.createElement("td");
 
-          const recordsCell =
-            document.createElement("td");
+            const recordsCell =
+              document.createElement("td");
 
-          const statusBadge =
-            document.createElement("span");
+            const statusBadge =
+              document.createElement(
+                "span"
+              );
 
-          nameCell.textContent =
-            stage.name || "Unknown";
+            nameCell.textContent =
+              stage.name || "Unknown";
 
-          statusBadge.className =
-            "badge " +
-            (stage.badgeClass || "");
+            statusBadge.className =
+              "badge " +
+              (
+                stage.badgeClass || ""
+              );
 
-          statusBadge.textContent =
-            stage.statusLabel || "Unknown";
+            statusBadge.textContent =
+              stage.statusLabel ||
+              "Unknown";
 
-          statusCell.appendChild(
-            statusBadge
-          );
+            statusCell.appendChild(
+              statusBadge
+            );
 
-          recordsCell.textContent =
-            Number(stage.recordCount) || 0;
+            recordsCell.textContent =
+              Number(
+                stage.recordCount
+              ) || 0;
 
-          row.appendChild(nameCell);
-          row.appendChild(statusCell);
-          row.appendChild(recordsCell);
+            row.appendChild(nameCell);
+            row.appendChild(statusCell);
+            row.appendChild(
+              recordsCell
+            );
 
-          tableBody.appendChild(row);
-        });
+            tableBody.appendChild(row);
+          }
+        );
       },
 
-      /**
-       * Renders recent activity.
-       *
-       * @param {Object[]} activityRecords Activity items.
-       */
       renderActivity: function (
         activityRecords
       ) {
@@ -545,11 +579,15 @@ navigation: {
         activityContainer.innerHTML = "";
 
         if (
-          !Array.isArray(activityRecords) ||
+          !Array.isArray(
+            activityRecords
+          ) ||
           activityRecords.length === 0
         ) {
           const emptyMessage =
-            document.createElement("div");
+            document.createElement(
+              "div"
+            );
 
           emptyMessage.className =
             "alert alert-info";
@@ -557,9 +595,10 @@ navigation: {
           emptyMessage.textContent =
             "No recent activity has been recorded yet.";
 
-          activityContainer.appendChild(
-            emptyMessage
-          );
+          activityContainer
+            .appendChild(
+              emptyMessage
+            );
 
           return;
         }
@@ -567,22 +606,34 @@ navigation: {
         activityRecords.forEach(
           function (activity) {
             const card =
-              document.createElement("article");
+              document.createElement(
+                "article"
+              );
 
             const header =
-              document.createElement("div");
+              document.createElement(
+                "div"
+              );
 
             const content =
-              document.createElement("div");
+              document.createElement(
+                "div"
+              );
 
             const badge =
-              document.createElement("span");
+              document.createElement(
+                "span"
+              );
 
             const time =
-              document.createElement("span");
+              document.createElement(
+                "span"
+              );
 
             const message =
-              document.createElement("p");
+              document.createElement(
+                "p"
+              );
 
             card.className = "card";
 
@@ -591,10 +642,14 @@ navigation: {
 
             badge.className =
               "badge " +
-              (activity.badgeClass || "");
+              (
+                activity.badgeClass ||
+                ""
+              );
 
             badge.textContent =
-              activity.status || "Info";
+              activity.status ||
+              "Info";
 
             time.className =
               "text-muted text-small";
@@ -618,16 +673,1435 @@ navigation: {
 
             card.appendChild(header);
 
-            activityContainer.appendChild(
-              card
-            );
+            activityContainer
+              .appendChild(card);
           }
         );
       }
     },
 
     /**
-     * Scripts page behaviour.
+     * Ideas workspace behaviour.
+     */
+    ideas: {
+      state: {
+        ideas: [],
+        activeFilter: "all",
+        searchTerm: "",
+        activeView: "board",
+        isGenerating: false,
+        isLoading: false
+      },
+
+      /**
+       * Initialises Ideas page behaviour.
+       */
+      initialise: function () {
+        const refreshButton =
+          SavannahApp.dom.getById(
+            "ideas-refresh-button"
+          );
+
+        const generateButton =
+          SavannahApp.dom.getById(
+            "ideas-generate-button"
+          );
+
+        const emptyGenerateButton =
+          SavannahApp.dom.getById(
+            "ideas-empty-generate-button"
+          );
+
+        const searchInput =
+          SavannahApp.dom.getById(
+            "ideas-search-input"
+          );
+
+        const filterButtons =
+          document.querySelectorAll(
+            "[data-ideas-filter]"
+          );
+
+        const viewButtons =
+          document.querySelectorAll(
+            "[data-ideas-view]"
+          );
+
+        if (refreshButton) {
+          refreshButton.addEventListener(
+            "click",
+            function () {
+              SavannahApp.ideas.load();
+            }
+          );
+        }
+
+        if (generateButton) {
+          generateButton.addEventListener(
+            "click",
+            function () {
+              SavannahApp.ideas
+                .generate();
+            }
+          );
+        }
+
+        if (emptyGenerateButton) {
+          emptyGenerateButton
+            .addEventListener(
+              "click",
+              function () {
+                SavannahApp.ideas
+                  .generate();
+              }
+            );
+        }
+
+        if (searchInput) {
+          searchInput.addEventListener(
+            "input",
+            function () {
+              SavannahApp.ideas.state
+                .searchTerm =
+                String(
+                  searchInput.value || ""
+                )
+                  .trim()
+                  .toLowerCase();
+
+              SavannahApp.ideas
+                .renderWorkspace();
+            }
+          );
+        }
+
+        filterButtons.forEach(
+          function (button) {
+            button.addEventListener(
+              "click",
+              function () {
+                SavannahApp.ideas
+                  .setFilter(
+                    button.dataset
+                      .ideasFilter
+                  );
+              }
+            );
+          }
+        );
+
+        viewButtons.forEach(
+          function (button) {
+            button.addEventListener(
+              "click",
+              function () {
+                SavannahApp.ideas
+                  .setView(
+                    button.dataset
+                      .ideasView
+                  );
+              }
+            );
+          }
+        );
+
+        SavannahApp.ideas.load();
+      },
+
+      /**
+       * Loads the complete Ideas workspace.
+       */
+      load: function () {
+        if (
+          SavannahApp.ideas.state
+            .isLoading
+        ) {
+          return;
+        }
+
+        SavannahApp.ideas.state
+          .isLoading = true;
+
+        SavannahApp.ideas
+          .clearMessages();
+
+        SavannahApp.ideas
+          .showColumnLoading();
+
+        google.script.run
+          .withSuccessHandler(
+            SavannahApp.ideas
+              .handleWorkspaceSuccess
+          )
+          .withFailureHandler(
+            SavannahApp.ideas
+              .handleServerFailure
+          )
+          .ideasGetWorkspace({
+            limit: 500,
+            newestFirst: true
+          });
+      },
+
+      /**
+       * Handles the workspace response.
+       *
+       * @param {Object} response Controller response.
+       */
+      handleWorkspaceSuccess: function (
+        response
+      ) {
+        SavannahApp.ideas.state
+          .isLoading = false;
+
+        if (
+          !response ||
+          response.success !== true ||
+          !response.data ||
+          !Array.isArray(
+            response.data.ideas
+          )
+        ) {
+          SavannahApp.ideas.showError(
+            SavannahApp.ideas
+              .resolveResponseError(
+                response,
+                "The Ideas workspace could not be loaded."
+              )
+          );
+
+          return;
+        }
+
+        SavannahApp.ideas.state.ideas =
+          response.data.ideas;
+
+        SavannahApp.ideas.renderMetrics(
+          response.data.metrics || {}
+        );
+
+        SavannahApp.ideas
+          .renderWorkspace();
+      },
+
+      /**
+       * Generates new ideas.
+       */
+      generate: function () {
+        if (
+          SavannahApp.ideas.state
+            .isGenerating
+        ) {
+          return;
+        }
+
+        SavannahApp.ideas
+          .clearMessages();
+
+        SavannahApp.ideas
+          .setGeneratingState(true);
+
+        google.script.run
+          .withSuccessHandler(
+            SavannahApp.ideas
+              .handleGenerationSuccess
+          )
+          .withFailureHandler(
+            SavannahApp.ideas
+              .handleGenerationFailure
+          )
+          .ideasGenerate();
+      },
+
+      /**
+       * Handles successful idea generation.
+       *
+       * @param {Object} response Controller response.
+       */
+      handleGenerationSuccess: function (
+        response
+      ) {
+        SavannahApp.ideas
+          .setGeneratingState(false);
+
+        if (
+          !response ||
+          response.success !== true
+        ) {
+          SavannahApp.ideas.showError(
+            SavannahApp.ideas
+              .resolveResponseError(
+                response,
+                "Ideas could not be generated."
+              )
+          );
+
+          return;
+        }
+
+        SavannahApp.ideas.showSuccess(
+          "New ideas were generated and saved successfully."
+        );
+
+        SavannahApp.ideas.load();
+      },
+
+      /**
+       * Handles failed idea generation.
+       *
+       * @param {*} error Browser/server error.
+       */
+      handleGenerationFailure: function (
+        error
+      ) {
+        SavannahApp.ideas
+          .setGeneratingState(false);
+
+        SavannahApp.ideas.showError(
+          error && error.message
+            ? error.message
+            : "Ideas could not be generated."
+        );
+      },
+
+      /**
+       * Handles general server failures.
+       *
+       * @param {*} error Browser/server error.
+       */
+      handleServerFailure: function (
+        error
+      ) {
+        SavannahApp.ideas.state
+          .isLoading = false;
+
+        SavannahApp.ideas
+          .setGeneratingState(false);
+
+        SavannahApp.ideas.showError(
+          error && error.message
+            ? error.message
+            : "The Ideas request failed."
+        );
+      },
+
+      /**
+       * Renders Ideas workspace metrics.
+       *
+       * @param {Object} metrics Metrics response.
+       */
+      renderMetrics: function (metrics) {
+        const safeMetrics =
+          metrics || {};
+
+        const statusCounts =
+          safeMetrics.statusCounts ||
+          {};
+
+        const totalIdeas =
+          Number(
+            safeMetrics.totalIdeas
+          ) || 0;
+
+        const newIdeas =
+          Number(
+            safeMetrics.newIdeas
+          ) || 0;
+
+        const approvedIdeas =
+          Number(
+            safeMetrics.approvedIdeas
+          ) || 0;
+
+        const scriptReadyIdeas =
+          Number(
+            statusCounts[
+              "Script Ready"
+            ]
+          ) || 0;
+
+        SavannahApp.dom.setText(
+          "ideas-total-count",
+          totalIdeas
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-review-count",
+          newIdeas
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-approved-count",
+          approvedIdeas
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-script-ready-count",
+          scriptReadyIdeas
+        );
+      },
+
+      /**
+       * Re-renders the complete board.
+       */
+      renderWorkspace: function () {
+        const filteredIdeas =
+          SavannahApp.ideas
+            .getFilteredIdeas();
+
+        const reviewIdeas = [];
+        const approvedIdeas = [];
+        const scriptReadyIdeas = [];
+
+        filteredIdeas.forEach(
+          function (idea) {
+            const status =
+              SavannahApp.ideas
+                .normaliseStatus(
+                  idea.status
+                );
+
+            if (
+              status === "approved"
+            ) {
+              approvedIdeas.push(idea);
+
+              return;
+            }
+
+            if (
+              status ===
+                "script ready" ||
+              status ===
+                "script-ready"
+            ) {
+              scriptReadyIdeas.push(
+                idea
+              );
+
+              return;
+            }
+
+            if (
+              status !== "rejected"
+            ) {
+              reviewIdeas.push(idea);
+            }
+          }
+        );
+
+        SavannahApp.ideas
+          .renderColumn(
+            "ideas-review-list",
+            reviewIdeas,
+            "review"
+          );
+
+        SavannahApp.ideas
+          .renderColumn(
+            "ideas-approved-list",
+            approvedIdeas,
+            "approved"
+          );
+
+        SavannahApp.ideas
+          .renderColumn(
+            "ideas-script-ready-list",
+            scriptReadyIdeas,
+            "script-ready"
+          );
+
+        SavannahApp.dom.setText(
+          "ideas-review-column-count",
+          reviewIdeas.length
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-approved-column-count",
+          approvedIdeas.length
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-script-ready-column-count",
+          scriptReadyIdeas.length
+        );
+
+        const emptyState =
+          SavannahApp.dom.getById(
+            "ideas-empty-state"
+          );
+
+        const board =
+          SavannahApp.dom.getById(
+            "ideas-board"
+          );
+
+        const hasAnyIdeas =
+          SavannahApp.ideas.state
+            .ideas.length > 0;
+
+        if (emptyState) {
+          emptyState.hidden =
+            hasAnyIdeas;
+        }
+
+        if (board) {
+          board.hidden =
+            !hasAnyIdeas;
+        }
+      },
+
+      /**
+       * Returns ideas matching search and filter state.
+       *
+       * @return {Object[]} Filtered ideas.
+       */
+      getFilteredIdeas: function () {
+        const searchTerm =
+          SavannahApp.ideas.state
+            .searchTerm;
+
+        const activeFilter =
+          SavannahApp.ideas.state
+            .activeFilter;
+
+        return SavannahApp.ideas.state
+          .ideas.filter(
+            function (idea) {
+              const status =
+                SavannahApp.ideas
+                  .normaliseStatus(
+                    idea.status
+                  );
+
+              const searchableText = [
+                idea.id,
+                idea.niche,
+                idea.videoIdea,
+                idea.hook,
+                idea.targetAudience,
+                idea.status
+              ]
+                .join(" ")
+                .toLowerCase();
+
+              const matchesSearch =
+                !searchTerm ||
+                searchableText.indexOf(
+                  searchTerm
+                ) !== -1;
+
+              let matchesFilter = true;
+
+              if (
+                activeFilter ===
+                "review"
+              ) {
+                matchesFilter =
+                  status === "new" ||
+                  status === "";
+              }
+
+              if (
+                activeFilter ===
+                "approved"
+              ) {
+                matchesFilter =
+                  status === "approved";
+              }
+
+              if (
+                activeFilter ===
+                "script-ready"
+              ) {
+                matchesFilter =
+                  status ===
+                    "script ready" ||
+                  status ===
+                    "script-ready";
+              }
+
+              return (
+                matchesSearch &&
+                matchesFilter
+              );
+            }
+          );
+      },
+
+      /**
+       * Renders one workflow column.
+       *
+       * @param {string} containerId Container ID.
+       * @param {Object[]} ideas Idea records.
+       * @param {string} column Workflow column.
+       */
+      renderColumn: function (
+        containerId,
+        ideas,
+        column
+      ) {
+        const container =
+          SavannahApp.dom.getById(
+            containerId
+          );
+
+        if (!container) {
+          return;
+        }
+
+        container.innerHTML = "";
+
+        if (
+          !Array.isArray(ideas) ||
+          ideas.length === 0
+        ) {
+          container.appendChild(
+            SavannahApp.ideas
+              .createColumnEmptyState(
+                column
+              )
+          );
+
+          return;
+        }
+
+        ideas.forEach(function (idea) {
+          container.appendChild(
+            SavannahApp.ideas
+              .createIdeaCard(
+                idea,
+                column
+              )
+          );
+        });
+      },
+
+      /**
+       * Creates one idea card.
+       *
+       * @param {Object} idea Idea model.
+       * @param {string} column Workflow column.
+       * @return {HTMLElement} Idea card.
+       */
+      createIdeaCard: function (
+        idea,
+        column
+      ) {
+        const card =
+          document.createElement(
+            "article"
+          );
+
+        const header =
+          document.createElement(
+            "div"
+          );
+
+        const category =
+          document.createElement(
+            "span"
+          );
+
+        const title =
+          document.createElement(
+            "h4"
+          );
+
+        const description =
+          document.createElement(
+            "p"
+          );
+
+        const meta =
+          document.createElement(
+            "div"
+          );
+
+        const audience =
+          document.createElement(
+            "span"
+          );
+
+        const model =
+          document.createElement(
+            "span"
+          );
+
+        const footer =
+          document.createElement(
+            "div"
+          );
+
+        const date =
+          document.createElement(
+            "span"
+          );
+
+        const actions =
+          document.createElement(
+            "div"
+          );
+
+        card.className =
+          "idea-workspace-card";
+
+        card.dataset.ideaId =
+          idea.id || "";
+
+        card.dataset.ideaStatus =
+          idea.status || "";
+
+        header.className =
+          "idea-workspace-card-header";
+
+        category.className =
+          "idea-workspace-card-category";
+
+        category.textContent =
+          idea.niche ||
+          "General";
+
+        header.appendChild(category);
+
+        title.textContent =
+          idea.videoIdea ||
+          "Untitled idea";
+
+        description.className =
+          "idea-workspace-card-description";
+
+        description.textContent =
+          idea.hook ||
+          "No hook has been recorded.";
+
+        meta.className =
+          "idea-workspace-card-meta";
+
+        audience.className =
+          "idea-workspace-card-stat";
+
+        audience.textContent =
+          idea.targetAudience ||
+          "General audience";
+
+        model.className =
+          "idea-workspace-card-stat";
+
+        model.textContent =
+          idea.aiModel ||
+          "AI generated";
+
+        meta.appendChild(audience);
+        meta.appendChild(model);
+
+        footer.className =
+          "idea-workspace-card-footer";
+
+        date.className =
+          "idea-workspace-card-date";
+
+        date.textContent =
+          SavannahApp.format.shortDate(
+            idea.createdAt
+          );
+
+        actions.className =
+          "idea-workspace-card-actions";
+
+        if (column === "review") {
+          actions.appendChild(
+            SavannahApp.ideas
+              .createStatusButton(
+                "Reject",
+                idea.id,
+                "Rejected",
+                false
+              )
+          );
+
+          actions.appendChild(
+            SavannahApp.ideas
+              .createStatusButton(
+                "Approve",
+                idea.id,
+                "Approved",
+                true
+              )
+          );
+        }
+
+        if (column === "approved") {
+          actions.appendChild(
+            SavannahApp.ideas
+              .createStatusButton(
+                "Return",
+                idea.id,
+                "New",
+                false
+              )
+          );
+
+          actions.appendChild(
+            SavannahApp.ideas
+              .createScriptButton(
+                idea
+              )
+          );
+        }
+
+        if (
+          column ===
+          "script-ready"
+        ) {
+          actions.appendChild(
+            SavannahApp.ideas
+              .createScriptButton(
+                idea
+              )
+          );
+        }
+
+        footer.appendChild(date);
+        footer.appendChild(actions);
+
+        card.appendChild(header);
+        card.appendChild(title);
+        card.appendChild(description);
+        card.appendChild(meta);
+        card.appendChild(footer);
+
+        return card;
+      },
+
+      /**
+       * Creates one status-update button.
+       *
+       * @param {string} label Button text.
+       * @param {string} ideaId Idea ID.
+       * @param {string} status Target status.
+       * @param {boolean} primary Primary style.
+       * @return {HTMLButtonElement} Button.
+       */
+      createStatusButton: function (
+        label,
+        ideaId,
+        status,
+        primary
+      ) {
+        const button =
+          document.createElement(
+            "button"
+          );
+
+        button.type = "button";
+
+        button.className =
+          "idea-card-action" +
+          (
+            primary
+              ? " idea-card-action-primary"
+              : ""
+          );
+
+        button.textContent = label;
+
+        button.addEventListener(
+          "click",
+          function () {
+            SavannahApp.ideas
+              .updateStatus(
+                ideaId,
+                status,
+                button
+              );
+          }
+        );
+
+        return button;
+      },
+
+      /**
+       * Creates a link to the Scripts workspace.
+       *
+       * @param {Object} idea Idea model.
+       * @return {HTMLButtonElement} Button.
+       */
+      createScriptButton: function (
+        idea
+      ) {
+        const button =
+          document.createElement(
+            "button"
+          );
+
+        button.type = "button";
+
+        button.className =
+          "idea-card-action " +
+          "idea-card-action-primary";
+
+        button.textContent =
+          "Create script";
+
+        button.addEventListener(
+          "click",
+          function () {
+            const navigation =
+              document.querySelector(
+                ".sidebar-navigation"
+              );
+
+            const webAppUrl =
+              navigation
+                ? String(
+                    navigation.dataset
+                      .webAppUrl || ""
+                  ).trim()
+                : "";
+
+            if (!webAppUrl) {
+              SavannahApp.ideas
+                .showError(
+                  "The Scripts workspace URL is unavailable."
+                );
+
+              return;
+            }
+
+            const query = [
+              "page=scripts",
+              "ideaId=" +
+                encodeURIComponent(
+                  idea.id || ""
+                ),
+              "videoIdea=" +
+                encodeURIComponent(
+                  idea.videoIdea || ""
+                ),
+              "hook=" +
+                encodeURIComponent(
+                  idea.hook || ""
+                ),
+              "targetAudience=" +
+                encodeURIComponent(
+                  idea.targetAudience ||
+                  ""
+                ),
+              "niche=" +
+                encodeURIComponent(
+                  idea.niche || ""
+                )
+            ].join("&");
+
+            window.top.location.href =
+              webAppUrl + "?" + query;
+          }
+        );
+
+        return button;
+      },
+
+      /**
+       * Updates one idea's workflow status.
+       *
+       * @param {string} ideaId Idea ID.
+       * @param {string} status Target status.
+       * @param {HTMLButtonElement} button Source button.
+       */
+      updateStatus: function (
+        ideaId,
+        status,
+        button
+      ) {
+        if (!ideaId) {
+          SavannahApp.ideas.showError(
+            "The selected idea has no ID."
+          );
+
+          return;
+        }
+
+        SavannahApp.ideas
+          .clearMessages();
+
+        const originalText =
+          button
+            ? button.textContent
+            : "";
+
+        if (button) {
+          button.disabled = true;
+
+          button.textContent =
+            "Updating...";
+        }
+
+        google.script.run
+          .withSuccessHandler(
+            function (response) {
+              if (button) {
+                button.disabled = false;
+
+                button.textContent =
+                  originalText;
+              }
+
+              if (
+                !response ||
+                response.success !== true ||
+                !response.data ||
+                !response.data.idea
+              ) {
+                SavannahApp.ideas
+                  .showError(
+                    SavannahApp.ideas
+                      .resolveResponseError(
+                        response,
+                        "The idea status could not be updated."
+                      )
+                  );
+
+                return;
+              }
+
+              SavannahApp.ideas
+                .replaceIdea(
+                  response.data.idea
+                );
+
+              SavannahApp.ideas
+                .renderMetrics(
+                  response.data.metrics ||
+                  {}
+                );
+
+              SavannahApp.ideas
+                .renderWorkspace();
+            }
+          )
+          .withFailureHandler(
+            function (error) {
+              if (button) {
+                button.disabled = false;
+
+                button.textContent =
+                  originalText;
+              }
+
+              SavannahApp.ideas
+                .showError(
+                  error &&
+                  error.message
+                    ? error.message
+                    : "The idea status could not be updated."
+                );
+            }
+          )
+          .ideasUpdateStatus({
+            ideaId: ideaId,
+            status: status
+          });
+      },
+
+      /**
+       * Replaces one idea in local state.
+       *
+       * @param {Object} updatedIdea Updated idea.
+       */
+      replaceIdea: function (
+        updatedIdea
+      ) {
+        const ideas =
+          SavannahApp.ideas.state
+            .ideas;
+
+        const matchingIndex =
+          ideas.findIndex(
+            function (idea) {
+              return (
+                idea.id ===
+                updatedIdea.id
+              );
+            }
+          );
+
+        if (matchingIndex === -1) {
+          ideas.unshift(updatedIdea);
+
+          return;
+        }
+
+        ideas[matchingIndex] =
+          updatedIdea;
+      },
+
+      /**
+       * Changes the active status filter.
+       *
+       * @param {string} filter Filter name.
+       */
+      setFilter: function (filter) {
+        const safeFilter =
+          String(filter || "all");
+
+        SavannahApp.ideas.state
+          .activeFilter =
+          safeFilter;
+
+        const buttons =
+          document.querySelectorAll(
+            "[data-ideas-filter]"
+          );
+
+        buttons.forEach(
+          function (button) {
+            const isActive =
+              button.dataset
+                .ideasFilter ===
+              safeFilter;
+
+            button.classList.toggle(
+              "ideas-filter-button-active",
+              isActive
+            );
+
+            button.setAttribute(
+              "aria-pressed",
+              String(isActive)
+            );
+          }
+        );
+
+        SavannahApp.ideas
+          .renderWorkspace();
+      },
+
+      /**
+       * Changes the board display mode.
+       *
+       * @param {string} view View name.
+       */
+      setView: function (view) {
+        const safeView =
+          view === "list"
+            ? "list"
+            : "board";
+
+        SavannahApp.ideas.state
+          .activeView =
+          safeView;
+
+        const board =
+          SavannahApp.dom.getById(
+            "ideas-board"
+          );
+
+        const buttons =
+          document.querySelectorAll(
+            "[data-ideas-view]"
+          );
+
+        buttons.forEach(
+          function (button) {
+            const isActive =
+              button.dataset
+                .ideasView ===
+              safeView;
+
+            button.classList.toggle(
+              "ideas-view-button-active",
+              isActive
+            );
+
+            button.setAttribute(
+              "aria-pressed",
+              String(isActive)
+            );
+          }
+        );
+
+        if (board) {
+          board.classList.toggle(
+            "ideas-board-list-view",
+            safeView === "list"
+          );
+        }
+      },
+
+      /**
+       * Displays temporary loading states.
+       */
+      showColumnLoading: function () {
+        [
+          "ideas-review-list",
+          "ideas-approved-list",
+          "ideas-script-ready-list"
+        ].forEach(function (containerId) {
+          const container =
+            SavannahApp.dom.getById(
+              containerId
+            );
+
+          if (!container) {
+            return;
+          }
+
+          container.innerHTML = "";
+
+          const loading =
+            document.createElement(
+              "div"
+            );
+
+          loading.className =
+            "ideas-column-loading";
+
+          loading.textContent =
+            "Loading ideas…";
+
+          container.appendChild(
+            loading
+          );
+        });
+      },
+
+      /**
+       * Creates an empty column state.
+       *
+       * @param {string} column Column name.
+       * @return {HTMLElement} Empty state.
+       */
+      createColumnEmptyState: function (
+        column
+      ) {
+        const wrapper =
+          document.createElement(
+            "div"
+          );
+
+        const title =
+          document.createElement(
+            "strong"
+          );
+
+        const message =
+          document.createElement(
+            "p"
+          );
+
+        wrapper.className =
+          "ideas-column-empty";
+
+        if (column === "review") {
+          title.textContent =
+            "No ideas awaiting review";
+
+          message.textContent =
+            "Newly generated ideas will appear here.";
+        }
+
+        if (column === "approved") {
+          title.textContent =
+            "No approved ideas";
+
+          message.textContent =
+            "Approved ideas will appear here.";
+        }
+
+        if (
+          column ===
+          "script-ready"
+        ) {
+          title.textContent =
+            "No script-ready ideas";
+
+          message.textContent =
+            "Ideas will appear here after script generation.";
+        }
+
+        wrapper.appendChild(title);
+        wrapper.appendChild(message);
+
+        return wrapper;
+      },
+
+      /**
+       * Enables or disables generation UI.
+       *
+       * @param {boolean} isGenerating Loading state.
+       */
+      setGeneratingState: function (
+        isGenerating
+      ) {
+        SavannahApp.ideas.state
+          .isGenerating =
+          Boolean(isGenerating);
+
+        SavannahApp.dom.setDisabled(
+          "ideas-generate-button",
+          isGenerating
+        );
+
+        SavannahApp.dom.setDisabled(
+          "ideas-empty-generate-button",
+          isGenerating
+        );
+
+        SavannahApp.dom.setDisabled(
+          "ideas-refresh-button",
+          isGenerating
+        );
+
+        if (isGenerating) {
+          SavannahApp.dom.show(
+            "ideas-generation-status"
+          );
+
+          SavannahApp.dom.setText(
+            "ideas-generation-status-title",
+            "Generating ideas"
+          );
+
+          SavannahApp.dom.setText(
+            "ideas-generation-status-message",
+            "Savannah is researching and preparing new content concepts."
+          );
+
+          return;
+        }
+
+        SavannahApp.dom.hide(
+          "ideas-generation-status"
+        );
+      },
+
+      /**
+       * Shows a success status.
+       *
+       * @param {string} message Message.
+       */
+      showSuccess: function (message) {
+        const banner =
+          SavannahApp.dom.getById(
+            "ideas-generation-status"
+          );
+
+        if (!banner) {
+          return;
+        }
+
+        SavannahApp.dom.setText(
+          "ideas-generation-status-title",
+          "Ideas generated"
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-generation-status-message",
+          message
+        );
+
+        banner.hidden = false;
+
+        window.setTimeout(
+          function () {
+            if (
+              !SavannahApp.ideas.state
+                .isGenerating
+            ) {
+              banner.hidden = true;
+            }
+          },
+          3500
+        );
+      },
+
+      /**
+       * Shows an Ideas page error.
+       *
+       * @param {string} message Error message.
+       */
+      showError: function (message) {
+        const element =
+          SavannahApp.dom.getById(
+            "ideas-error-message"
+          );
+
+        if (!element) {
+          return;
+        }
+
+        element.textContent =
+          message ||
+          "An unexpected Ideas error occurred.";
+
+        element.hidden = false;
+      },
+
+      /**
+       * Clears Ideas page messages.
+       */
+      clearMessages: function () {
+        SavannahApp.dom.hide(
+          "ideas-error-message"
+        );
+
+        if (
+          !SavannahApp.ideas.state
+            .isGenerating
+        ) {
+          SavannahApp.dom.hide(
+            "ideas-generation-status"
+          );
+        }
+      },
+
+      /**
+       * Resolves controller error responses.
+       *
+       * @param {Object} response Controller response.
+       * @param {string} fallback Fallback message.
+       * @return {string} Safe message.
+       */
+      resolveResponseError: function (
+        response,
+        fallback
+      ) {
+        if (
+          response &&
+          response.error &&
+          response.error.message
+        ) {
+          return response.error.message;
+        }
+
+        if (
+          response &&
+          response.message
+        ) {
+          return response.message;
+        }
+
+        return fallback;
+      },
+
+      /**
+       * Normalises a status value.
+       *
+       * @param {*} status Status value.
+       * @return {string} Lowercase status.
+       */
+      normaliseStatus: function (
+        status
+      ) {
+        return String(status || "")
+          .trim()
+          .toLowerCase();
+      }
+    },
+
+    /**
+     * Scripts workspace behaviour.
      */
     scripts: {
       state: {
@@ -635,9 +2109,6 @@ navigation: {
         isGenerating: false
       },
 
-      /**
-       * Initialises Scripts page events and data.
-       */
       initialise: function () {
         const refreshButton =
           SavannahApp.dom.getById(
@@ -674,7 +2145,8 @@ navigation: {
             function (event) {
               event.preventDefault();
 
-              SavannahApp.scripts.generate();
+              SavannahApp.scripts
+                .generate();
             }
           );
         }
@@ -683,7 +2155,8 @@ navigation: {
           statusFilter.addEventListener(
             "change",
             function () {
-              SavannahApp.scripts.loadList();
+              SavannahApp.scripts
+                .loadList();
             }
           );
         }
@@ -691,30 +2164,83 @@ navigation: {
         if (modalCloseButton) {
           modalCloseButton.addEventListener(
             "click",
-            SavannahApp.scripts.closeDetail
+            SavannahApp.scripts
+              .closeDetail
           );
         }
+
+        SavannahApp.scripts
+          .populateFromQuery();
 
         SavannahApp.scripts.load();
       },
 
       /**
-       * Loads scripts and metrics.
+       * Prefills script-generation fields from Ideas.
        */
+      populateFromQuery: function () {
+        const parameters =
+          new URLSearchParams(
+            window.location.search
+          );
+
+        const mappings = {
+          ideaId:
+            "scripts-idea-id",
+
+          videoIdea:
+            "scripts-idea-title",
+
+          hook:
+            "scripts-idea-hook",
+
+          targetAudience:
+            "scripts-target-audience",
+
+          niche:
+            "scripts-niche"
+        };
+
+        Object.keys(mappings).forEach(
+          function (parameterName) {
+            const value =
+              parameters.get(
+                parameterName
+              );
+
+            const element =
+              SavannahApp.dom.getById(
+                mappings[
+                  parameterName
+                ]
+              );
+
+            if (
+              element &&
+              value &&
+              !element.value
+            ) {
+              element.value = value;
+            }
+          }
+        );
+      },
+
       load: function () {
-        SavannahApp.scripts.clearMessages();
+        SavannahApp.scripts
+          .clearMessages();
 
         SavannahApp.dom.show(
           "scripts-loading-message"
         );
 
-        SavannahApp.scripts.loadMetrics();
-        SavannahApp.scripts.loadList();
+        SavannahApp.scripts
+          .loadMetrics();
+
+        SavannahApp.scripts
+          .loadList();
       },
 
-      /**
-       * Loads Scripts page metrics.
-       */
       loadMetrics: function () {
         google.script.run
           .withSuccessHandler(
@@ -728,22 +2254,11 @@ navigation: {
           .scriptsGetMetrics();
       },
 
-      /**
-       * Loads stored scripts.
-       */
       loadList: function () {
         const statusFilter =
           SavannahApp.dom.getById(
             "scripts-status-filter"
           );
-
-        const request = {
-          limit: 100,
-          status:
-            statusFilter
-              ? statusFilter.value
-              : ""
-        };
 
         google.script.run
           .withSuccessHandler(
@@ -754,14 +2269,16 @@ navigation: {
             SavannahApp.scripts
               .handleServerFailure
           )
-          .scriptsList(request);
+          .scriptsList({
+            limit: 100,
+
+            status:
+              statusFilter
+                ? statusFilter.value
+                : ""
+          });
       },
 
-      /**
-       * Handles metric response.
-       *
-       * @param {Object} response Controller response.
-       */
       handleMetricsSuccess: function (
         response
       ) {
@@ -770,18 +2287,21 @@ navigation: {
           response.success !== true ||
           !response.data
         ) {
-          SavannahApp.scripts.showError(
-            SavannahApp.scripts
-              .resolveResponseError(
-                response,
-                "Script metrics could not be loaded."
-              )
-          );
+          SavannahApp.scripts
+            .showError(
+              SavannahApp.scripts
+                .resolveResponseError(
+                  response,
+                  "Script metrics could not be loaded."
+                )
+            );
 
           return;
         }
 
-        const metrics = response.data;
+        const metrics =
+          response.data;
+
         const statuses =
           metrics.statusCounts || {};
 
@@ -802,15 +2322,11 @@ navigation: {
 
         SavannahApp.dom.setText(
           "scripts-pending-count",
-          statuses.PENDING_APPROVAL || 0
+          statuses
+            .PENDING_APPROVAL || 0
         );
       },
 
-      /**
-       * Handles script-list response.
-       *
-       * @param {Object} response Controller response.
-       */
       handleListSuccess: function (
         response
       ) {
@@ -826,28 +2342,28 @@ navigation: {
             response.data.scripts
           )
         ) {
-          SavannahApp.scripts.showError(
-            SavannahApp.scripts
-              .resolveResponseError(
-                response,
-                "Scripts could not be loaded."
-              )
-          );
+          SavannahApp.scripts
+            .showError(
+              SavannahApp.scripts
+                .resolveResponseError(
+                  response,
+                  "Scripts could not be loaded."
+                )
+            );
 
           return;
         }
 
-        SavannahApp.scripts.state.scripts =
+        SavannahApp.scripts.state
+          .scripts =
           response.data.scripts;
 
-        SavannahApp.scripts.renderTable(
-          response.data.scripts
-        );
+        SavannahApp.scripts
+          .renderTable(
+            response.data.scripts
+          );
       },
 
-      /**
-       * Creates one script-generation request.
-       */
       generate: function () {
         if (
           SavannahApp.scripts.state
@@ -856,7 +2372,8 @@ navigation: {
           return;
         }
 
-        SavannahApp.scripts.clearMessages();
+        SavannahApp.scripts
+          .clearMessages();
 
         const ideaId =
           SavannahApp.scripts
@@ -871,9 +2388,10 @@ navigation: {
             );
 
         if (!ideaId || !videoIdea) {
-          SavannahApp.scripts.showError(
-            "Idea ID and video idea are required."
-          );
+          SavannahApp.scripts
+            .showError(
+              "Idea ID and video idea are required."
+            );
 
           return;
         }
@@ -933,14 +2451,11 @@ navigation: {
             SavannahApp.scripts
               .handleGenerationFailure
           )
-          .scriptsGenerateScript(request);
+          .scriptsGenerateScript(
+            request
+          );
       },
 
-      /**
-       * Handles a generated script response.
-       *
-       * @param {Object} response Controller response.
-       */
       handleGenerationSuccess: function (
         response
       ) {
@@ -953,60 +2468,49 @@ navigation: {
           !response.data ||
           !response.data.script
         ) {
-          SavannahApp.scripts.showError(
-            SavannahApp.scripts
-              .resolveResponseError(
-                response,
-                "Script generation failed."
-              )
-          );
+          SavannahApp.scripts
+            .showError(
+              SavannahApp.scripts
+                .resolveResponseError(
+                  response,
+                  "Script generation failed."
+                )
+            );
 
           return;
         }
 
-        SavannahApp.scripts.showSuccess(
-          "Script generated and saved successfully."
-        );
+        SavannahApp.scripts
+          .showSuccess(
+            "Script generated and saved successfully."
+          );
 
-        SavannahApp.scripts.renderGeneratedResult(
-          response.data
-        );
+        SavannahApp.scripts
+          .renderGeneratedResult(
+            response.data
+          );
 
-        SavannahApp.scripts.loadMetrics();
-        SavannahApp.scripts.loadList();
+        SavannahApp.scripts
+          .loadMetrics();
 
-        if (
-          document.querySelector(
-            '[data-page="dashboard"]'
-          )
-        ) {
-          SavannahApp.dashboard.load();
-        }
+        SavannahApp.scripts
+          .loadList();
       },
 
-      /**
-       * Handles a failed generation invocation.
-       *
-       * @param {*} error Browser/server error.
-       */
       handleGenerationFailure: function (
         error
       ) {
         SavannahApp.scripts
           .setGeneratingState(false);
 
-        SavannahApp.scripts.showError(
-          error && error.message
-            ? error.message
-            : "Script generation failed."
-        );
+        SavannahApp.scripts
+          .showError(
+            error && error.message
+              ? error.message
+              : "Script generation failed."
+          );
       },
 
-      /**
-       * Handles general server failures.
-       *
-       * @param {*} error Browser/server error.
-       */
       handleServerFailure: function (
         error
       ) {
@@ -1014,18 +2518,14 @@ navigation: {
           "scripts-loading-message"
         );
 
-        SavannahApp.scripts.showError(
-          error && error.message
-            ? error.message
-            : "The server request failed."
-        );
+        SavannahApp.scripts
+          .showError(
+            error && error.message
+              ? error.message
+              : "The server request failed."
+          );
       },
 
-      /**
-       * Renders script table rows.
-       *
-       * @param {Object[]} scripts Script summaries.
-       */
       renderTable: function (scripts) {
         const tableBody =
           SavannahApp.dom.getById(
@@ -1049,6 +2549,7 @@ navigation: {
             document.createElement("td");
 
           cell.colSpan = 7;
+
           cell.textContent =
             "No scripts match the selected filters.";
 
@@ -1058,140 +2559,145 @@ navigation: {
           return;
         }
 
-        scripts.forEach(function (script) {
-          const row =
-            document.createElement("tr");
-
-          const titleCell =
-            document.createElement("td");
-
-          const statusCell =
-            document.createElement("td");
-
-          const durationCell =
-            document.createElement("td");
-
-          const wordsCell =
-            document.createElement("td");
-
-          const modelCell =
-            document.createElement("td");
-
-          const updatedCell =
-            document.createElement("td");
-
-          const actionsCell =
-            document.createElement("td");
-
-          const statusBadge =
-            document.createElement("span");
-
-          const viewButton =
-            document.createElement("button");
-
-          titleCell.textContent =
-            script.title || "Untitled script";
-
-          statusBadge.className =
-            "badge " +
-            SavannahApp.scripts
-              .getStatusBadgeClass(
-                script.status
+        scripts.forEach(
+          function (script) {
+            const row =
+              document.createElement(
+                "tr"
               );
 
-          statusBadge.textContent =
-            script.status || "Unknown";
+            const values = [
+              script.title ||
+                "Untitled script",
+              script.status ||
+                "Unknown",
+              SavannahApp.format
+                .duration(
+                  script
+                    .estimatedDurationSeconds
+                ),
+              Number(
+                script.wordCount
+              ) || 0,
+              script.aiModel || "—",
+              SavannahApp.format
+                .dateTime(
+                  script.updatedAt
+                )
+            ];
 
-          statusCell.appendChild(
-            statusBadge
-          );
+            values.forEach(
+              function (value, index) {
+                const cell =
+                  document.createElement(
+                    "td"
+                  );
 
-          durationCell.textContent =
-            SavannahApp.format.duration(
-              script
-                .estimatedDurationSeconds
+                if (index === 1) {
+                  const badge =
+                    document.createElement(
+                      "span"
+                    );
+
+                  badge.className =
+                    "badge " +
+                    SavannahApp.scripts
+                      .getStatusBadgeClass(
+                        script.status
+                      );
+
+                  badge.textContent =
+                    value;
+
+                  cell.appendChild(badge);
+                } else {
+                  cell.textContent = value;
+                }
+
+                row.appendChild(cell);
+              }
             );
 
-          wordsCell.textContent =
-            Number(script.wordCount) || 0;
-
-          modelCell.textContent =
-            script.aiModel || "—";
-
-          updatedCell.textContent =
-            SavannahApp.format.dateTime(
-              script.updatedAt
-            );
-
-          viewButton.type = "button";
-          viewButton.className =
-            "button button-secondary";
-
-          viewButton.textContent =
-            "View";
-
-          viewButton.addEventListener(
-            "click",
-            function () {
-              SavannahApp.scripts.openDetail(
-                script.id
+            const actionsCell =
+              document.createElement(
+                "td"
               );
-            }
-          );
 
-          actionsCell.appendChild(
-            viewButton
-          );
+            const viewButton =
+              document.createElement(
+                "button"
+              );
 
-          row.appendChild(titleCell);
-          row.appendChild(statusCell);
-          row.appendChild(durationCell);
-          row.appendChild(wordsCell);
-          row.appendChild(modelCell);
-          row.appendChild(updatedCell);
-          row.appendChild(actionsCell);
+            viewButton.type = "button";
 
-          tableBody.appendChild(row);
-        });
+            viewButton.className =
+              "button button-secondary";
+
+            viewButton.textContent =
+              "View";
+
+            viewButton.addEventListener(
+              "click",
+              function () {
+                SavannahApp.scripts
+                  .openDetail(
+                    script.id
+                  );
+              }
+            );
+
+            actionsCell.appendChild(
+              viewButton
+            );
+
+            row.appendChild(
+              actionsCell
+            );
+
+            tableBody.appendChild(row);
+          }
+        );
       },
 
-      /**
-       * Displays the latest generated result.
-       *
-       * @param {Object} data Controller data.
-       */
       renderGeneratedResult: function (
         data
       ) {
-        const script = data.script || {};
+        const script =
+          data.script || {};
 
         SavannahApp.dom.setText(
           "scripts-result-title",
-          script.title || "Generated script"
+          script.title ||
+            "Generated script"
         );
 
         SavannahApp.dom.setText(
           "scripts-result-status",
-          script.status || "FORMATTED"
+          script.status ||
+            "FORMATTED"
         );
 
         SavannahApp.dom.setText(
           "scripts-result-meta",
           [
-            SavannahApp.format.duration(
-              script
-                .estimatedDurationSeconds
-            ),
+            SavannahApp.format
+              .duration(
+                script
+                  .estimatedDurationSeconds
+              ),
+
             "Validation attempts: " +
               (
                 Number(
                   data.validationAttempts
                 ) || 1
               ),
+
             "Estimated cost: " +
-              SavannahApp.format.cost(
-                data.estimatedCost
-              )
+              SavannahApp.format
+                .cost(
+                  data.estimatedCost
+                )
           ].join(" · ")
         );
 
@@ -1210,23 +2716,20 @@ navigation: {
           script.callToAction || ""
         );
 
-        SavannahApp.scripts.renderScenes(
-          "scripts-result-scenes",
-          script.scenes
-        );
+        SavannahApp.scripts
+          .renderScenes(
+            "scripts-result-scenes",
+            script.scenes
+          );
 
         SavannahApp.dom.show(
           "scripts-generated-result"
         );
       },
 
-      /**
-       * Loads one complete script.
-       *
-       * @param {string} scriptId Script ID.
-       */
       openDetail: function (scriptId) {
-        SavannahApp.scripts.clearMessages();
+        SavannahApp.scripts
+          .clearMessages();
 
         google.script.run
           .withSuccessHandler(
@@ -1242,11 +2745,6 @@ navigation: {
           });
       },
 
-      /**
-       * Handles one complete script response.
-       *
-       * @param {Object} response Controller response.
-       */
       handleDetailSuccess: function (
         response
       ) {
@@ -1256,27 +2754,24 @@ navigation: {
           !response.data ||
           !response.data.script
         ) {
-          SavannahApp.scripts.showError(
-            SavannahApp.scripts
-              .resolveResponseError(
-                response,
-                "Script could not be loaded."
-              )
-          );
+          SavannahApp.scripts
+            .showError(
+              SavannahApp.scripts
+                .resolveResponseError(
+                  response,
+                  "Script could not be loaded."
+                )
+            );
 
           return;
         }
 
-        SavannahApp.scripts.renderDetail(
-          response.data.script
-        );
+        SavannahApp.scripts
+          .renderDetail(
+            response.data.script
+          );
       },
 
-      /**
-       * Renders the detail modal.
-       *
-       * @param {Object} script Complete script.
-       */
       renderDetail: function (script) {
         const container =
           SavannahApp.dom.getById(
@@ -1294,46 +2789,49 @@ navigation: {
           script.title || "Script"
         );
 
-        container.appendChild(
-          SavannahApp.scripts
-            .createDetailSection(
-              "Status",
-              script.status || ""
-            )
-        );
-
-        container.appendChild(
-          SavannahApp.scripts
-            .createDetailSection(
-              "Hook",
-              script.hook || ""
-            )
-        );
-
-        container.appendChild(
-          SavannahApp.scripts
-            .createDetailSection(
-              "Voiceover",
-              script.voiceoverScript || ""
-            )
-        );
-
-        container.appendChild(
-          SavannahApp.scripts
-            .createDetailSection(
-              "Call to action",
-              script.callToAction || ""
-            )
+        [
+          [
+            "Status",
+            script.status || ""
+          ],
+          [
+            "Hook",
+            script.hook || ""
+          ],
+          [
+            "Voiceover",
+            script.voiceoverScript || ""
+          ],
+          [
+            "Call to action",
+            script.callToAction || ""
+          ]
+        ].forEach(
+          function (section) {
+            container.appendChild(
+              SavannahApp.scripts
+                .createDetailSection(
+                  section[0],
+                  section[1]
+                )
+            );
+          }
         );
 
         const scenesSection =
-          document.createElement("section");
+          document.createElement(
+            "section"
+          );
 
         const scenesTitle =
-          document.createElement("h3");
+          document.createElement(
+            "h3"
+          );
 
         const scenesContainer =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
 
         scenesTitle.textContent =
           "Scenes";
@@ -1353,10 +2851,11 @@ navigation: {
           scenesSection
         );
 
-        SavannahApp.scripts.renderScenes(
-          "scripts-detail-scenes",
-          script.scenes
-        );
+        SavannahApp.scripts
+          .renderScenes(
+            "scripts-detail-scenes",
+            script.scenes
+          );
 
         container.appendChild(
           SavannahApp.scripts
@@ -1365,25 +2864,41 @@ navigation: {
               [
                 "Script ID: " +
                   (script.id || ""),
+
                 "Idea ID: " +
-                  (script.ideaId || ""),
+                  (
+                    script.ideaId || ""
+                  ),
+
                 "Duration: " +
-                  SavannahApp.format.duration(
-                    script
-                      .estimatedDurationSeconds
-                  ),
+                  SavannahApp.format
+                    .duration(
+                      script
+                        .estimatedDurationSeconds
+                    ),
+
                 "AI model: " +
-                  (script.aiModel || ""),
-                "Prompt version: " +
-                  (script.promptVersion || ""),
-                "Created: " +
-                  SavannahApp.format.dateTime(
-                    script.createdAt
+                  (
+                    script.aiModel || ""
                   ),
+
+                "Prompt version: " +
+                  (
+                    script
+                      .promptVersion || ""
+                  ),
+
+                "Created: " +
+                  SavannahApp.format
+                    .dateTime(
+                      script.createdAt
+                    ),
+
                 "Updated: " +
-                  SavannahApp.format.dateTime(
-                    script.updatedAt
-                  )
+                  SavannahApp.format
+                    .dateTime(
+                      script.updatedAt
+                    )
               ].join("\n")
             )
         );
@@ -1393,25 +2908,24 @@ navigation: {
         );
       },
 
-      /**
-       * Creates one modal section.
-       *
-       * @param {string} title Section title.
-       * @param {string} content Section content.
-       * @return {HTMLElement} Section element.
-       */
       createDetailSection: function (
         title,
         content
       ) {
         const section =
-          document.createElement("section");
+          document.createElement(
+            "section"
+          );
 
         const heading =
-          document.createElement("h3");
+          document.createElement(
+            "h3"
+          );
 
         const paragraph =
-          document.createElement("p");
+          document.createElement(
+            "p"
+          );
 
         heading.textContent = title;
 
@@ -1422,17 +2936,13 @@ navigation: {
           "pre-wrap";
 
         section.appendChild(heading);
-        section.appendChild(paragraph);
+        section.appendChild(
+          paragraph
+        );
 
         return section;
       },
 
-      /**
-       * Renders scene cards.
-       *
-       * @param {string} containerId Container ID.
-       * @param {Object[]} scenes Scene collection.
-       */
       renderScenes: function (
         containerId,
         scenes
@@ -1453,7 +2963,9 @@ navigation: {
           scenes.length === 0
         ) {
           const empty =
-            document.createElement("p");
+            document.createElement(
+              "p"
+            );
 
           empty.textContent =
             "No scene data is available.";
@@ -1463,74 +2975,96 @@ navigation: {
           return;
         }
 
-        scenes.forEach(function (scene) {
-          const card =
-            document.createElement("article");
+        scenes.forEach(
+          function (scene) {
+            const card =
+              document.createElement(
+                "article"
+              );
 
-          const body =
-            document.createElement("div");
+            const body =
+              document.createElement(
+                "div"
+              );
 
-          const title =
-            document.createElement("h4");
+            const title =
+              document.createElement(
+                "h4"
+              );
 
-          const narration =
-            document.createElement("p");
+            const narration =
+              document.createElement(
+                "p"
+              );
 
-          const onScreen =
-            document.createElement("p");
+            const onScreen =
+              document.createElement(
+                "p"
+              );
 
-          const visual =
-            document.createElement("p");
+            const visual =
+              document.createElement(
+                "p"
+              );
 
-          card.className = "card";
-          body.className = "card-body";
+            card.className = "card";
+            body.className = "card-body";
 
-          title.textContent =
-            "Scene " +
-            (
-              scene.sceneNumber || ""
-            ) +
-            " · " +
-            SavannahApp.format.duration(
-              scene.estimatedSeconds
+            title.textContent =
+              "Scene " +
+              (
+                scene.sceneNumber || ""
+              ) +
+              " · " +
+              SavannahApp.format
+                .duration(
+                  scene
+                    .estimatedSeconds
+                );
+
+            narration.textContent =
+              "Narration: " +
+              (
+                scene.narration || ""
+              );
+
+            onScreen.textContent =
+              "On-screen text: " +
+              (
+                scene.onScreenText || ""
+              );
+
+            visual.textContent =
+              "Visual direction: " +
+              (
+                scene
+                  .visualDirection || ""
+              );
+
+            body.appendChild(title);
+            body.appendChild(
+              narration
             );
 
-          narration.textContent =
-            "Narration: " +
-            (scene.narration || "");
+            body.appendChild(
+              onScreen
+            );
 
-          onScreen.textContent =
-            "On-screen text: " +
-            (scene.onScreenText || "");
+            body.appendChild(visual);
 
-          visual.textContent =
-            "Visual direction: " +
-            (scene.visualDirection || "");
+            card.appendChild(body);
 
-          body.appendChild(title);
-          body.appendChild(narration);
-          body.appendChild(onScreen);
-          body.appendChild(visual);
-
-          card.appendChild(body);
-          container.appendChild(card);
-        });
+            container.appendChild(card);
+          }
+        );
       },
 
-      /**
-       * Closes the detail modal.
-       */
       closeDetail: function () {
         SavannahApp.dom.hide(
           "scripts-detail-modal"
         );
       },
 
-      /**
-       * Enables or disables generation UI.
-       *
-       * @param {boolean} isGenerating Loading state.
-       */
       setGeneratingState: function (
         isGenerating
       ) {
@@ -1552,24 +3086,20 @@ navigation: {
             "scripts-generate-button",
             "Generating..."
           );
-        } else {
-          SavannahApp.dom.hide(
-            "scripts-generation-status"
-          );
 
-          SavannahApp.dom.setText(
-            "scripts-generate-button",
-            "Generate Script"
-          );
+          return;
         }
+
+        SavannahApp.dom.hide(
+          "scripts-generation-status"
+        );
+
+        SavannahApp.dom.setText(
+          "scripts-generate-button",
+          "Generate Script"
+        );
       },
 
-      /**
-       * Reads one form input.
-       *
-       * @param {string} elementId Element ID.
-       * @return {string} Trimmed value.
-       */
       readInputValue: function (
         elementId
       ) {
@@ -1585,11 +3115,6 @@ navigation: {
           : "";
       },
 
-      /**
-       * Displays a success message.
-       *
-       * @param {string} message Message text.
-       */
       showSuccess: function (message) {
         const element =
           SavannahApp.dom.getById(
@@ -1608,11 +3133,6 @@ navigation: {
         );
       },
 
-      /**
-       * Displays an error message.
-       *
-       * @param {string} message Message text.
-       */
       showError: function (message) {
         const element =
           SavannahApp.dom.getById(
@@ -1634,9 +3154,6 @@ navigation: {
         );
       },
 
-      /**
-       * Clears page messages.
-       */
       clearMessages: function () {
         SavannahApp.dom.hide(
           "scripts-success-message"
@@ -1647,13 +3164,6 @@ navigation: {
         );
       },
 
-      /**
-       * Resolves a controller error response.
-       *
-       * @param {Object} response Controller response.
-       * @param {string} fallback Fallback message.
-       * @return {string} Error message.
-       */
       resolveResponseError: function (
         response,
         fallback
@@ -1676,12 +3186,6 @@ navigation: {
         return fallback;
       },
 
-      /**
-       * Resolves a status badge class.
-       *
-       * @param {string} status Script status.
-       * @return {string} Badge class.
-       */
       getStatusBadgeClass: function (
         status
       ) {
@@ -1693,7 +3197,7 @@ navigation: {
           PENDING_APPROVAL:
             "badge-warning",
           APPROVED: "badge-success",
-          REJECTED: "badge-error",
+          REJECTED: "badge-danger",
           ARCHIVED: ""
         };
 

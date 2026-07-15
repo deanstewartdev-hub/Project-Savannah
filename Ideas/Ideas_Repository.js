@@ -1,22 +1,57 @@
 /****************************************************
- * Project Savannah v1.2
+ * Project Savannah v1.3
  * Ideas_Repository.js
  *
  * Purpose:
- * Persist and retrieve generated video ideas.
+ * Persist, retrieve and update generated video ideas.
  *
  * Responsibilities:
  * - Validate idea collections.
- * - Save ideas to the Ideas sheet.
+ * - Save generated ideas to the Ideas sheet.
+ * - Retrieve idea records.
+ * - Update idea workflow statuses.
+ * - Return idea workspace metrics.
  * - Preserve workflow metadata.
  *
  * Must not:
  * - Call AI services.
+ * - Render frontend HTML.
  * - Log workflow events.
  * - Calculate provider costs.
  ****************************************************/
 
 const IdeasRepository = {
+  /**
+   * Ideas sheet column positions.
+   *
+   * Sheet layout:
+   * 1  ID
+   * 2  Created At
+   * 3  Niche
+   * 4  Video Idea
+   * 5  Hook
+   * 6  Target Audience
+   * 7  Status
+   * 8  AI Model
+   * 9  Prompt Version
+   * 10 Run ID
+   */
+  COLUMNS: {
+    ID: 1,
+    CREATED_AT: 2,
+    NICHE: 3,
+    VIDEO_IDEA: 4,
+    HOOK: 5,
+    TARGET_AUDIENCE: 6,
+    STATUS: 7,
+    AI_MODEL: 8,
+    PROMPT_VERSION: 9,
+    RUN_ID: 10
+  },
+
+  HEADER_ROW: 1,
+  COLUMN_COUNT: 10,
+
   /**
    * Saves generated ideas.
    *
@@ -26,21 +61,10 @@ const IdeasRepository = {
    */
   saveIdeas: function (ideas, options) {
     const saveOptions = options || {};
-
-    const spreadsheet =
-      SpreadsheetApp.getActiveSpreadsheet();
-
     const sheet =
-      spreadsheet.getSheetByName(SHEETS.IDEAS);
-
-    if (!sheet) {
-      throw new Error(
-        "Ideas sheet was not found."
-      );
-    }
+      IdeasRepository.getSheet_();
 
     if (
-      !ideas ||
       !Array.isArray(ideas) ||
       ideas.length === 0
     ) {
@@ -52,7 +76,9 @@ const IdeasRepository = {
     const niche = Settings.getNiche();
 
     const runId =
-      saveOptions.runId || createRunId();
+      IdeasRepository.normaliseText_(
+        saveOptions.runId
+      ) || createRunId();
 
     const createdAt =
       saveOptions.createdAt instanceof Date
@@ -60,71 +86,688 @@ const IdeasRepository = {
         : new Date();
 
     const model =
-      saveOptions.model ||
+      IdeasRepository.normaliseText_(
+        saveOptions.model
+      ) ||
       Settings.getModel();
 
     const promptVersion =
-      saveOptions.promptVersion ||
+      IdeasRepository.normaliseText_(
+        saveOptions.promptVersion
+      ) ||
       APP.PROMPT_VERSION;
 
-    const rows = ideas.map(function (idea) {
-      return [
-        createIdeaId(),
-        createdAt,
-        niche,
-        String(idea.videoIdea || ""),
-        String(idea.hook || ""),
-        String(idea.targetAudience || ""),
-        IDEA_STATUS.NEW,
-        model,
-        promptVersion,
-        runId
-      ];
-    });
+    const rows = ideas.map(
+      function (idea, index) {
+        IdeasRepository.validateGeneratedIdea_(
+          idea,
+          index
+        );
+
+        return [
+          createIdeaId(),
+          createdAt,
+          niche,
+          IdeasRepository.normaliseText_(
+            idea.videoIdea
+          ),
+          IdeasRepository.normaliseText_(
+            idea.hook
+          ),
+          IdeasRepository.normaliseText_(
+            idea.targetAudience
+          ),
+          IDEA_STATUS.NEW,
+          model,
+          promptVersion,
+          runId
+        ];
+      }
+    );
 
     sheet
       .getRange(
         sheet.getLastRow() + 1,
         1,
         rows.length,
-        rows[0].length
+        IdeasRepository.COLUMN_COUNT
       )
       .setValues(rows);
 
     return {
       runId: runId,
       savedCount: rows.length,
-      createdAt: createdAt
+      createdAt: createdAt,
+      ideaIds: rows.map(function (row) {
+        return row[
+          IdeasRepository.COLUMNS.ID - 1
+        ];
+      })
     };
+  },
+
+  /**
+   * Returns stored ideas.
+   *
+   * Supported options:
+   * - limit
+   * - status
+   * - search
+   * - newestFirst
+   *
+   * @param {Object=} options Query options.
+   * @return {Object[]} Idea records.
+   */
+  listIdeas: function (options) {
+    const queryOptions = options || {};
+    const sheet =
+      IdeasRepository.getSheet_();
+
+    const lastRow = sheet.getLastRow();
+
+    if (
+      lastRow <=
+      IdeasRepository.HEADER_ROW
+    ) {
+      return [];
+    }
+
+    const rowCount =
+      lastRow -
+      IdeasRepository.HEADER_ROW;
+
+    const values = sheet
+      .getRange(
+        IdeasRepository.HEADER_ROW + 1,
+        1,
+        rowCount,
+        IdeasRepository.COLUMN_COUNT
+      )
+      .getValues();
+
+    const requestedStatus =
+      IdeasRepository.normaliseText_(
+        queryOptions.status
+      ).toLowerCase();
+
+    const searchTerm =
+      IdeasRepository.normaliseText_(
+        queryOptions.search
+      ).toLowerCase();
+
+    const limit =
+      IdeasRepository.normaliseLimit_(
+        queryOptions.limit,
+        100
+      );
+
+    let ideas = values.map(
+      function (row, index) {
+        return IdeasRepository.mapRowToIdea_(
+          row,
+          IdeasRepository.HEADER_ROW +
+            index +
+            1
+        );
+      }
+    );
+
+    if (requestedStatus) {
+      ideas = ideas.filter(function (idea) {
+        return (
+          IdeasRepository.normaliseText_(
+            idea.status
+          ).toLowerCase() ===
+          requestedStatus
+        );
+      });
+    }
+
+    if (searchTerm) {
+      ideas = ideas.filter(function (idea) {
+        const searchableText = [
+          idea.id,
+          idea.niche,
+          idea.videoIdea,
+          idea.hook,
+          idea.targetAudience,
+          idea.status,
+          idea.aiModel,
+          idea.runId
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return (
+          searchableText.indexOf(
+            searchTerm
+          ) !== -1
+        );
+      });
+    }
+
+    if (queryOptions.newestFirst !== false) {
+      ideas.sort(function (left, right) {
+        return (
+          IdeasRepository.getTimeValue_(
+            right.createdAt
+          ) -
+          IdeasRepository.getTimeValue_(
+            left.createdAt
+          )
+        );
+      });
+    }
+
+    return ideas.slice(0, limit);
+  },
+
+  /**
+   * Retrieves one idea by its ID.
+   *
+   * @param {string} ideaId Idea identifier.
+   * @return {Object|null} Idea record.
+   */
+  getIdeaById: function (ideaId) {
+    const normalisedIdeaId =
+      IdeasRepository.normaliseText_(ideaId);
+
+    if (!normalisedIdeaId) {
+      throw new Error(
+        "An idea ID is required."
+      );
+    }
+
+    const ideas =
+      IdeasRepository.listIdeas({
+        limit: 1000,
+        newestFirst: false
+      });
+
+    for (
+      let index = 0;
+      index < ideas.length;
+      index += 1
+    ) {
+      if (
+        ideas[index].id ===
+        normalisedIdeaId
+      ) {
+        return ideas[index];
+      }
+    }
+
+    return null;
+  },
+
+  /**
+   * Updates one idea's workflow status.
+   *
+   * @param {string} ideaId Idea identifier.
+   * @param {string} status New status.
+   * @return {Object} Updated idea.
+   */
+  updateIdeaStatus: function (
+    ideaId,
+    status
+  ) {
+    const normalisedIdeaId =
+      IdeasRepository.normaliseText_(ideaId);
+
+    const normalisedStatus =
+      IdeasRepository.normaliseStatus_(
+        status
+      );
+
+    if (!normalisedIdeaId) {
+      throw new Error(
+        "An idea ID is required."
+      );
+    }
+
+    const sheet =
+      IdeasRepository.getSheet_();
+
+    const lastRow = sheet.getLastRow();
+
+    if (
+      lastRow <=
+      IdeasRepository.HEADER_ROW
+    ) {
+      throw new Error(
+        "The requested idea could not be found."
+      );
+    }
+
+    const idValues = sheet
+      .getRange(
+        IdeasRepository.HEADER_ROW + 1,
+        IdeasRepository.COLUMNS.ID,
+        lastRow -
+          IdeasRepository.HEADER_ROW,
+        1
+      )
+      .getDisplayValues();
+
+    let matchingRow = 0;
+
+    for (
+      let index = 0;
+      index < idValues.length;
+      index += 1
+    ) {
+      if (
+        IdeasRepository.normaliseText_(
+          idValues[index][0]
+        ) === normalisedIdeaId
+      ) {
+        matchingRow =
+          IdeasRepository.HEADER_ROW +
+          index +
+          1;
+
+        break;
+      }
+    }
+
+    if (!matchingRow) {
+      throw new Error(
+        "The requested idea could not be found."
+      );
+    }
+
+    sheet
+      .getRange(
+        matchingRow,
+        IdeasRepository.COLUMNS.STATUS
+      )
+      .setValue(normalisedStatus);
+
+    const updatedRow = sheet
+      .getRange(
+        matchingRow,
+        1,
+        1,
+        IdeasRepository.COLUMN_COUNT
+      )
+      .getValues()[0];
+
+    return IdeasRepository.mapRowToIdea_(
+      updatedRow,
+      matchingRow
+    );
+  },
+
+  /**
+   * Returns workspace metrics for stored ideas.
+   *
+   * @return {Object} Idea metrics.
+   */
+  getMetrics: function () {
+    const ideas =
+      IdeasRepository.listIdeas({
+        limit: 10000,
+        newestFirst: false
+      });
+
+    const metrics = {
+      totalIdeas: ideas.length,
+      newIdeas: 0,
+      approvedIdeas: 0,
+      rejectedIdeas: 0,
+      statusCounts: {}
+    };
+
+    ideas.forEach(function (idea) {
+      const status =
+        IdeasRepository.normaliseText_(
+          idea.status
+        ) || IDEA_STATUS.NEW;
+
+      if (!metrics.statusCounts[status]) {
+        metrics.statusCounts[status] = 0;
+      }
+
+      metrics.statusCounts[status] += 1;
+
+      if (status === IDEA_STATUS.NEW) {
+        metrics.newIdeas += 1;
+      }
+
+      if (status === IDEA_STATUS.APPROVED) {
+        metrics.approvedIdeas += 1;
+      }
+
+      if (status === IDEA_STATUS.REJECTED) {
+        metrics.rejectedIdeas += 1;
+      }
+    });
+
+    return metrics;
   },
 
   /**
    * Returns the current number of saved ideas.
    *
-   * @return {number}
+   * @return {number} Idea count.
    */
   getIdeaCount: function () {
+    const sheet =
+      IdeasRepository.getSheet_();
+
+    return Math.max(
+      sheet.getLastRow() -
+        IdeasRepository.HEADER_ROW,
+      0
+    );
+  },
+
+  /**
+   * Returns the Ideas sheet.
+   *
+   * @return {GoogleAppsScript.Spreadsheet.Sheet}
+   * @private
+   */
+  getSheet_: function () {
     const spreadsheet =
       SpreadsheetApp.getActiveSpreadsheet();
 
     const sheet =
-      spreadsheet.getSheetByName(SHEETS.IDEAS);
+      spreadsheet.getSheetByName(
+        SHEETS.IDEAS
+      );
 
     if (!sheet) {
+      throw new Error(
+        "Ideas sheet was not found."
+      );
+    }
+
+    return sheet;
+  },
+
+  /**
+   * Maps one sheet row to an idea object.
+   *
+   * @param {Array<*>} row Sheet row.
+   * @param {number} sheetRow Sheet row number.
+   * @return {Object} Idea record.
+   * @private
+   */
+  mapRowToIdea_: function (
+    row,
+    sheetRow
+  ) {
+    return {
+      id:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS.ID -
+              1
+          ]
+        ),
+
+      createdAt:
+        IdeasRepository.normaliseDateValue_(
+          row[
+            IdeasRepository.COLUMNS
+              .CREATED_AT - 1
+          ]
+        ),
+
+      niche:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS.NICHE -
+              1
+          ]
+        ),
+
+      videoIdea:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS
+              .VIDEO_IDEA - 1
+          ]
+        ),
+
+      hook:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS.HOOK -
+              1
+          ]
+        ),
+
+      targetAudience:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS
+              .TARGET_AUDIENCE - 1
+          ]
+        ),
+
+      status:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS.STATUS -
+              1
+          ]
+        ) || IDEA_STATUS.NEW,
+
+      aiModel:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS
+              .AI_MODEL - 1
+          ]
+        ),
+
+      promptVersion:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS
+              .PROMPT_VERSION - 1
+          ]
+        ),
+
+      runId:
+        IdeasRepository.normaliseText_(
+          row[
+            IdeasRepository.COLUMNS.RUN_ID -
+              1
+          ]
+        ),
+
+      sheetRow: sheetRow
+    };
+  },
+
+  /**
+   * Validates one generated idea.
+   *
+   * @param {Object} idea Generated idea.
+   * @param {number} index Collection index.
+   * @private
+   */
+  validateGeneratedIdea_: function (
+    idea,
+    index
+  ) {
+    if (
+      !idea ||
+      typeof idea !== "object"
+    ) {
+      throw new Error(
+        "Idea " +
+          (index + 1) +
+          " is invalid."
+      );
+    }
+
+    if (
+      !IdeasRepository.normaliseText_(
+        idea.videoIdea
+      )
+    ) {
+      throw new Error(
+        "Idea " +
+          (index + 1) +
+          " is missing videoIdea."
+      );
+    }
+
+    if (
+      !IdeasRepository.normaliseText_(
+        idea.hook
+      )
+    ) {
+      throw new Error(
+        "Idea " +
+          (index + 1) +
+          " is missing hook."
+      );
+    }
+
+    if (
+      !IdeasRepository.normaliseText_(
+        idea.targetAudience
+      )
+    ) {
+      throw new Error(
+        "Idea " +
+          (index + 1) +
+          " is missing targetAudience."
+      );
+    }
+  },
+
+  /**
+   * Validates and normalises a workflow status.
+   *
+   * @param {string} status Status value.
+   * @return {string} Canonical status.
+   * @private
+   */
+  normaliseStatus_: function (status) {
+    const requestedStatus =
+      IdeasRepository.normaliseText_(
+        status
+      ).toLowerCase();
+
+    const allowedStatuses = [
+      IDEA_STATUS.NEW,
+      IDEA_STATUS.APPROVED,
+      IDEA_STATUS.REJECTED
+    ];
+
+    for (
+      let index = 0;
+      index < allowedStatuses.length;
+      index += 1
+    ) {
+      if (
+        allowedStatuses[index]
+          .toLowerCase() ===
+        requestedStatus
+      ) {
+        return allowedStatuses[index];
+      }
+    }
+
+    throw new Error(
+      "Unsupported idea status: " +
+        status
+    );
+  },
+
+  /**
+   * Normalises a text value.
+   *
+   * @param {*} value Input value.
+   * @return {string} Trimmed text.
+   * @private
+   */
+  normaliseText_: function (value) {
+    if (
+      value === undefined ||
+      value === null
+    ) {
+      return "";
+    }
+
+    return String(value).trim();
+  },
+
+  /**
+   * Normalises a list limit.
+   *
+   * @param {*} value Requested limit.
+   * @param {number} fallback Default limit.
+   * @return {number} Safe limit.
+   * @private
+   */
+  normaliseLimit_: function (
+    value,
+    fallback
+  ) {
+    const numericValue = Number(value);
+
+    if (
+      !isFinite(numericValue) ||
+      numericValue <= 0
+    ) {
+      return fallback;
+    }
+
+    return Math.min(
+      Math.floor(numericValue),
+      10000
+    );
+  },
+
+  /**
+   * Converts a date to a frontend-safe value.
+   *
+   * @param {*} value Date value.
+   * @return {string} ISO date or text.
+   * @private
+   */
+  normaliseDateValue_: function (value) {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    return (
+      IdeasRepository.normaliseText_(
+        value
+      )
+    );
+  },
+
+  /**
+   * Returns a sortable timestamp.
+   *
+   * @param {*} value Date value.
+   * @return {number} Timestamp.
+   * @private
+   */
+  getTimeValue_: function (value) {
+    if (!value) {
       return 0;
     }
 
-    return Math.max(
-      sheet.getLastRow() - 1,
-      0
-    );
+    const date = new Date(value);
+    const time = date.getTime();
+
+    return isNaN(time) ? 0 : time;
   }
 };
 
 /**
  * Generates an idea identifier.
  *
- * @return {string}
+ * @return {string} Idea ID.
  */
 function createIdeaId() {
   return (
@@ -138,7 +781,10 @@ function createIdeaId() {
 /**
  * Generates a workflow run identifier.
  *
- * @return {string}
+ * This remains globally available because the idea
+ * generation engine currently uses the same helper.
+ *
+ * @return {string} Run ID.
  */
 function createRunId() {
   return (
