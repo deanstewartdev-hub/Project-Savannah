@@ -25,13 +25,16 @@
 
 const ScriptsController = (() => {
   const CONTROLLER_VERSION =
-    "scripts-controller-v1.1";
+    "scripts-controller-v1.2";
 
   const DEFAULT_LIST_LIMIT = 50;
   const MAX_LIST_LIMIT = 200;
 
   /**
-   * Generates and saves a script from an idea.
+   * Generates, validates, formats and saves a script.
+   *
+   * After the script has been persisted successfully,
+   * the source idea is moved to Script Ready.
    *
    * Expected request:
    * {
@@ -48,8 +51,8 @@ const ScriptsController = (() => {
    * For backwards compatibility, the idea object may
    * also be supplied directly instead of request.idea.
    *
-   * @param {Object} request Frontend request.
-   * @return {Object} Frontend-safe response.
+   * @param {Object} request Frontend generation request.
+   * @return {Object} Frontend-safe controller response.
    */
   function generateScript(request) {
     const requestId =
@@ -59,35 +62,65 @@ const ScriptsController = (() => {
       const parsedRequest =
         normaliseGenerateRequest_(request);
 
+      /*
+       * ScriptEngine must complete generation and
+       * persistence before the Idea status is changed.
+       */
       const result =
         ScriptEngine.generateScript(
           parsedRequest.idea,
           parsedRequest.options
         );
 
-      const transition =
+      if (
+        !result ||
+        !result.scriptId ||
+        !result.script
+      ) {
+        throw createControllerError_(
+          "The script engine did not return a persisted script."
+        );
+      }
+
+      const sourceIdeaId =
+        normaliseOptionalString_(
+          result.ideaId ||
+          parsedRequest.idea.id
+        );
+
+      const ideaTransition =
         transitionIdeaToScriptReady_(
-          parsedRequest.idea.id,
-          result
+          sourceIdeaId,
+          result.scriptId
         );
 
       return createSuccessResponse_(
         requestId,
-        transition.success
-          ? "Script generated successfully and the idea was marked Script Ready."
-          : "Script generated successfully, but the idea workflow status could not be updated.",
+        ideaTransition.success
+          ? "Script generated successfully and the source idea was moved to Script Ready."
+          : "Script generated successfully, but the source idea status could not be updated.",
         {
           scriptId:
             result.scriptId,
 
           ideaId:
-            result.ideaId,
+            sourceIdeaId,
 
           title:
-            result.title,
+            result.title ||
+            (
+              result.script &&
+              result.script.title
+            ) ||
+            parsedRequest.idea.videoIdea,
 
           status:
-            result.status,
+            result.status ||
+            (
+              result.script &&
+              result.script.status
+            ) ||
+            "FORMATTED",
 
           script:
             result.script,
@@ -134,7 +167,7 @@ const ScriptsController = (() => {
             result.engineVersion || "",
 
           ideaTransition:
-            transition
+            ideaTransition
         }
       );
     } catch (error) {
@@ -147,26 +180,32 @@ const ScriptsController = (() => {
   }
 
   /**
-   * Marks the source idea as Script Ready after the
-   * script has been generated and persisted.
+   * Moves a source idea to Script Ready.
    *
-   * A transition failure does not report the already
-   * saved script as failed. This avoids accidentally
-   * generating duplicate scripts when a user retries.
+   * This runs only after the associated script has been
+   * successfully persisted.
+   *
+   * A transition failure does not report the saved script
+   * as failed, which prevents duplicate scripts when a
+   * user retries generation.
    *
    * @param {string} ideaId Source idea ID.
-   * @param {Object} result Script-engine result.
+   * @param {string} scriptId Persisted script ID.
    * @return {Object} Transition result.
    * @private
    */
   function transitionIdeaToScriptReady_(
     ideaId,
-    result
+    scriptId
   ) {
     const safeIdeaId =
       normaliseOptionalString_(
-        ideaId ||
-        (result && result.ideaId)
+        ideaId
+      );
+
+    const safeScriptId =
+      normaliseOptionalString_(
+        scriptId
       );
 
     if (!safeIdeaId) {
@@ -174,6 +213,9 @@ const ScriptsController = (() => {
         attempted: false,
         success: false,
         ideaId: "",
+        scriptId:
+          safeScriptId,
+        previousStatus: "",
         status: "",
         idea: null,
         warning:
@@ -185,35 +227,120 @@ const ScriptsController = (() => {
       if (
         typeof IdeasRepository ===
           "undefined" ||
-        !IdeasRepository ||
-        typeof IdeasRepository
-          .markIdeaScriptReady !==
-          "function"
+        !IdeasRepository
       ) {
         throw new Error(
-          "IdeasRepository.markIdeaScriptReady is unavailable."
+          "IdeasRepository is unavailable."
         );
       }
 
-      const updatedIdea =
-        IdeasRepository
-          .markIdeaScriptReady(
-            safeIdeaId
-          );
+      const currentIdea =
+        typeof IdeasRepository
+          .getIdeaById === "function"
+          ? IdeasRepository
+              .getIdeaById(
+                safeIdeaId
+              )
+          : null;
+
+      if (!currentIdea) {
+        throw new Error(
+          "The source idea could not be found: " +
+          safeIdeaId
+        );
+      }
+
+      const previousStatus =
+        normaliseOptionalString_(
+          currentIdea.status
+        );
+
+      let updatedIdea;
+
+      if (
+        typeof IdeasRepository
+          .markIdeaScriptReady ===
+          "function"
+      ) {
+        updatedIdea =
+          IdeasRepository
+            .markIdeaScriptReady(
+              safeIdeaId
+            );
+      } else if (
+        typeof IdeasRepository
+          .updateIdeaStatus ===
+          "function"
+      ) {
+        updatedIdea =
+          IdeasRepository
+            .updateIdeaStatus(
+              safeIdeaId,
+              "Script Ready"
+            );
+      } else {
+        throw new Error(
+          "The Ideas repository has no supported status-update method."
+        );
+      }
+
+      if (
+        !updatedIdea ||
+        normaliseOptionalString_(
+          updatedIdea.status
+        ).toLowerCase() !==
+          "script ready"
+      ) {
+        throw new Error(
+          "The source idea did not persist the Script Ready status."
+        );
+      }
+
+      SpreadsheetApp.flush();
+
+      Logger.log(
+        JSON.stringify({
+          controller:
+            "ScriptsController",
+
+          action:
+            "IDEA_MOVED_TO_SCRIPT_READY",
+
+          ideaId:
+            safeIdeaId,
+
+          scriptId:
+            safeScriptId,
+
+          previousStatus:
+            previousStatus,
+
+          status:
+            updatedIdea.status
+        })
+      );
 
       return {
         attempted: true,
         success: true,
-        ideaId: safeIdeaId,
+
+        ideaId:
+          safeIdeaId,
+
+        scriptId:
+          safeScriptId,
+
+        previousStatus:
+          previousStatus,
+
         status:
-          updatedIdea &&
-          updatedIdea.status
-            ? updatedIdea.status
-            : "Script Ready",
+          updatedIdea.status,
+
         idea:
           clone_(
-            updatedIdea || null
+            updatedIdea
           ),
+
         warning: ""
       };
     } catch (error) {
@@ -230,16 +357,13 @@ const ScriptsController = (() => {
             "ScriptsController",
 
           action:
-            "MARK_IDEA_SCRIPT_READY",
+            "IDEA_SCRIPT_READY_TRANSITION_FAILED",
 
           ideaId:
             safeIdeaId,
 
           scriptId:
-            result &&
-            result.scriptId
-              ? result.scriptId
-              : "",
+            safeScriptId,
 
           warning:
             warning
@@ -249,12 +373,20 @@ const ScriptsController = (() => {
       return {
         attempted: true,
         success: false,
-        ideaId: safeIdeaId,
+
+        ideaId:
+          safeIdeaId,
+
+        scriptId:
+          safeScriptId,
+
+        previousStatus: "",
         status: "",
         idea: null,
+
         warning:
           warning ||
-          "The idea status could not be updated."
+          "The source idea status could not be updated."
       };
     }
   }
@@ -1142,8 +1274,10 @@ const ScriptsController = (() => {
     return {
       success: true,
       statusCode: 200,
-      requestId: requestId,
-      message: message,
+      requestId:
+        requestId,
+      message:
+        message,
       data:
         clone_(
           data || {}
@@ -1170,8 +1304,10 @@ const ScriptsController = (() => {
     return {
       success: false,
       statusCode: 404,
-      requestId: requestId,
-      message: message,
+      requestId:
+        requestId,
+      message:
+        message,
       data:
         clone_(
           data || {}
@@ -1229,8 +1365,10 @@ const ScriptsController = (() => {
     return {
       success: false,
       statusCode: 400,
-      requestId: requestId,
-      message: message,
+      requestId:
+        requestId,
+      message:
+        message,
       data: null,
       error: {
         name:
@@ -1747,6 +1885,93 @@ function testScriptsControllerAll() {
 
   Logger.log(
     "All Scripts Controller tests completed successfully."
+  );
+
+  return result;
+}
+
+/**
+ * Moves an existing idea to Script Ready without
+ * generating another script.
+ *
+ * Use this only when a script has already been saved for
+ * the supplied idea.
+ *
+ * @param {string} ideaId Existing source idea ID.
+ * @return {Object} Updated idea and associated script.
+ */
+function reconcileExistingScriptReadyIdea(
+  ideaId
+) {
+  const safeIdeaId =
+    String(
+      ideaId || ""
+    ).trim();
+
+  if (!safeIdeaId) {
+    throw new Error(
+      "An idea ID is required."
+    );
+  }
+
+  const existingScript =
+    ScriptsRepository
+      .getLatestScriptByIdeaId(
+        safeIdeaId
+      );
+
+  if (!existingScript) {
+    throw new Error(
+      "No saved script exists for idea " +
+      safeIdeaId +
+      ". The status was not changed."
+    );
+  }
+
+  const updatedIdea =
+    typeof IdeasRepository
+      .markIdeaScriptReady === "function"
+      ? IdeasRepository
+          .markIdeaScriptReady(
+            safeIdeaId
+          )
+      : IdeasRepository
+          .updateIdeaStatus(
+            safeIdeaId,
+            "Script Ready"
+          );
+
+  SpreadsheetApp.flush();
+
+  const result = {
+    success: true,
+
+    ideaId:
+      safeIdeaId,
+
+    scriptId:
+      existingScript.id,
+
+    scriptTitle:
+      existingScript.title,
+
+    status:
+      updatedIdea.status,
+
+    idea:
+      updatedIdea
+  };
+
+  Logger.log(
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
+
+  Logger.log(
+    "Existing idea reconciled to Script Ready successfully."
   );
 
   return result;
