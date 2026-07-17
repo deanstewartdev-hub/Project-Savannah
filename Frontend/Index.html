@@ -21,6 +21,84 @@
   </head>
 
   <body>
+    <!--
+      Server-rendered page context.
+
+      The JSON is encoded before being inserted into the
+      document so user-supplied request values cannot close
+      this script element or inject executable markup.
+    -->
+    <script
+      id="savannah-page-context"
+      type="application/json"
+    ><?!= JSON.stringify(pageContext)
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/&/g, "\\u0026")
+      .replace(/\u2028/g, "\\u2028")
+      .replace(/\u2029/g, "\\u2029"); ?></script>
+
+    <script>
+      /**
+       * Makes the server-rendered page context available
+       * to every Project Savannah frontend module.
+       */
+      (function initialiseSavannahContext() {
+        const contextElement =
+          document.getElementById(
+            "savannah-page-context"
+          );
+
+        const fallbackContext = {
+          route: {
+            key: "",
+            title: ""
+          },
+
+          scriptPrefill: {
+            ideaId: "",
+            videoIdea: "",
+            hook: "",
+            targetAudience: "",
+            niche: ""
+          }
+        };
+
+        if (!contextElement) {
+          window.SavannahPageContext =
+            fallbackContext;
+
+          console.warn(
+            "Project Savannah page context was not found."
+          );
+
+          return;
+        }
+
+        try {
+          const rawContext =
+            contextElement.textContent || "{}";
+
+          const parsedContext =
+            JSON.parse(rawContext);
+
+          window.SavannahPageContext =
+            parsedContext &&
+            typeof parsedContext === "object"
+              ? parsedContext
+              : fallbackContext;
+        } catch (error) {
+          window.SavannahPageContext =
+            fallbackContext;
+
+          console.error(
+            "Project Savannah page context could not be parsed.",
+            error
+          );
+        }
+      })();
+    </script>
+
     <?!= renderFrontendTemplate(
       "Frontend/Components/Layout/Shell",
       {

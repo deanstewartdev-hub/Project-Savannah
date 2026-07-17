@@ -10,13 +10,12 @@
  * - Save generated ideas to the Ideas sheet.
  * - Retrieve idea records.
  * - Update idea workflow statuses.
- * - Return idea workspace metrics.
- * - Preserve workflow metadata.
+ * - Return Ideas workspace metrics.
+ * - Support the Idea-to-Script workflow.
  *
  * Must not:
  * - Call AI services.
  * - Render frontend HTML.
- * - Log workflow events.
  * - Calculate provider costs.
  ****************************************************/
 
@@ -51,6 +50,16 @@ const IdeasRepository = {
 
   HEADER_ROW: 1,
   COLUMN_COUNT: 10,
+
+  /**
+   * Canonical Ideas workflow statuses.
+   */
+  STATUS: Object.freeze({
+    NEW: "New",
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+    SCRIPT_READY: "Script Ready"
+  }),
 
   /**
    * Saves generated ideas.
@@ -88,14 +97,12 @@ const IdeasRepository = {
     const model =
       IdeasRepository.normaliseText_(
         saveOptions.model
-      ) ||
-      Settings.getModel();
+      ) || Settings.getModel();
 
     const promptVersion =
       IdeasRepository.normaliseText_(
         saveOptions.promptVersion
-      ) ||
-      APP.PROMPT_VERSION;
+      ) || APP.PROMPT_VERSION;
 
     const rows = ideas.map(
       function (idea, index) {
@@ -117,7 +124,7 @@ const IdeasRepository = {
           IdeasRepository.normaliseText_(
             idea.targetAudience
           ),
-          IDEA_STATUS.NEW,
+          IdeasRepository.STATUS.NEW,
           model,
           promptVersion,
           runId
@@ -263,7 +270,7 @@ const IdeasRepository = {
   },
 
   /**
-   * Retrieves one idea by its ID.
+   * Retrieves one idea by ID.
    *
    * @param {string} ideaId Idea identifier.
    * @return {Object|null} Idea record.
@@ -280,7 +287,7 @@ const IdeasRepository = {
 
     const ideas =
       IdeasRepository.listIdeas({
-        limit: 1000,
+        limit: 10000,
         newestFirst: false
       });
 
@@ -302,6 +309,12 @@ const IdeasRepository = {
 
   /**
    * Updates one idea's workflow status.
+   *
+   * Supported statuses:
+   * - New
+   * - Approved
+   * - Rejected
+   * - Script Ready
    *
    * @param {string} ideaId Idea identifier.
    * @param {string} status New status.
@@ -383,6 +396,8 @@ const IdeasRepository = {
       )
       .setValue(normalisedStatus);
 
+    SpreadsheetApp.flush();
+
     const updatedRow = sheet
       .getRange(
         matchingRow,
@@ -395,6 +410,22 @@ const IdeasRepository = {
     return IdeasRepository.mapRowToIdea_(
       updatedRow,
       matchingRow
+    );
+  },
+
+  /**
+   * Marks an idea as Script Ready.
+   *
+   * This should be called only after a script has been
+   * generated and persisted successfully.
+   *
+   * @param {string} ideaId Idea identifier.
+   * @return {Object} Updated idea.
+   */
+  markIdeaScriptReady: function (ideaId) {
+    return IdeasRepository.updateIdeaStatus(
+      ideaId,
+      IdeasRepository.STATUS.SCRIPT_READY
     );
   },
 
@@ -415,14 +446,16 @@ const IdeasRepository = {
       newIdeas: 0,
       approvedIdeas: 0,
       rejectedIdeas: 0,
+      scriptReadyIdeas: 0,
       statusCounts: {}
     };
 
     ideas.forEach(function (idea) {
       const status =
-        IdeasRepository.normaliseText_(
-          idea.status
-        ) || IDEA_STATUS.NEW;
+        IdeasRepository.normaliseStatus_(
+          idea.status ||
+          IdeasRepository.STATUS.NEW
+        );
 
       if (!metrics.statusCounts[status]) {
         metrics.statusCounts[status] = 0;
@@ -430,16 +463,32 @@ const IdeasRepository = {
 
       metrics.statusCounts[status] += 1;
 
-      if (status === IDEA_STATUS.NEW) {
+      if (
+        status ===
+        IdeasRepository.STATUS.NEW
+      ) {
         metrics.newIdeas += 1;
       }
 
-      if (status === IDEA_STATUS.APPROVED) {
+      if (
+        status ===
+        IdeasRepository.STATUS.APPROVED
+      ) {
         metrics.approvedIdeas += 1;
       }
 
-      if (status === IDEA_STATUS.REJECTED) {
+      if (
+        status ===
+        IdeasRepository.STATUS.REJECTED
+      ) {
         metrics.rejectedIdeas += 1;
+      }
+
+      if (
+        status ===
+        IdeasRepository.STATUS.SCRIPT_READY
+      ) {
+        metrics.scriptReadyIdeas += 1;
       }
     });
 
@@ -460,6 +509,27 @@ const IdeasRepository = {
         IdeasRepository.HEADER_ROW,
       0
     );
+  },
+
+  /**
+   * Returns all supported Ideas statuses.
+   *
+   * @return {Object} Status map.
+   */
+  getStatuses: function () {
+    return {
+      NEW:
+        IdeasRepository.STATUS.NEW,
+
+      APPROVED:
+        IdeasRepository.STATUS.APPROVED,
+
+      REJECTED:
+        IdeasRepository.STATUS.REJECTED,
+
+      SCRIPT_READY:
+        IdeasRepository.STATUS.SCRIPT_READY
+    };
   },
 
   /**
@@ -553,7 +623,8 @@ const IdeasRepository = {
             IdeasRepository.COLUMNS.STATUS -
               1
           ]
-        ) || IDEA_STATUS.NEW,
+        ) ||
+        IdeasRepository.STATUS.NEW,
 
       aiModel:
         IdeasRepository.normaliseText_(
@@ -653,12 +724,16 @@ const IdeasRepository = {
     const requestedStatus =
       IdeasRepository.normaliseText_(
         status
-      ).toLowerCase();
+      )
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .toLowerCase();
 
     const allowedStatuses = [
-      IDEA_STATUS.NEW,
-      IDEA_STATUS.APPROVED,
-      IDEA_STATUS.REJECTED
+      IdeasRepository.STATUS.NEW,
+      IdeasRepository.STATUS.APPROVED,
+      IdeasRepository.STATUS.REJECTED,
+      IdeasRepository.STATUS.SCRIPT_READY
     ];
 
     for (
@@ -781,9 +856,6 @@ function createIdeaId() {
 /**
  * Generates a workflow run identifier.
  *
- * This remains globally available because the idea
- * generation engine currently uses the same helper.
- *
  * @return {string} Run ID.
  */
 function createRunId() {
@@ -793,4 +865,37 @@ function createRunId() {
       .slice(0, 8)
       .toUpperCase()
   );
+}
+
+/**
+ * Safe test for Script Ready status support.
+ *
+ * This temporarily changes one selected idea, so only
+ * run it after replacing TEST_ID with a real approved
+ * idea ID that you are happy to update.
+ *
+ * @param {string} ideaId Idea identifier.
+ * @return {Object} Updated idea.
+ */
+function testMarkIdeaScriptReady(ideaId) {
+  if (!ideaId) {
+    throw new Error(
+      "Provide an idea ID when calling testMarkIdeaScriptReady."
+    );
+  }
+
+  const updatedIdea =
+    IdeasRepository.markIdeaScriptReady(
+      ideaId
+    );
+
+  Logger.log(
+    JSON.stringify(
+      updatedIdea,
+      null,
+      2
+    )
+  );
+
+  return updatedIdea;
 }

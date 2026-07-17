@@ -2175,14 +2175,140 @@
         SavannahApp.scripts.load();
       },
 
-      /**
-       * Prefills script-generation fields from Ideas.
+  /**
+       * Populates the script-generation form with the
+       * selected Idea workspace record.
+       *
+       * The server-rendered page context is preferred.
+       * Google Apps Script URL location is used as a
+       * fallback because the application runs in an iframe.
        */
       populateFromQuery: function () {
-        const parameters =
-          new URLSearchParams(
-            window.location.search
+        const pageContext =
+          window.SavannahPageContext &&
+          typeof window.SavannahPageContext === "object"
+            ? window.SavannahPageContext
+            : {};
+
+        const contextPrefill =
+          pageContext.scriptPrefill &&
+          typeof pageContext.scriptPrefill === "object"
+            ? pageContext.scriptPrefill
+            : {};
+
+        if (
+          SavannahApp.scripts
+            .hasScriptPrefillData(
+              contextPrefill
+            )
+        ) {
+          SavannahApp.scripts
+            .applyScriptPrefill(
+              contextPrefill
+            );
+
+          return;
+        }
+
+        if (
+          typeof google === "undefined" ||
+          !google.script ||
+          !google.script.url ||
+          typeof google.script.url.getLocation !==
+            "function"
+        ) {
+          console.warn(
+            "Project Savannah could not access script prefill parameters."
           );
+
+          return;
+        }
+
+        google.script.url.getLocation(
+          function (location) {
+            const parameters =
+              location &&
+              location.parameter &&
+              typeof location.parameter ===
+                "object"
+                ? location.parameter
+                : {};
+
+            SavannahApp.scripts
+              .applyScriptPrefill({
+                ideaId:
+                  parameters.ideaId || "",
+
+                videoIdea:
+                  parameters.videoIdea || "",
+
+                hook:
+                  parameters.hook || "",
+
+                targetAudience:
+                  parameters.targetAudience ||
+                  "",
+
+                niche:
+                  parameters.niche || ""
+              });
+          }
+        );
+      },
+
+      /**
+       * Determines whether a prefill object contains
+       * useful script-generation data.
+       *
+       * @param {Object} prefill Prefill model.
+       * @return {boolean} Whether data is available.
+       */
+      hasScriptPrefillData: function (
+        prefill
+      ) {
+        if (
+          !prefill ||
+          typeof prefill !== "object"
+        ) {
+          return false;
+        }
+
+        return Boolean(
+          String(
+            prefill.ideaId || ""
+          ).trim() ||
+          String(
+            prefill.videoIdea || ""
+          ).trim() ||
+          String(
+            prefill.hook || ""
+          ).trim() ||
+          String(
+            prefill.targetAudience || ""
+          ).trim() ||
+          String(
+            prefill.niche || ""
+          ).trim()
+        );
+      },
+
+      /**
+       * Applies script prefill values to the form.
+       *
+       * Placeholder text is not treated as an existing
+       * value. Any real existing user-entered value is
+       * preserved.
+       *
+       * @param {Object} prefill Prefill model.
+       */
+      applyScriptPrefill: function (
+        prefill
+      ) {
+        const safePrefill =
+          prefill &&
+          typeof prefill === "object"
+            ? prefill
+            : {};
 
         const mappings = {
           ideaId:
@@ -2202,26 +2328,56 @@
         };
 
         Object.keys(mappings).forEach(
-          function (parameterName) {
-            const value =
-              parameters.get(
-                parameterName
-              );
-
+          function (propertyName) {
             const element =
               SavannahApp.dom.getById(
-                mappings[
-                  parameterName
-                ]
+                mappings[propertyName]
               );
 
-            if (
-              element &&
-              value &&
-              !element.value
-            ) {
-              element.value = value;
+            if (!element) {
+              return;
             }
+
+            const prefillValue =
+              String(
+                safePrefill[
+                  propertyName
+                ] || ""
+              ).trim();
+
+            if (!prefillValue) {
+              return;
+            }
+
+            const existingValue =
+              String(
+                element.value || ""
+              ).trim();
+
+            if (existingValue) {
+              return;
+            }
+
+            element.value =
+              prefillValue;
+
+            element.dispatchEvent(
+              new Event(
+                "input",
+                {
+                  bubbles: true
+                }
+              )
+            );
+
+            element.dispatchEvent(
+              new Event(
+                "change",
+                {
+                  bubbles: true
+                }
+              )
+            );
           }
         );
       },
