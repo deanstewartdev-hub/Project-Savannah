@@ -1450,13 +1450,15 @@
           );
         }
 
+        
+
         if (
           column ===
           "script-ready"
         ) {
           actions.appendChild(
             SavannahApp.ideas
-              .createScriptButton(
+              .createViewScriptButton(
                 idea
               )
           );
@@ -1472,6 +1474,96 @@
         card.appendChild(footer);
 
         return card;
+      },
+
+            /**
+       * Creates a button that opens the latest saved
+       * script associated with a Script Ready idea.
+       *
+       * This does not start script generation and
+       * therefore prevents accidental duplicate scripts.
+       *
+       * @param {Object} idea Script Ready idea.
+       * @return {HTMLButtonElement} View button.
+       */
+      createViewScriptButton: function (
+        idea
+      ) {
+        const button =
+          document.createElement(
+            "button"
+          );
+
+        button.type = "button";
+
+        button.className =
+          "idea-card-action " +
+          "idea-card-action-primary";
+
+        button.textContent =
+          "View script";
+
+        button.addEventListener(
+          "click",
+          function () {
+            const navigation =
+              document.querySelector(
+                ".sidebar-navigation"
+              );
+
+            const webAppUrl =
+              navigation
+                ? String(
+                    navigation.dataset
+                      .webAppUrl || ""
+                  ).trim()
+                : "";
+
+            const ideaId =
+              String(
+                idea &&
+                idea.id
+                  ? idea.id
+                  : ""
+              ).trim();
+
+            if (!webAppUrl) {
+              SavannahApp.ideas
+                .showError(
+                  "The Scripts workspace URL is unavailable."
+                );
+
+              return;
+            }
+
+            if (!ideaId) {
+              SavannahApp.ideas
+                .showError(
+                  "The selected idea has no Idea ID."
+                );
+
+              return;
+            }
+
+            const query = [
+              "page=scripts",
+
+              "ideaId=" +
+                encodeURIComponent(
+                  ideaId
+                ),
+
+              "viewScript=latest"
+            ].join("&");
+
+            window.top.location.href =
+              webAppUrl +
+              "?" +
+              query;
+          }
+        );
+
+        return button;
       },
 
       /**
@@ -2109,6 +2201,9 @@
         isGenerating: false
       },
 
+            /**
+       * Initialises Scripts workspace behaviour.
+       */
       initialise: function () {
         const refreshButton =
           SavannahApp.dom.getById(
@@ -2128,6 +2223,11 @@
         const modalCloseButton =
           SavannahApp.dom.getById(
             "scripts-detail-close"
+          );
+
+        const modal =
+          SavannahApp.dom.getById(
+            "scripts-detail-modal"
           );
 
         if (refreshButton) {
@@ -2169,10 +2269,32 @@
           );
         }
 
+        if (modal) {
+          modal.addEventListener(
+            "click",
+            function (event) {
+              if (
+                event.target &&
+                event.target.classList &&
+                event.target.classList
+                  .contains(
+                    "modal-backdrop"
+                  )
+              ) {
+                SavannahApp.scripts
+                  .closeDetail();
+              }
+            }
+          );
+        }
+
         SavannahApp.scripts
           .populateFromQuery();
 
         SavannahApp.scripts.load();
+
+        SavannahApp.scripts
+          .openLatestScriptFromRequest();
       },
 
   /**
@@ -2381,6 +2503,185 @@
           }
         );
       },
+
+            /**
+       * Opens the latest saved script when the Scripts
+       * workspace was reached from a Script Ready card.
+       *
+       * Expected web-app parameters:
+       * - ideaId
+       * - viewScript=latest
+       */
+      openLatestScriptFromRequest:
+        function () {
+          const pageContext =
+            window.SavannahPageContext &&
+            typeof window
+              .SavannahPageContext ===
+              "object"
+              ? window
+                  .SavannahPageContext
+              : {};
+
+          const contextPrefill =
+            pageContext.scriptPrefill &&
+            typeof pageContext
+              .scriptPrefill ===
+              "object"
+              ? pageContext
+                  .scriptPrefill
+              : {};
+
+          const contextIdeaId =
+            String(
+              contextPrefill.ideaId ||
+              ""
+            ).trim();
+
+          if (
+            typeof google ===
+              "undefined" ||
+            !google.script ||
+            !google.script.url ||
+            typeof google.script.url
+              .getLocation !==
+              "function"
+          ) {
+            return;
+          }
+
+          google.script.url.getLocation(
+            function (location) {
+              const parameters =
+                location &&
+                location.parameter &&
+                typeof location
+                  .parameter ===
+                  "object"
+                  ? location.parameter
+                  : {};
+
+              const viewMode =
+                String(
+                  parameters.viewScript ||
+                  ""
+                )
+                  .trim()
+                  .toLowerCase();
+
+              if (
+                viewMode !==
+                "latest"
+              ) {
+                return;
+              }
+
+              const ideaId =
+                String(
+                  parameters.ideaId ||
+                  contextIdeaId ||
+                  ""
+                ).trim();
+
+              if (!ideaId) {
+                SavannahApp.scripts
+                  .showError(
+                    "The source Idea ID is unavailable."
+                  );
+
+                return;
+              }
+
+              SavannahApp.scripts
+                .loadLatestScriptForIdea(
+                  ideaId
+                );
+            }
+          );
+        },
+
+      /**
+       * Loads the latest persisted script for an idea.
+       *
+       * @param {string} ideaId Source Idea ID.
+       */
+      loadLatestScriptForIdea:
+        function (ideaId) {
+          const safeIdeaId =
+            String(
+              ideaId || ""
+            ).trim();
+
+          if (!safeIdeaId) {
+            SavannahApp.scripts
+              .showError(
+                "An Idea ID is required to load the script."
+              );
+
+            return;
+          }
+
+          SavannahApp.scripts
+            .clearMessages();
+
+          SavannahApp.dom.show(
+            "scripts-loading-message"
+          );
+
+          SavannahApp.dom.setText(
+            "scripts-loading-message",
+            "Loading saved script..."
+          );
+
+          google.script.run
+            .withSuccessHandler(
+              SavannahApp.scripts
+                .handleLatestScriptSuccess
+            )
+            .withFailureHandler(
+              SavannahApp.scripts
+                .handleServerFailure
+            )
+            .scriptsGetLatestForIdea({
+              ideaId:
+                safeIdeaId
+            });
+        },
+
+      /**
+       * Handles the latest-script controller response.
+       *
+       * @param {Object} response Controller response.
+       */
+      handleLatestScriptSuccess:
+        function (response) {
+          SavannahApp.dom.hide(
+            "scripts-loading-message"
+          );
+
+          if (
+            !response ||
+            response.success !== true ||
+            !response.data ||
+            !response.data.script
+          ) {
+            SavannahApp.scripts
+              .showError(
+                SavannahApp.scripts
+                  .resolveResponseError(
+                    response,
+                    "No saved script could be found for this idea."
+                  )
+              );
+
+            return;
+          }
+
+          SavannahApp.scripts
+            .renderDetail(
+              response.data.script
+            );
+        },
 
       load: function () {
         SavannahApp.scripts
