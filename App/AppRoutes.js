@@ -11,6 +11,7 @@ const APP_ROUTES = Object.freeze({
   IDEAS: "ideas",
   SCRIPTS: "scripts",
   SEO: "seo",
+  PRODUCTION: "production",
   QUEUE: "queue",
   SETTINGS: "settings"
 });
@@ -38,6 +39,12 @@ const APP_ROUTE_CONFIG = Object.freeze({
     key: APP_ROUTES.SEO,
     title: "SEO",
     viewFile: "Frontend/Views/Seo"
+  },
+
+  production: {
+    key: APP_ROUTES.PRODUCTION,
+    title: "Production",
+    viewFile: "Frontend/Views/Production"
   },
 
   queue: {
@@ -85,6 +92,7 @@ function getAppNavigation() {
     APP_ROUTE_CONFIG.ideas,
     APP_ROUTE_CONFIG.scripts,
     APP_ROUTE_CONFIG.seo,
+    APP_ROUTE_CONFIG.production,
     APP_ROUTE_CONFIG.queue,
     APP_ROUTE_CONFIG.settings
   ];

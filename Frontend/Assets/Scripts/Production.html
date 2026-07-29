@@ -1,0 +1,97 @@
+<script>
+(function initialiseProductionWorkspace() {
+  const root = document.getElementById("production-workspace");
+  if (!root) return;
+  const readyList = document.getElementById("production-ready-list");
+  const jobList = document.getElementById("production-job-list");
+  const readyCount = document.getElementById("production-ready-count");
+  const activeCount = document.getElementById("production-active-count");
+  const completeCount = document.getElementById("production-complete-count");
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  function showError(target, response) {
+    const detail = response && response.error && response.error.message ?
+      response.error.message : "The request could not be completed.";
+    target.innerHTML = '<div class="empty-state"><h3>Something went wrong</h3><p>' +
+      escapeHtml(detail) + '</p></div>';
+  }
+  function loadReady() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(readyList, response);
+      const items = response.data.items || [];
+      readyCount.textContent = items.length;
+      if (!items.length) {
+        readyList.innerHTML = '<div class="empty-state"><h3>Nothing is ready yet</h3>' +
+          '<p>Approve a script and generate its SEO pack first.</p></div>';
+        return;
+      }
+      readyList.innerHTML = items.map(function (item) {
+        const latest = item.existingJobs && item.existingJobs.length ? item.existingJobs[item.existingJobs.length - 1] : null;
+        const busy = latest && ["QUEUED", "PLANNED", "RENDERING"].indexOf(latest.status) !== -1;
+        return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(item.script.title) + '</h3>' +
+          '<p>' + escapeHtml(item.script.hook) + '</p><p><span class="badge">SEO ready</span></p>' +
+          '<button class="button button--primary production-submit" data-script-id="' +
+          escapeHtml(item.script.id) + '"' + (busy ? ' disabled' : '') + '>' +
+          (busy ? 'Rendering…' : 'Create Short') + '</button></div>';
+      }).join("");
+    }).withFailureHandler(function (error) { showError(readyList, { error: error }); }).productionListReady();
+  }
+  function loadJobs() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(jobList, response);
+      const jobs = response.data.jobs || [];
+      activeCount.textContent = jobs.filter(function (job) {
+        return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+      }).length;
+      completeCount.textContent = jobs.filter(function (job) { return job.status === "SUCCEEDED"; }).length;
+      if (!jobs.length) {
+        jobList.innerHTML = '<div class="empty-state"><h3>No renders yet</h3><p>Create the first Short above.</p></div>';
+        return;
+      }
+      jobList.innerHTML = jobs.map(function (job) {
+        const action = job.status === "SUCCEEDED" && job.videoUrl ?
+          '<a class="button button--primary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
+          '<button class="button button--secondary production-refresh-job" data-job-id="' +
+          escapeHtml(job.id) + '">Refresh status</button>';
+        return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(job.status) + '</h3>' +
+          '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + action +
+          (job.errorMessage ? '<p>' + escapeHtml(job.errorMessage) + '</p>' : '') + '</div>';
+      }).join("");
+    }).withFailureHandler(function (error) { showError(jobList, { error: error }); }).productionListJobs();
+  }
+  root.addEventListener("click", function (event) {
+    const submit = event.target.closest(".production-submit");
+    if (submit) {
+      submit.disabled = true; submit.textContent = "Submitting…";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) {
+          submit.disabled = false; submit.textContent = "Create Short";
+          return showError(readyList, response);
+        }
+        loadReady(); loadJobs();
+      }).withFailureHandler(function (error) {
+        submit.disabled = false; submit.textContent = "Create Short";
+        showError(readyList, { error: error });
+      }).productionSubmit({ scriptId: submit.dataset.scriptId });
+      return;
+    }
+    const refresh = event.target.closest(".production-refresh-job");
+    if (refresh) {
+      refresh.disabled = true; refresh.textContent = "Refreshing…";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadReady(); loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionRefresh({ jobId: refresh.dataset.jobId });
+    }
+  });
+  document.getElementById("production-refresh").addEventListener("click", function () {
+    loadReady(); loadJobs();
+  });
+  loadReady(); loadJobs();
+})();
+</script>

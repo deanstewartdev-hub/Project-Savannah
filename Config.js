@@ -47,6 +47,7 @@ const SHEETS = {
   IDEAS: "Ideas",
   SCRIPTS: "Scripts",
   SEO_PACK: "SEO Pack",
+  RENDER_JOBS: "Render Jobs",
   APPROVAL_QUEUE: "Approval Queue",
   LOGS: "Logs",
   COSTS: "Costs"
