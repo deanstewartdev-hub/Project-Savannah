@@ -126,14 +126,23 @@ function setupApprovalQueueSheet(ss) {
   resetSheet(sheet);
 
   const headers = [
-    "Queue ID",
+    "Approval ID",
+    "Script ID",
     "Idea ID",
-    "Created At",
-    "Item Type",
-    "Item Summary",
+    "Script Version",
+    "Script Title",
     "Approval Status",
-    "Reviewer Notes",
-    "Approved At"
+    "Submitted At",
+    "Submitted By",
+    "Reviewed At",
+    "Reviewed By",
+    "Review Notes",
+    "Decision Reason",
+    "Metadata JSON",
+    "Created At",
+    "Updated At",
+    "Version",
+    "Model Version"
   ];
 
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
