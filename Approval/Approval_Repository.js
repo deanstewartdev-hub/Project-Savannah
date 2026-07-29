@@ -137,6 +137,25 @@ const ApprovalRepository = (() => {
       .map(rowToApproval_);
   }
 
+  function deleteApprovalById(approvalId) {
+    const sheet = getOrCreateSheet_();
+    const safeApprovalId = requireId_(
+      approvalId,
+      "Approval ID"
+    );
+    const rowNumber = findRowByApprovalId_(
+      sheet,
+      safeApprovalId
+    );
+
+    if (!rowNumber) {
+      return false;
+    }
+
+    sheet.deleteRow(rowNumber);
+    return true;
+  }
+
   function ensureSheet() {
     getOrCreateSheet_();
     return true;
@@ -358,6 +377,7 @@ const ApprovalRepository = (() => {
     getApprovalsByScriptId: getApprovalsByScriptId,
     getApprovalsByStatus: getApprovalsByStatus,
     getAllApprovals: getAllApprovals,
+    deleteApprovalById: deleteApprovalById,
     ensureSheet: ensureSheet,
     getHeaders: function () {
       return HEADERS.slice();
@@ -367,3 +387,71 @@ const ApprovalRepository = (() => {
     }
   };
 })();
+
+/**
+ * Runs a transient Approval repository round-trip test.
+ *
+ * The test record is always removed and no Script or Idea
+ * records are changed.
+ *
+ * @return {Object} Test result.
+ */
+function testApprovalRepositoryRoundTrip() {
+  const testId =
+    "APR-REPOSITORY-TEST-" +
+    Utilities.getUuid()
+      .slice(0, 8)
+      .toUpperCase();
+
+  const approval =
+    ApprovalModel.create({
+      id: testId,
+      scriptId:
+        "SCR-REPOSITORY-TEST",
+      ideaId:
+        "IDEA-REPOSITORY-TEST",
+      scriptVersion: 1,
+      title:
+        "Approval repository test",
+      status:
+        "PENDING_APPROVAL",
+      submittedBy:
+        "Project Savannah test",
+      metadata: {
+        transient: true
+      }
+    });
+
+  try {
+    ApprovalRepository
+      .saveApproval(approval);
+
+    const stored =
+      ApprovalRepository
+        .getApprovalById(testId);
+
+    if (
+      !stored ||
+      stored.id !== testId ||
+      stored.scriptId !==
+        approval.scriptId ||
+      stored.status !==
+        "PENDING_APPROVAL"
+    ) {
+      throw new Error(
+        "Approval repository round-trip validation failed."
+      );
+    }
+
+    return {
+      passed: true,
+      approvalId: testId,
+      repositoryVersion:
+        ApprovalRepository
+          .getRepositoryVersion()
+    };
+  } finally {
+    ApprovalRepository
+      .deleteApprovalById(testId);
+  }
+}

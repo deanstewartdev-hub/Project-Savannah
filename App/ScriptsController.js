@@ -726,6 +726,195 @@ const ScriptsController = (() => {
   }
 
   /**
+   * Submits one existing saved script for human review.
+   *
+   * The script is never regenerated or duplicated. A
+   * single pending Approval record is created and the
+   * existing Script record moves to PENDING_APPROVAL.
+   *
+   * @param {*} request Script review request.
+   * @return {Object} Frontend-safe controller response.
+   */
+  function sendForReview(request) {
+    const requestId =
+      createControllerRequestId_();
+    const lock =
+      LockService.getScriptLock();
+
+    try {
+      lock.waitLock(30000);
+
+      const scriptId =
+        extractScriptId_(request);
+      const source =
+        request &&
+        typeof request === "object" &&
+        !Array.isArray(request)
+          ? request
+          : {};
+
+      const script =
+        ScriptsRepository
+          .getScriptById(scriptId);
+
+      if (!script) {
+        return createNotFoundResponse_(
+          requestId,
+          "Script was not found.",
+          {
+            scriptId: scriptId
+          }
+        );
+      }
+
+      if (
+        script.status ===
+          "PENDING_APPROVAL"
+      ) {
+        const existingPending =
+          ApprovalRepository
+            .getActiveApprovalByScriptId(
+              scriptId
+            );
+
+        if (existingPending) {
+          return createSuccessResponse_(
+            requestId,
+            "This script is already pending approval.",
+            {
+              script:
+                ScriptModel.toObject(
+                  script
+                ),
+              approval:
+                ApprovalModel.toObject(
+                  existingPending
+                ),
+              alreadyPending: true
+            }
+          );
+        }
+
+        throw createControllerError_(
+          "The script is pending approval but its queue record is missing."
+        );
+      }
+
+      if (
+        script.status !== "FORMATTED"
+      ) {
+        throw createControllerError_(
+          "Only a formatted script can be sent for review."
+        );
+      }
+
+      const existingApproval =
+        ApprovalRepository
+          .getActiveApprovalByScriptId(
+            scriptId
+          );
+
+      if (existingApproval) {
+        throw createControllerError_(
+          "This script already has an active approval."
+        );
+      }
+
+      const approval =
+        ApprovalModel.fromScript(
+          script,
+          {
+            submittedBy:
+              normaliseOptionalString_(
+                source.submittedBy
+              ),
+            reviewNotes:
+              normaliseOptionalString_(
+                source.reviewNotes
+              ),
+            metadata: {
+              requestId: requestId,
+              submittedFrom:
+                "SCRIPTS_WORKSPACE"
+            }
+          }
+        );
+
+      ApprovalRepository
+        .saveApproval(approval);
+
+      let updatedScript;
+
+      try {
+        updatedScript =
+          ScriptModel.withStatus(
+            script,
+            "PENDING_APPROVAL"
+          );
+
+        ScriptsRepository
+          .updateScript(
+            updatedScript
+          );
+      } catch (statusError) {
+        ApprovalRepository
+          .deleteApprovalById(
+            approval.id
+          );
+
+        throw statusError;
+      }
+
+      SpreadsheetApp.flush();
+
+      Logger.log(
+        JSON.stringify({
+          controller:
+            "ScriptsController",
+          action:
+            "SCRIPT_SENT_FOR_REVIEW",
+          requestId:
+            requestId,
+          scriptId:
+            scriptId,
+          ideaId:
+            script.ideaId,
+          approvalId:
+            approval.id,
+          status:
+            updatedScript.status
+        })
+      );
+
+      return createSuccessResponse_(
+        requestId,
+        "Script sent for review successfully.",
+        {
+          script:
+            ScriptModel.toObject(
+              updatedScript
+            ),
+          approval:
+            ApprovalModel.toObject(
+              approval
+            ),
+          alreadyPending: false
+        }
+      );
+    } catch (error) {
+      return createErrorResponse_(
+        requestId,
+        "Script could not be sent for review.",
+        error
+      );
+    } finally {
+      if (lock.hasLock()) {
+        lock.releaseLock();
+      }
+    }
+  }
+
+  /**
    * Normalises a script-generation request.
    *
    * @param {*} request Frontend request.
@@ -1467,6 +1656,15 @@ const ScriptsController = (() => {
       ScriptsRepositoryError:
         "SCRIPT_REPOSITORY_ERROR",
 
+      ApprovalRepositoryError:
+        "APPROVAL_REPOSITORY_ERROR",
+
+      ApprovalModelError:
+        "APPROVAL_MODEL_ERROR",
+
+      ApprovalModelValidationError:
+        "APPROVAL_VALIDATION_FAILED",
+
       AIServiceError:
         "AI_SERVICE_ERROR",
 
@@ -1624,6 +1822,9 @@ const ScriptsController = (() => {
     getMetrics:
       getMetrics,
 
+    sendForReview:
+      sendForReview,
+
     getControllerVersion:
       function () {
         return CONTROLLER_VERSION;
@@ -1708,6 +1909,19 @@ function scriptsGetLatestForIdea(
 function scriptsGetMetrics() {
   return ScriptsController
     .getMetrics();
+}
+
+/**
+ * Sends an existing saved script for review.
+ *
+ * @param {*} request Script review request.
+ * @return {Object} Controller response.
+ */
+function scriptsSendForReview(
+  request
+) {
+  return ScriptsController
+    .sendForReview(request);
 }
 
 /****************************************************

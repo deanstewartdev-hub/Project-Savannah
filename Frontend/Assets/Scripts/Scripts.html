@@ -2198,7 +2198,8 @@
     scripts: {
       state: {
         scripts: [],
-        isGenerating: false
+        isGenerating: false,
+        isSubmittingReview: false
       },
 
             /**
@@ -3107,6 +3108,52 @@
               viewButton
             );
 
+            if (
+              script.status ===
+                "FORMATTED" ||
+              script.status ===
+                "PENDING_APPROVAL"
+            ) {
+              const reviewButton =
+                document.createElement(
+                  "button"
+                );
+
+              reviewButton.type =
+                "button";
+
+              reviewButton.className =
+                script.status ===
+                  "FORMATTED"
+                  ? "button button-primary"
+                  : "button button-secondary";
+
+              reviewButton.textContent =
+                script.status ===
+                  "PENDING_APPROVAL"
+                  ? "Pending approval"
+                  : "Send for review";
+
+              reviewButton.disabled =
+                script.status ===
+                  "PENDING_APPROVAL";
+
+              reviewButton.addEventListener(
+                "click",
+                function () {
+                  SavannahApp.scripts
+                    .sendForReview(
+                      script.id,
+                      reviewButton
+                    );
+                }
+              );
+
+              actionsCell.appendChild(
+                reviewButton
+              );
+            }
+
             row.appendChild(
               actionsCell
             );
@@ -3360,9 +3407,182 @@
             )
         );
 
+        const reviewActions =
+          document.createElement(
+            "div"
+          );
+
+        const reviewButton =
+          document.createElement(
+            "button"
+          );
+
+        reviewActions.className =
+          "page-actions";
+
+        reviewButton.type =
+          "button";
+
+        reviewButton.className =
+          script.status ===
+            "FORMATTED"
+            ? "button button-primary"
+            : "button button-secondary";
+
+        reviewButton.textContent =
+          script.status ===
+            "PENDING_APPROVAL"
+            ? "Pending approval"
+            : "Send for review";
+
+        reviewButton.disabled =
+          script.status !==
+            "FORMATTED";
+
+        reviewButton.addEventListener(
+          "click",
+          function () {
+            SavannahApp.scripts
+              .sendForReview(
+                script.id,
+                reviewButton
+              );
+          }
+        );
+
+        reviewActions.appendChild(
+          reviewButton
+        );
+
+        container.appendChild(
+          reviewActions
+        );
+
         SavannahApp.dom.show(
           "scripts-detail-modal"
         );
+      },
+
+      /**
+       * Sends one existing saved script to the Approval
+       * Queue without regenerating it.
+       *
+       * @param {string} scriptId Saved script ID.
+       * @param {HTMLButtonElement=} button Source button.
+       */
+      sendForReview: function (
+        scriptId,
+        button
+      ) {
+        if (
+          SavannahApp.scripts.state
+            .isSubmittingReview
+        ) {
+          return;
+        }
+
+        const safeScriptId =
+          String(
+            scriptId || ""
+          ).trim();
+
+        if (!safeScriptId) {
+          SavannahApp.scripts
+            .showError(
+              "A Script ID is required."
+            );
+          return;
+        }
+
+        SavannahApp.scripts
+          .clearMessages();
+
+        SavannahApp.scripts.state
+          .isSubmittingReview = true;
+
+        const originalLabel =
+          button
+            ? button.textContent
+            : "";
+
+        if (button) {
+          button.disabled = true;
+          button.textContent =
+            "Sending...";
+        }
+
+        google.script.run
+          .withSuccessHandler(
+            function (response) {
+              SavannahApp.scripts.state
+                .isSubmittingReview =
+                false;
+
+              if (
+                !response ||
+                response.success !== true
+              ) {
+                if (button) {
+                  button.disabled = false;
+                  button.textContent =
+                    originalLabel;
+                }
+
+                SavannahApp.scripts
+                  .showError(
+                    SavannahApp.scripts
+                      .resolveResponseError(
+                        response,
+                        "Script could not be sent for review."
+                      )
+                  );
+                return;
+              }
+
+              if (button) {
+                button.disabled = true;
+                button.textContent =
+                  "Pending approval";
+              }
+
+              SavannahApp.scripts
+                .showSuccess(
+                  response.message ||
+                  "Script sent for review successfully."
+                );
+
+              SavannahApp.scripts
+                .closeDetail();
+
+              SavannahApp.scripts
+                .loadMetrics();
+
+              SavannahApp.scripts
+                .loadList();
+            }
+          )
+          .withFailureHandler(
+            function (error) {
+              SavannahApp.scripts.state
+                .isSubmittingReview =
+                false;
+
+              if (button) {
+                button.disabled = false;
+                button.textContent =
+                  originalLabel;
+              }
+
+              SavannahApp.scripts
+                .handleServerFailure(
+                  error
+                );
+            }
+          )
+          .scriptsSendForReview({
+            scriptId:
+              safeScriptId
+          });
       },
 
       createDetailSection: function (
