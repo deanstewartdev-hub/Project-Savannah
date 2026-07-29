@@ -29,7 +29,7 @@ Changes should be implemented locally, pushed to Apps Script through clasp, test
 
 ## Current Objective
 
-The next development objective is to connect completed scripts to the Approval Queue.
+The current development objective is to complete and verify the human Approval Queue workflow.
 
 Planned workflow:
 
@@ -42,7 +42,7 @@ Script Ready
 → Approve, reject or return for changes
 ```
 
-The Approval Queue must operate on existing saved scripts. Sending a script for review must not generate or save a duplicate script.
+The Approval Queue operates on existing saved scripts. Sending a script for review does not generate or save a duplicate script.
 
 ---
 
@@ -1014,27 +1014,13 @@ When logging errors, remove or mask sensitive values.
 
 ## Known Issues and Current Limitations
 
-### Approval Queue is not yet connected
+### Approval Queue verification
 
-The `Approval Queue` worksheet exists in the project design, but the completed script workflow is not yet connected to it.
+The Approval Queue workflow is implemented. It requires continued live regression testing with real review records as later production stages are added.
 
-The following functionality remains to be implemented:
+### Queue controller
 
-* `Send for review` action.
-* `Pending Approval` script state.
-* queue-record persistence.
-* Approval Queue page loading.
-* approval action.
-* rejection action.
-* return-for-changes action.
-* review notes.
-* queue metrics.
-* transition validation.
-* script and queue status synchronisation.
-
-### Queue controller is incomplete
-
-`App/QueueController.js` is reserved for the Approval Queue boundary but does not yet provide the required review workflow.
+`App/QueueController.js` now provides queue listing, metrics, approval, rejection and return-for-changes operations through frontend-safe entry points.
 
 ### Deployment versioning
 
@@ -1208,7 +1194,7 @@ Completed:
 * `View script` behaviour.
 * prevention of duplicate generation when viewing scripts.
 
-In progress:
+Completed:
 
 * Send saved script for review.
 * `Pending Approval` status.
@@ -1218,7 +1204,13 @@ In progress:
 * reject action.
 * return-for-changes action.
 * review notes.
-* queue metrics and dashboard integration.
+* queue metrics.
+* script and queue status synchronisation.
+
+In progress:
+
+* Approval metrics integration with the dashboard.
+* End-to-end live regression coverage.
 
 ### Future releases
 
