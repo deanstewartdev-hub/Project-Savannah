@@ -29,7 +29,7 @@ Changes should be implemented locally, pushed to Apps Script through clasp, test
 
 ## Current Objective
 
-The current development objective is to complete and verify the human Approval Queue workflow.
+The current development objective is to complete the production pipeline from an approved script through SEO, media rendering and YouTube publishing.
 
 Planned workflow:
 
