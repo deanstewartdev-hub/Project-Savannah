@@ -1,0 +1,37 @@
+<script>
+(function initialiseSettings() {
+  const root = document.getElementById("settings-workspace");
+  if (!root) return;
+  const form = document.getElementById("creatomate-form");
+  const status = document.getElementById("creatomate-status");
+  const message = document.getElementById("creatomate-message");
+  const template = document.getElementById("creatomate-template-id");
+  function refresh() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return;
+      status.textContent = response.data.creatomateConnected ? "Connected" : "Not connected";
+      if (response.data.creatomateTemplateId) template.value = response.data.creatomateTemplateId;
+    }).settingsGetIntegrations();
+  }
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    message.textContent = "Connecting…";
+    const button = form.querySelector("button"); button.disabled = true;
+    google.script.run.withSuccessHandler(function (response) {
+      button.disabled = false;
+      message.textContent = response && response.success ? response.message :
+        (response && response.error ? response.error.message : "Connection failed.");
+      if (response && response.success) {
+        document.getElementById("creatomate-api-key").value = "";
+        refresh();
+      }
+    }).withFailureHandler(function () {
+      button.disabled = false; message.textContent = "Connection failed.";
+    }).settingsSaveCreatomate({
+      apiKey: document.getElementById("creatomate-api-key").value,
+      templateId: template.value
+    });
+  });
+  refresh();
+})();
+</script>

@@ -1,0 +1,16 @@
+<section class="page-section" id="settings-workspace">
+  <div class="page-header"><div><p class="eyebrow">Configuration</p><h1>Settings</h1>
+    <p>Securely connect the services used by Project Savannah.</p></div></div>
+  <article class="card">
+    <h2>Creatomate video rendering</h2>
+    <p id="creatomate-status">Checking connection…</p>
+    <form id="creatomate-form" autocomplete="off">
+      <label>API key<input id="creatomate-api-key" type="password" required autocomplete="new-password"
+        placeholder="Stored securely in Apps Script properties"></label>
+      <label>Template ID<input id="creatomate-template-id" type="text" required
+        value="9157fd7e-ef01-4c63-bcf4-388e7282d779"></label>
+      <button class="button button--primary" type="submit">Connect Creatomate</button>
+    </form>
+    <p id="creatomate-message" role="status"></p>
+  </article>
+</section>

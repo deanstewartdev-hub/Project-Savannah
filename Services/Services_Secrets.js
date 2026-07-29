@@ -30,6 +30,30 @@ const Secrets = {
     PropertiesService
       .getScriptProperties()
       .deleteProperty("OPENAI_API_KEY");
+  },
+
+  setCreatomateApiKey(apiKey) {
+    const value = String(apiKey || "").trim();
+    if (!value) throw new Error("Creatomate API key cannot be empty.");
+    PropertiesService.getScriptProperties().setProperty("CREATOMATE_API_KEY", value);
+  },
+
+  getCreatomateApiKey() {
+    return PropertiesService.getScriptProperties().getProperty("CREATOMATE_API_KEY");
+  },
+
+  hasCreatomateApiKey() {
+    return !!this.getCreatomateApiKey();
+  },
+
+  setCreatomateTemplateId(templateId) {
+    const value = String(templateId || "").trim();
+    if (!/^[a-f0-9-]{36}$/i.test(value)) throw new Error("A valid Creatomate template ID is required.");
+    PropertiesService.getScriptProperties().setProperty("CREATOMATE_TEMPLATE_ID", value);
+  },
+
+  getCreatomateTemplateId() {
+    return PropertiesService.getScriptProperties().getProperty("CREATOMATE_TEMPLATE_ID");
   }
 
 };
