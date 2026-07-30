@@ -7,16 +7,17 @@ const VoiceoverService = (() => {
   const MODEL = "tts-1";
   const VOICE = "alloy";
 
-  function prepareSceneAudio(script) {
+  function prepareSceneAudio(script, plan) {
     requireDriveScope_();
     if (!script || !script.id) throw error_("A valid script is required.");
-    const scenes = Array.isArray(script.scenes) ? script.scenes.slice(0, 4) : [];
-    if (!scenes.length) throw error_("The script has no scenes to narrate.");
+    const renderPlan = plan || ScenePlanService.create(script);
+    const scenes = renderPlan.slots || [];
+    if (scenes.length !== 4) throw error_("The render plan must contain exactly four narration slots.");
 
     return scenes.map(function (scene, index) {
       const narration = String(scene && scene.narration || "").trim();
       if (!narration) throw error_("Scene " + (index + 1) + " has no narration.");
-      return getOrCreateAudio_(script.id, index + 1, narration);
+      return getOrCreateAudio_(script.id, index + 1, narration, scene.expectedDurationSeconds);
     });
   }
 
@@ -30,16 +31,18 @@ const VoiceoverService = (() => {
     };
   }
 
-  function getOrCreateAudio_(scriptId, sceneNumber, narration) {
-    const name = safeName_(scriptId) + "-scene-" + sceneNumber + ".mp3";
+  function getOrCreateAudio_(scriptId, sceneNumber, narration, expectedDurationSeconds) {
+    const name = safeName_(scriptId) + "-scene-" + sceneNumber + "-" + digest_(narration) + ".mp3";
     const folder = folder_();
     const existing = folder.getFilesByName(name);
-    if (existing.hasNext()) return fileResult_(existing.next().getId(), sceneNumber);
+    if (existing.hasNext()) {
+      return fileResult_(existing.next().getId(), sceneNumber, expectedDurationSeconds);
+    }
     const audio = createSpeech_(narration);
     const file = folder.createFile(audio.setName(name));
     file.setDescription("Project Savannah narration for " + scriptId + ", scene " + sceneNumber + ".");
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return fileResult_(file.getId(), sceneNumber);
+    return fileResult_(file.getId(), sceneNumber, expectedDurationSeconds);
   }
 
   function createSpeech_(text) {
@@ -77,12 +80,25 @@ const VoiceoverService = (() => {
     ]);
   }
 
-  function fileResult_(fileId, sceneNumber) {
+  function fileResult_(fileId, sceneNumber, expectedDurationSeconds) {
     return {
       sceneNumber: sceneNumber,
       fileId: fileId,
-      url: "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(fileId)
+      url: "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(fileId),
+      expectedDurationSeconds: Number(expectedDurationSeconds || 0)
     };
+  }
+
+  function digest_(value) {
+    const bytes = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256,
+      String(value || ""),
+      Utilities.Charset.UTF_8
+    );
+    return bytes.slice(0, 6).map(function (byte) {
+      const normalised = byte < 0 ? byte + 256 : byte;
+      return ("0" + normalised.toString(16)).slice(-2);
+    }).join("");
   }
 
   function safeName_(value) {

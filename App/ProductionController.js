@@ -37,6 +37,19 @@ const ProductionController = (() => {
       if (!script || script.status !== "APPROVED") throw error_("Only an approved script can be rendered.");
       const seoPack = SeoRepository.getByScriptId(scriptId);
       if (!seoPack) throw error_("Generate an SEO pack before rendering.");
+      const existingJobs = RenderJobRepository.getAll().filter(function (job) {
+        return job.scriptId === scriptId;
+      });
+      const active = existingJobs.filter(function (job) {
+        return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+      })[0];
+      if (active) throw error_("This script already has an active render.");
+      const completed = existingJobs.filter(function (job) {
+        return job.status === "SUCCEEDED";
+      })[0];
+      if (completed && !(request && request.forceRerender === true)) {
+        throw error_("This script already has a completed render. Use an explicit re-render action to replace it.");
+      }
       const result = CreatomateService.createRender(script, seoPack);
       const render = result.render;
       return {
@@ -85,6 +98,7 @@ const ProductionController = (() => {
           return publishingJob.renderJobId === job.id;
         }).sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); })[0] || null;
         result.seoPack = job.seoPackId ? SeoRepository.getById(job.seoPackId) : null;
+        result.quality = RenderQualityService.evaluate(job);
         return result;
       }) };
     });
@@ -105,6 +119,7 @@ const ProductionController = (() => {
       if (renderJob.status !== "SUCCEEDED" || !renderJob.videoUrl) {
         throw error_("Only a completed render can be uploaded.");
       }
+      RenderQualityService.assertPublishable(renderJob);
       const existing = PublishingJobRepository.getByRenderJobId(renderJobId);
       if (existing && existing.status === "PUBLISHED") throw error_("This render is already published to YouTube.");
       const seoPack = SeoRepository.getById(renderJob.seoPackId);

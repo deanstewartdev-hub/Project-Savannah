@@ -65,20 +65,26 @@
           escapeHtml(job.id) + '">Refresh status</button>';
         const published = job.publishingJob && job.publishingJob.status === "PUBLISHED";
         const seo = job.seoPack || {};
+        const quality = job.quality || {};
         const title = seo.titleOptions && seo.titleOptions[0] || "";
+        const qualitySummary = job.status === "SUCCEEDED" ?
+          '<p><strong>Quality:</strong> ' + (quality.passed ? 'Passed' : 'Blocked') +
+          ' · ' + escapeHtml(quality.actualDurationSeconds || 0) + 's rendered / ' +
+          escapeHtml(quality.expectedDurationSeconds || 0) + 's planned</p>' +
+          (!quality.passed && quality.issues ? '<p>' + escapeHtml(quality.issues.join(' ')) + '</p>' : '') : '';
         const publishAction = job.status === "SUCCEEDED" ? (published ?
           '<a class="button button--primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
           '" target="_blank" rel="noopener">Open on YouTube</a>' :
-          '<div class="production-publish-panel" style="margin-top:12px">' +
+          (quality.passed ? '<div class="production-publish-panel" style="margin-top:12px">' +
           '<label>Video title<input class="input production-youtube-title" maxlength="100" value="' +
           escapeHtml(title) + '"></label>' +
           '<label>Visibility<select class="input production-youtube-privacy">' +
           '<option value="private">Private</option><option value="unlisted">Unlisted</option>' +
           '<option value="public">Public</option></select></label>' +
           '<button class="button button--primary production-publish" data-job-id="' +
-          escapeHtml(job.id) + '">Upload to YouTube</button></div>') : "";
+          escapeHtml(job.id) + '">Upload to YouTube</button></div>' : '')) : "";
         return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(job.status) + '</h3>' +
-          '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + videoAction + publishAction +
+          '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + qualitySummary + videoAction + publishAction +
           (job.publishingJob && job.publishingJob.status === "FAILED" ?
             '<p>' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
           (job.errorMessage ? '<p>' + escapeHtml(job.errorMessage) + '</p>' : '') + '</div>';

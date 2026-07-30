@@ -15,9 +15,14 @@ const CreatomateService = (() => {
   }
 
   function createRender(script, seoPack) {
-    const audioFiles = VoiceoverService.prepareSceneAudio(script);
-    const payload = buildPayload_(script, seoPack, audioFiles);
-    const response = request_("post", "/v2/renders", payload);
+    const plan = ScenePlanService.create(script);
+    const audioFiles = VoiceoverService.prepareSceneAudio(script, plan);
+    const payload = buildPayload_(script, seoPack, audioFiles, plan);
+    const response = request_("post", "/v2/renders", {
+      template_id: payload.template_id,
+      modifications: payload.modifications,
+      metadata: payload.metadata
+    });
     const render = Array.isArray(response) ? response[0] : response;
     if (!render || !render.id) throw error_("Creatomate did not return a render ID.");
     return { render: render, payload: payload };
@@ -29,32 +34,45 @@ const CreatomateService = (() => {
     return request_("get", "/v2/renders/" + encodeURIComponent(id));
   }
 
-  function buildPayload_(script, seoPack, audioFiles) {
+  function buildPayload_(script, seoPack, audioFiles, suppliedPlan) {
     if (!script || !script.id) throw error_("A valid script is required.");
+    const plan = suppliedPlan || ScenePlanService.create(script);
     const modifications = {};
-    const scenes = Array.isArray(script.scenes) ? script.scenes.slice(0, 4) : [];
+    const scenes = plan.slots || [];
     const audioByScene = {};
     (Array.isArray(audioFiles) ? audioFiles : []).forEach(function (file) {
       audioByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
     });
+    let currentTime = 0;
     for (let index = 0; index < 4; index++) {
       const scene = scenes[index] || {};
       const narration = String(scene.narration || "").trim();
       const onScreenText = String(scene.onScreenText || narration || "").trim();
       const audioUrl = audioByScene[index + 1];
-      if (audioUrl) modifications["Voiceover-" + (index + 1) + ".source"] = audioUrl;
-      if (onScreenText) modifications["Subtitles-" + (index + 1) + ".text"] = onScreenText;
+      const number = index + 1;
+      if (audioUrl) modifications["Voiceover-" + number + ".source"] = audioUrl;
+      modifications["Voiceover-" + number + ".time"] = currentTime;
+      modifications["Voiceover-" + number + ".duration"] = "media";
+      if (onScreenText) modifications["Subtitles-" + number + ".text"] = onScreenText;
+      modifications["Subtitles-" + number + ".time"] = currentTime;
+      modifications["Subtitles-" + number + ".duration"] = Number(scene.expectedDurationSeconds || 0);
+      currentTime += Number(scene.expectedDurationSeconds || 0);
     }
+    modifications.duration = plan.expectedDurationSeconds;
     if (!Object.keys(modifications).some(function (key) { return /^Voiceover-/.test(key); })) {
       throw error_("Narration audio was not prepared.");
     }
     return {
       template_id: templateId_(),
       modifications: modifications,
+      expectedDurationSeconds: plan.expectedDurationSeconds,
+      scenePlan: plan,
       metadata: JSON.stringify({
         project: "Project Savannah",
         scriptId: script.id,
-        seoPackId: seoPack && seoPack.id || ""
+        seoPackId: seoPack && seoPack.id || "",
+        expectedDurationSeconds: plan.expectedDurationSeconds,
+        sourceSceneCount: plan.sourceSceneCount
       })
     };
   }
@@ -100,11 +118,31 @@ const CreatomateService = (() => {
 })();
 
 function testCreatomatePayload() {
-  const payload = CreatomateService.buildPayload({
+  const script = {
     id: "SCR-TEST",
-    voiceoverScript: "Fallback narration",
-    scenes: [{ narration: "Opening narration", onScreenText: "Opening text" }]
-  }, { id: "SEO-TEST" }, [{ sceneNumber: 1, url: "https://example.com/voiceover.mp3" }]);
+    voiceoverScript: [
+      "A harmless habit could create an expensive surprise overseas.",
+      "Local rules often hide behind routines that visitors never notice.",
+      "Watch how residents behave before copying the crowd.",
+      "Quiet public spaces can carry stronger expectations than signs suggest.",
+      "Small observations prevent awkward mistakes and show genuine respect.",
+      "The smartest travellers pause before acting in unfamiliar places.",
+      "That habit matters more than memorising a hundred rules.",
+      "Follow Savannah Atlas for smarter cultural shortcuts."
+    ].join(" "),
+    scenes: [
+      { sceneNumber: 1, onScreenText: "Watch local habits", visualDirection: "Show a station." },
+      { sceneNumber: 2, onScreenText: "Notice the silence", visualDirection: "Show a train." },
+      { sceneNumber: 3, onScreenText: "Pause before acting", visualDirection: "Show a traveller." },
+      { sceneNumber: 4, onScreenText: "Travel with respect", visualDirection: "Show a city." }
+    ]
+  };
+  const plan = ScenePlanService.create(script);
+  const payload = CreatomateService.buildPayload(script, { id: "SEO-TEST" },
+    plan.slots.map(function (slot) {
+      return { sceneNumber: slot.slotNumber, url: "https://example.com/voiceover-" + slot.slotNumber + ".mp3" };
+    }), plan);
   if (!payload.modifications["Voiceover-1.source"]) throw new Error("Voiceover modification was not created.");
+  if (payload.scenePlan.slotCount !== 4) throw new Error("Four-slot render plan was not created.");
   return { passed: true, modificationCount: Object.keys(payload.modifications).length };
 }
