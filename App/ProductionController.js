@@ -113,6 +113,10 @@ const ProductionController = (() => {
     const jobId = String(request && request.jobId || "").trim();
     const job = RenderJobRepository.getById(jobId);
     if (!job) return failure_("Render job was not found.");
+    const published = PublishingJobRepository.getByRenderJobId(job.id);
+    if (published && published.status === "PUBLISHED") {
+      return failure_("Published videos cannot be re-rendered from the retry action.");
+    }
     const quality = RenderQualityService.evaluate(job);
     if (job.status !== "FAILED" && quality.passed) {
       return failure_("Only failed or quality-blocked renders can be retried.");
