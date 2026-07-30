@@ -38,6 +38,7 @@ const CreatomateService = (() => {
     if (!script || !script.id) throw error_("A valid script is required.");
     const plan = suppliedPlan || ScenePlanService.create(script);
     const modifications = {};
+    const branding = Secrets.getProductionBranding();
     const scenes = plan.slots || [];
     const audioByScene = {};
     (Array.isArray(audioFiles) ? audioFiles : []).forEach(function (file) {
@@ -54,6 +55,7 @@ const CreatomateService = (() => {
       modifications["Voiceover-" + number + ".time"] = currentTime;
       modifications["Voiceover-" + number + ".duration"] = "media";
       if (onScreenText) modifications["Subtitles-" + number + ".text"] = onScreenText;
+      modifications["Subtitles-" + number + ".fill_color"] = branding.primaryColor;
       modifications["Subtitles-" + number + ".time"] = currentTime;
       modifications["Subtitles-" + number + ".duration"] = Number(scene.expectedDurationSeconds || 0);
       currentTime += Number(scene.expectedDurationSeconds || 0);
@@ -72,7 +74,8 @@ const CreatomateService = (() => {
         scriptId: script.id,
         seoPackId: seoPack && seoPack.id || "",
         expectedDurationSeconds: plan.expectedDurationSeconds,
-        sourceSceneCount: plan.sourceSceneCount
+        sourceSceneCount: plan.sourceSceneCount,
+        brandName: branding.brandName
       })
     };
   }

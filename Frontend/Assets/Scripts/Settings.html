@@ -6,11 +6,18 @@
   const status = document.getElementById("creatomate-status");
   const message = document.getElementById("creatomate-message");
   const template = document.getElementById("creatomate-template-id");
+  const brandingForm = document.getElementById("production-branding-form");
+  const brandingMessage = document.getElementById("production-branding-message");
   function refresh() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return;
       status.textContent = response.data.creatomateConnected ? "Connected" : "Not connected";
       if (response.data.creatomateTemplateId) template.value = response.data.creatomateTemplateId;
+      const branding = response.data.productionBranding || {};
+      document.getElementById("production-brand-name").value = branding.brandName || "Savannah Atlas";
+      document.getElementById("production-primary-color").value = branding.primaryColor || "#0f766e";
+      document.getElementById("production-voice").value = branding.voice || "alloy";
+      document.getElementById("production-speech-speed").value = branding.speechSpeed || 1;
     }).settingsGetIntegrations();
   }
   form.addEventListener("submit", function (event) {
@@ -30,6 +37,26 @@
     }).settingsSaveCreatomate({
       apiKey: document.getElementById("creatomate-api-key").value,
       templateId: template.value
+    });
+  });
+  brandingForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    const button = brandingForm.querySelector("button");
+    button.disabled = true;
+    brandingMessage.textContent = "Saving…";
+    google.script.run.withSuccessHandler(function (response) {
+      button.disabled = false;
+      brandingMessage.textContent = response && response.success ? response.message :
+        (response && response.error ? response.error.message : "Settings could not be saved.");
+      if (response && response.success) refresh();
+    }).withFailureHandler(function () {
+      button.disabled = false;
+      brandingMessage.textContent = "Settings could not be saved.";
+    }).settingsSaveProductionBranding({
+      brandName: document.getElementById("production-brand-name").value,
+      primaryColor: document.getElementById("production-primary-color").value,
+      voice: document.getElementById("production-voice").value,
+      speechSpeed: document.getElementById("production-speech-speed").value
     });
   });
   refresh();

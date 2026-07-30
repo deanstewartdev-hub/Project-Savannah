@@ -54,6 +54,37 @@ const Secrets = {
 
   getCreatomateTemplateId() {
     return PropertiesService.getScriptProperties().getProperty("CREATOMATE_TEMPLATE_ID");
+  },
+
+  setProductionBranding(settings) {
+    const source = settings || {};
+    const brandName = String(source.brandName || "Savannah Atlas").trim();
+    const primaryColor = String(source.primaryColor || "#0f766e").trim();
+    const voice = String(source.voice || "alloy").trim().toLowerCase();
+    const speechSpeed = Number(source.speechSpeed || 1);
+    const allowedVoices = ["alloy", "ash", "ballad", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"];
+    if (!brandName) throw new Error("Brand name is required.");
+    if (!/^#[0-9a-f]{6}$/i.test(primaryColor)) throw new Error("Brand colour must be a six-digit hex value.");
+    if (allowedVoices.indexOf(voice) === -1) throw new Error("Unsupported OpenAI voice.");
+    if (!isFinite(speechSpeed) || speechSpeed < 0.75 || speechSpeed > 1.25) {
+      throw new Error("Speech speed must be between 0.75 and 1.25.");
+    }
+    PropertiesService.getScriptProperties().setProperties({
+      PRODUCTION_BRAND_NAME: brandName,
+      PRODUCTION_PRIMARY_COLOR: primaryColor,
+      PRODUCTION_VOICE: voice,
+      PRODUCTION_SPEECH_SPEED: String(speechSpeed)
+    });
+  },
+
+  getProductionBranding() {
+    const properties = PropertiesService.getScriptProperties();
+    return {
+      brandName: properties.getProperty("PRODUCTION_BRAND_NAME") || "Savannah Atlas",
+      primaryColor: properties.getProperty("PRODUCTION_PRIMARY_COLOR") || "#0f766e",
+      voice: properties.getProperty("PRODUCTION_VOICE") || "alloy",
+      speechSpeed: Number(properties.getProperty("PRODUCTION_SPEECH_SPEED") || 1)
+    };
   }
 
 };

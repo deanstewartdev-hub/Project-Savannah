@@ -10,6 +10,8 @@
   const publishedCount = document.getElementById("production-published-count");
   const youtubeStatus = document.getElementById("production-youtube-status");
   const youtubeConnect = document.getElementById("production-youtube-connect");
+  let activeRenderCount = 0;
+  let pollTimer = null;
 
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
@@ -50,6 +52,8 @@
       activeCount.textContent = jobs.filter(function (job) {
         return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
       }).length;
+      activeRenderCount = Number(activeCount.textContent || 0);
+      schedulePolling();
       completeCount.textContent = jobs.filter(function (job) { return job.status === "SUCCEEDED"; }).length;
       publishedCount.textContent = jobs.filter(function (job) {
         return job.publishingJob && job.publishingJob.status === "PUBLISHED";
@@ -64,27 +68,46 @@
           '<button class="button button--secondary production-refresh-job" data-job-id="' +
           escapeHtml(job.id) + '">Refresh status</button>';
         const published = job.publishingJob && job.publishingJob.status === "PUBLISHED";
+        const publishingDetails = published && job.publishingJob.providerResponse || {};
         const seo = job.seoPack || {};
         const quality = job.quality || {};
+        const review = job.review || {};
         const title = seo.titleOptions && seo.titleOptions[0] || "";
         const qualitySummary = job.status === "SUCCEEDED" ?
           '<p><strong>Quality:</strong> ' + (quality.passed ? 'Passed' : 'Blocked') +
           ' · ' + escapeHtml(quality.actualDurationSeconds || 0) + 's rendered / ' +
           escapeHtml(quality.expectedDurationSeconds || 0) + 's planned</p>' +
           (!quality.passed && quality.issues ? '<p>' + escapeHtml(quality.issues.join(' ')) + '</p>' : '') : '';
+        const reviewAction = job.status === "SUCCEEDED" && quality.passed && !review.approved && !published ?
+          '<button class="button button--primary production-approve-render" data-job-id="' +
+          escapeHtml(job.id) + '">Approve finished video</button>' :
+          (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
+        const retryAction = job.status === "FAILED" ||
+          (job.status === "SUCCEEDED" && !quality.passed) ?
+          '<button class="button button--secondary production-retry" data-job-id="' +
+          escapeHtml(job.id) + '">Re-render safely</button>' : '';
         const publishAction = job.status === "SUCCEEDED" ? (published ?
           '<a class="button button--primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
-          '" target="_blank" rel="noopener">Open on YouTube</a>' :
-          (quality.passed ? '<div class="production-publish-panel" style="margin-top:12px">' +
+          '" target="_blank" rel="noopener">Open on YouTube</a>' +
+          '<p><strong>YouTube:</strong> ' +
+          escapeHtml(publishingDetails.processingStatus || publishingDetails.uploadStatus || 'uploaded') +
+          ' · ' + escapeHtml(job.publishingJob.privacyStatus) + '</p>' +
+          (publishingDetails.publishAt ? '<p>Scheduled: ' +
+            escapeHtml(new Date(publishingDetails.publishAt).toLocaleString()) + '</p>' : '') +
+          '<button class="button button--secondary production-refresh-publication" data-job-id="' +
+          escapeHtml(job.id) + '">Refresh YouTube status</button>' :
+          (quality.passed && review.approved ? '<div class="production-publish-panel" style="margin-top:12px">' +
           '<label>Video title<input class="input production-youtube-title" maxlength="100" value="' +
           escapeHtml(title) + '"></label>' +
           '<label>Visibility<select class="input production-youtube-privacy">' +
           '<option value="private">Private</option><option value="unlisted">Unlisted</option>' +
           '<option value="public">Public</option></select></label>' +
+          '<label>Schedule (optional)<input class="input production-youtube-schedule" type="datetime-local"></label>' +
           '<button class="button button--primary production-publish" data-job-id="' +
           escapeHtml(job.id) + '">Upload to YouTube</button></div>' : '')) : "";
         return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(job.status) + '</h3>' +
-          '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + qualitySummary + videoAction + publishAction +
+          '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + qualitySummary + videoAction +
+          reviewAction + retryAction + publishAction +
           (job.publishingJob && job.publishingJob.status === "FAILED" ?
             '<p>' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
           (job.errorMessage ? '<p>' + escapeHtml(job.errorMessage) + '</p>' : '') + '</div>';
@@ -122,13 +145,51 @@
       const panel = publish.closest(".production-publish-panel");
       const title = panel.querySelector(".production-youtube-title").value.trim();
       const privacyStatus = panel.querySelector(".production-youtube-privacy").value;
+      const scheduleValue = panel.querySelector(".production-youtube-schedule").value;
+      const publishAt = scheduleValue ? new Date(scheduleValue).toISOString() : "";
       if (!title) return showError(jobList, { error: { message: "A YouTube title is required." } });
       publish.disabled = true; publish.textContent = "Uploading…";
       google.script.run.withSuccessHandler(function (response) {
         if (!response || !response.success) return showError(jobList, response);
         loadJobs();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
-        .productionPublish({ renderJobId: publish.dataset.jobId, title: title, privacyStatus: privacyStatus });
+        .productionPublish({
+          renderJobId: publish.dataset.jobId,
+          title: title,
+          privacyStatus: privacyStatus,
+          publishAt: publishAt
+        });
+      return;
+    }
+    const approveRender = event.target.closest(".production-approve-render");
+    if (approveRender) {
+      approveRender.disabled = true; approveRender.textContent = "Approving…";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionApproveRender({ jobId: approveRender.dataset.jobId });
+      return;
+    }
+    const retry = event.target.closest(".production-retry");
+    if (retry) {
+      retry.disabled = true; retry.textContent = "Starting re-render…";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadReady(); loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionRetry({ jobId: retry.dataset.jobId });
+      return;
+    }
+    const refreshPublication = event.target.closest(".production-refresh-publication");
+    if (refreshPublication) {
+      refreshPublication.disabled = true;
+      refreshPublication.textContent = "Refreshing…";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionRefreshPublication({ renderJobId: refreshPublication.dataset.jobId });
     }
   });
   document.getElementById("production-refresh").addEventListener("click", function () {
@@ -146,6 +207,20 @@
     }).withFailureHandler(function () {
       youtubeStatus.textContent = "YouTube authorization required.";
     }).productionGetYouTubeConnection();
+  }
+  function schedulePolling() {
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+      pollTimer = null;
+    }
+    if (!activeRenderCount) return;
+    pollTimer = setTimeout(function () {
+      google.script.run.withSuccessHandler(function () {
+        loadReady(); loadJobs();
+      }).withFailureHandler(function () {
+        pollTimer = setTimeout(schedulePolling, 15000);
+      }).productionRefreshActive();
+    }, 12000);
   }
   youtubeConnect.addEventListener("click", function () {
     youtubeConnect.disabled = true; youtubeConnect.textContent = "Authorizing…";

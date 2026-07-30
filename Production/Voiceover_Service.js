@@ -5,7 +5,6 @@ const VoiceoverService = (() => {
   const SPEECH_URL = "https://api.openai.com/v1/audio/speech";
   const FOLDER_NAME = "Project Savannah Render Audio";
   const MODEL = "tts-1";
-  const VOICE = "alloy";
 
   function prepareSceneAudio(script, plan) {
     requireDriveScope_();
@@ -48,13 +47,15 @@ const VoiceoverService = (() => {
   function createSpeech_(text) {
     const apiKey = Secrets.getOpenAIApiKey();
     if (!apiKey) throw error_("OpenAI is not connected.");
+    const branding = Secrets.getProductionBranding();
     const response = UrlFetchApp.fetch(SPEECH_URL, {
       method: "post",
       contentType: "application/json",
       headers: { Authorization: "Bearer " + apiKey },
       payload: JSON.stringify({
         model: MODEL,
-        voice: VOICE,
+        voice: branding.voice,
+        speed: branding.speechSpeed,
         input: text,
         response_format: "mp3"
       }),

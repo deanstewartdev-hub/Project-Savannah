@@ -87,6 +87,48 @@ const ProductionController = (() => {
     });
   }
 
+  function refreshActive() {
+    return run_("Active render statuses refreshed.", function () {
+      const active = RenderJobRepository.getAll().filter(function (job) {
+        return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+      });
+      return {
+        jobs: active.map(function (job) {
+          const render = CreatomateService.getRender(job.renderId);
+          return RenderJobRepository.update(RenderJobModel.update(job, {
+            status: mapStatus_(render.status),
+            progress: render.progress ||
+              (String(render.status).toLowerCase() === "succeeded" ? 100 : job.progress),
+            videoUrl: render.url || job.videoUrl,
+            snapshotUrl: render.snapshot_url || job.snapshotUrl,
+            errorMessage: render.error_message || "",
+            providerResponse: sanitise_(render)
+          }));
+        })
+      };
+    });
+  }
+
+  function retry(request) {
+    const jobId = String(request && request.jobId || "").trim();
+    const job = RenderJobRepository.getById(jobId);
+    if (!job) return failure_("Render job was not found.");
+    const quality = RenderQualityService.evaluate(job);
+    if (job.status !== "FAILED" && quality.passed) {
+      return failure_("Only failed or quality-blocked renders can be retried.");
+    }
+    return submit({ scriptId: job.scriptId, forceRerender: true });
+  }
+
+  function approveRender(request) {
+    return run_("Finished video approved for publishing.", function () {
+      const jobId = String(request && request.jobId || "").trim();
+      const job = RenderJobRepository.getById(jobId);
+      if (!job) throw error_("Render job was not found.");
+      return { review: RenderReviewService.approve(job) };
+    });
+  }
+
   function listJobs() {
     return run_("Render jobs loaded.", function () {
       const publishingJobs = PublishingJobRepository.getAll();
@@ -99,6 +141,7 @@ const ProductionController = (() => {
         }).sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); })[0] || null;
         result.seoPack = job.seoPackId ? SeoRepository.getById(job.seoPackId) : null;
         result.quality = RenderQualityService.evaluate(job);
+        result.review = RenderReviewService.get(job.id);
         return result;
       }) };
     });
@@ -120,6 +163,7 @@ const ProductionController = (() => {
         throw error_("Only a completed render can be uploaded.");
       }
       RenderQualityService.assertPublishable(renderJob);
+      RenderReviewService.assertApproved(renderJob.id);
       const existing = PublishingJobRepository.getByRenderJobId(renderJobId);
       if (existing && existing.status === "PUBLISHED") throw error_("This render is already published to YouTube.");
       const seoPack = SeoRepository.getById(renderJob.seoPackId);
@@ -143,7 +187,11 @@ const ProductionController = (() => {
           tags: upload.tags,
           privacyStatus: upload.privacyStatus,
           status: "PUBLISHED",
-          providerResponse: upload.response
+          providerResponse: {
+            video: upload.response,
+            publishAt: upload.publishAt || "",
+            processingStatus: "processing"
+          }
         }));
       } catch (caught) {
         PublishingJobRepository.update(PublishingJobModel.update(job, {
@@ -153,6 +201,27 @@ const ProductionController = (() => {
         throw caught;
       }
       return { job: job };
+    });
+  }
+
+  function refreshPublication(request) {
+    return run_("YouTube processing status refreshed.", function () {
+      const renderJobId = String(request && request.renderJobId || "").trim();
+      const job = PublishingJobRepository.getByRenderJobId(renderJobId);
+      if (!job || !job.youtubeVideoId) throw error_("Published YouTube video was not found.");
+      const status = YouTubeService.getVideo(job.youtubeVideoId);
+      return {
+        job: PublishingJobRepository.update(PublishingJobModel.update(job, {
+          privacyStatus: status.privacyStatus || job.privacyStatus,
+          providerResponse: {
+            video: status.response,
+            publishAt: status.publishAt,
+            uploadStatus: status.uploadStatus,
+            processingStatus: status.processingStatus,
+            processingProgress: status.processingProgress
+          }
+        }))
+      };
     });
   }
 
@@ -183,16 +252,33 @@ const ProductionController = (() => {
         controllerVersion: VERSION };
     }
   }
+  function failure_(message) {
+    return {
+      success: false,
+      statusCode: 400,
+      requestId: "REQ-" + Utilities.getUuid().slice(0, 8).toUpperCase(),
+      message: "Production request failed.",
+      data: null,
+      error: { code: "PRODUCTION_REQUEST_FAILED", message: message },
+      controllerVersion: VERSION
+    };
+  }
   function error_(message) { const error = new Error(message); error.name = "ProductionControllerError"; return error; }
 
   return { testConnection: testConnection, listReady: listReady, submit: submit, refresh: refresh,
-    listJobs: listJobs, getYouTubeConnection: getYouTubeConnection, publish: publish };
+    refreshActive: refreshActive, retry: retry, approveRender: approveRender, listJobs: listJobs,
+    getYouTubeConnection: getYouTubeConnection, publish: publish,
+    refreshPublication: refreshPublication };
 })();
 
 function productionTestConnection() { return ProductionController.testConnection(); }
 function productionListReady() { return ProductionController.listReady(); }
 function productionSubmit(request) { return ProductionController.submit(request); }
 function productionRefresh(request) { return ProductionController.refresh(request); }
+function productionRefreshActive() { return ProductionController.refreshActive(); }
+function productionRetry(request) { return ProductionController.retry(request); }
+function productionApproveRender(request) { return ProductionController.approveRender(request); }
 function productionListJobs() { return ProductionController.listJobs(); }
 function productionGetYouTubeConnection() { return ProductionController.getYouTubeConnection(); }
 function productionPublish(request) { return ProductionController.publish(request); }
+function productionRefreshPublication(request) { return ProductionController.refreshPublication(request); }

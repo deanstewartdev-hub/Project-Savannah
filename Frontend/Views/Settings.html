@@ -13,4 +13,33 @@
     </form>
     <p id="creatomate-message" role="status"></p>
   </article>
+  <article class="card">
+    <h2>Shorts branding and narration</h2>
+    <p>Reusable production defaults for every newly rendered Short.</p>
+    <form id="production-branding-form">
+      <label>Channel brand name
+        <input id="production-brand-name" type="text" required maxlength="80" value="Savannah Atlas">
+      </label>
+      <label>Caption colour
+        <input id="production-primary-color" type="color" value="#0f766e">
+      </label>
+      <label>Narration voice
+        <select id="production-voice">
+          <option value="alloy">Alloy</option>
+          <option value="coral">Coral</option>
+          <option value="echo">Echo</option>
+          <option value="fable">Fable</option>
+          <option value="nova">Nova</option>
+          <option value="onyx">Onyx</option>
+          <option value="sage">Sage</option>
+          <option value="shimmer">Shimmer</option>
+        </select>
+      </label>
+      <label>Speaking speed
+        <input id="production-speech-speed" type="number" min="0.75" max="1.25" step="0.05" value="1">
+      </label>
+      <button class="button button--primary" type="submit">Save production style</button>
+    </form>
+    <p id="production-branding-message" role="status"></p>
+  </article>
 </section>

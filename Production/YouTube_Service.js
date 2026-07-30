@@ -30,7 +30,8 @@ const YouTubeService = (() => {
     if (!title) throw error_("A YouTube title is required.");
     const description = buildDescription_(source.description || seoPack.description, seoPack.hashtags);
     const tags = normaliseTags_(seoPack.tags);
-    const privacyStatus = normalisePrivacy_(source.privacyStatus);
+    const publishAt = normalisePublishAt_(source.publishAt);
+    const privacyStatus = publishAt ? "private" : normalisePrivacy_(source.privacyStatus);
     const videoBlob = download_(renderJob.videoUrl, title);
     const resource = {
       snippet: {
@@ -44,6 +45,7 @@ const YouTubeService = (() => {
         selfDeclaredMadeForKids: false
       }
     };
+    if (publishAt) resource.status.publishAt = publishAt;
     const video = YouTube.Videos.insert(resource, "snippet,status", videoBlob);
     if (!video || !video.id) throw error_("YouTube did not return a video ID.");
     return {
@@ -53,6 +55,24 @@ const YouTubeService = (() => {
       description: description,
       tags: tags,
       privacyStatus: privacyStatus,
+      publishAt: publishAt,
+      response: sanitise_(video)
+    };
+  }
+
+  function getVideo(videoId) {
+    const id = String(videoId || "").trim();
+    if (!id) throw error_("A YouTube video ID is required.");
+    const response = YouTube.Videos.list("id,status,processingDetails", { id: id });
+    const video = response && response.items && response.items[0];
+    if (!video) throw error_("The YouTube video was not found.");
+    return {
+      videoId: video.id,
+      privacyStatus: video.status && video.status.privacyStatus || "",
+      publishAt: video.status && video.status.publishAt || "",
+      uploadStatus: video.status && video.status.uploadStatus || "",
+      processingStatus: video.processingDetails && video.processingDetails.processingStatus || "",
+      processingProgress: video.processingDetails && video.processingDetails.processingProgress || {},
       response: sanitise_(video)
     };
   }
@@ -88,6 +108,16 @@ const YouTubeService = (() => {
     if (["private", "unlisted", "public"].indexOf(result) === -1) throw error_("Invalid YouTube privacy status.");
     return result;
   }
+  function normalisePublishAt_(value) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    const date = new Date(text);
+    if (isNaN(date.getTime())) throw error_("Scheduled publication time is invalid.");
+    if (date.getTime() <= Date.now() + 60000) {
+      throw error_("Scheduled publication time must be at least one minute in the future.");
+    }
+    return date.toISOString();
+  }
   function fileName_(title) {
     return String(title || "project-savannah-short").replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, "-").slice(0, 80);
   }
@@ -98,7 +128,7 @@ const YouTubeService = (() => {
   }
   function error_(message) { const error = new Error(message); error.name = "YouTubeServiceError"; return error; }
 
-  return { requireAuthorization: requireAuthorization, getChannel: getChannel, upload: upload };
+  return { requireAuthorization: requireAuthorization, getChannel: getChannel, upload: upload, getVideo: getVideo };
 })();
 
 function authorizeYouTubePublishing() {
