@@ -11,6 +11,7 @@ const VoiceoverService = (() => {
   const FOLDER_PROPERTY = "SAVANNAH_RENDER_AUDIO_FOLDER_ID";
 
   function prepareSceneAudio(script) {
+    requireDriveScope_();
     if (!script || !script.id) throw error_("A valid script is required.");
     const scenes = Array.isArray(script.scenes) ? script.scenes.slice(0, 4) : [];
     if (!scenes.length) throw error_("The script has no scenes to narrate.");
@@ -23,6 +24,7 @@ const VoiceoverService = (() => {
   }
 
   function authoriseDrive() {
+    requireDriveScope_();
     const folderId = folderId_();
     return {
       authorised: true,
@@ -132,6 +134,12 @@ const VoiceoverService = (() => {
 
   function appendBytes_(target, source) {
     for (let index = 0; index < source.length; index++) target.push(source[index]);
+  }
+
+  function requireDriveScope_() {
+    ScriptApp.requireScopes(ScriptApp.AuthMode.FULL, [
+      "https://www.googleapis.com/auth/drive.file"
+    ]);
   }
 
   function fileResult_(fileId, sceneNumber) {
