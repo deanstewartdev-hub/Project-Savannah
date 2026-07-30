@@ -15,7 +15,8 @@ const CreatomateService = (() => {
   }
 
   function createRender(script, seoPack) {
-    const payload = buildPayload_(script, seoPack);
+    const audioFiles = VoiceoverService.prepareSceneAudio(script);
+    const payload = buildPayload_(script, seoPack, audioFiles);
     const response = request_("post", "/v2/renders", payload);
     const render = Array.isArray(response) ? response[0] : response;
     if (!render || !render.id) throw error_("Creatomate did not return a render ID.");
@@ -28,19 +29,24 @@ const CreatomateService = (() => {
     return request_("get", "/v2/renders/" + encodeURIComponent(id));
   }
 
-  function buildPayload_(script, seoPack) {
+  function buildPayload_(script, seoPack, audioFiles) {
     if (!script || !script.id) throw error_("A valid script is required.");
     const modifications = {};
     const scenes = Array.isArray(script.scenes) ? script.scenes.slice(0, 4) : [];
+    const audioByScene = {};
+    (Array.isArray(audioFiles) ? audioFiles : []).forEach(function (file) {
+      audioByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
+    });
     for (let index = 0; index < 4; index++) {
       const scene = scenes[index] || {};
       const narration = String(scene.narration || "").trim();
       const onScreenText = String(scene.onScreenText || narration || "").trim();
-      if (narration) modifications["Voiceover-" + (index + 1) + ".source"] = narration;
+      const audioUrl = audioByScene[index + 1];
+      if (audioUrl) modifications["Voiceover-" + (index + 1) + ".source"] = audioUrl;
       if (onScreenText) modifications["Subtitles-" + (index + 1) + ".text"] = onScreenText;
     }
     if (!Object.keys(modifications).some(function (key) { return /^Voiceover-/.test(key); })) {
-      modifications["Voiceover-1.source"] = String(script.voiceoverScript || "").trim();
+      throw error_("Narration audio was not prepared.");
     }
     return {
       template_id: templateId_(),
@@ -98,7 +104,7 @@ function testCreatomatePayload() {
     id: "SCR-TEST",
     voiceoverScript: "Fallback narration",
     scenes: [{ narration: "Opening narration", onScreenText: "Opening text" }]
-  }, { id: "SEO-TEST" });
+  }, { id: "SEO-TEST" }, [{ sceneNumber: 1, url: "https://example.com/voiceover.mp3" }]);
   if (!payload.modifications["Voiceover-1.source"]) throw new Error("Voiceover modification was not created.");
   return { passed: true, modificationCount: Object.keys(payload.modifications).length };
 }
