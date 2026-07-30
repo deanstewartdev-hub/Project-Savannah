@@ -20,6 +20,9 @@ The project is built as a standalone Google Apps Script web application. Google 
 | Source control                | Git and GitHub                              |
 | Apps Script synchronisation   | clasp                                       |
 | AI provider                   | OpenAI through the project AI service layer |
+| Video renderer                | Creatomate                                  |
+| YouTube channel               | Savannah Atlas                              |
+| Live Apps Script version      | v31                                         |
 
 GitHub is the canonical source of truth for the project.
 
@@ -27,9 +30,37 @@ Changes should be implemented locally, pushed to Apps Script through clasp, test
 
 ---
 
+## End-to-End Milestone
+
+On 30 July 2026, Project Savannah completed its first verified end-to-end automated Short:
+
+| Stage | Result |
+| --- | --- |
+| Idea | Bizarre Travel Laws You Didn't Know Existed |
+| Script | Generated, validated, repaired and approved |
+| SEO | Title, description, tags and hashtags generated |
+| Voiceover | Generated with OpenAI and delivered through Google Drive |
+| Video | Rendered successfully with Creatomate |
+| YouTube | Uploaded privately to Savannah Atlas |
+| Video ID | `5Ysn6lLQ_WM` |
+
+Verified workflow:
+
+```text
+Generate Idea
+→ Approve Idea
+→ Generate and Validate Script
+→ Send for Review
+→ Approve Script
+→ Generate SEO Pack
+→ Generate Voiceover
+→ Render Short
+→ Upload to YouTube as Private
+```
+
 ## Current Objective
 
-The current development objective is to complete the production pipeline from an approved script through SEO, media rendering and YouTube publishing.
+The production pipeline from an approved script through SEO, media rendering and private YouTube publishing is operational. The next objective is to harden repeat runs, add scheduling and publication controls, improve video-template quality and complete automated status reporting.
 
 Planned workflow:
 
