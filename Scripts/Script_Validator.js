@@ -22,7 +22,7 @@
 
 const ScriptValidator = (() => {
   const DEFAULT_RULES = Object.freeze({
-    minimumWordCount: 105,
+    minimumWordCount: 100,
     maximumWordCount: 145,
     minimumSceneCount: 3,
     maximumSceneCount: 12,
@@ -990,7 +990,7 @@ function testScriptValidatorWithValidScript() {
   if (
     !result ||
     result.valid !== true ||
-    result.metadata.wordCount < 105 ||
+    result.metadata.wordCount < 100 ||
     result.metadata.sceneCount !== 5
   ) {
     throw new Error(

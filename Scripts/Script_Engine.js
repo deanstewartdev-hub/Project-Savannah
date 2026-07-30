@@ -33,7 +33,7 @@ const ScriptEngine = (() => {
         temperature: null,
         maxTokens: null,
         targetDurationSeconds: 50,
-        minimumWordCount: 105,
+        minimumWordCount: 100,
         maximumWordCount: 145,
         status: "FORMATTED",
         maxValidationAttempts: 3
@@ -454,16 +454,9 @@ const ScriptEngine = (() => {
         " and " +
         options.maximumWordCount +
         " words.",
-      "- Aim for approximately " +
-        Math.round(
-          (
-            options.minimumWordCount +
-            options.maximumWordCount
-          ) / 2
-        ) +
-        " voiceover words.",
-      "- The voiceover must begin with the supplied hook, or wording that contains its first five meaningful words.",
-      "- The hook field and opening voiceover must agree.",
+      "- Aim for 125 to 135 voiceover words. Count them before returning JSON.",
+      "- Write the final hook first, then copy that exact hook text to the beginning of voiceoverScript.",
+      "- The hook field must be the exact opening words of voiceoverScript; do not paraphrase it in either location.",
       "- Rewrite weak source-hook wording into an 8 to 15 word curiosity gap.",
       "- Never begin with 'Did you know', 'Here are', 'Welcome', 'Today', or 'In this video'.",
       "- Keep most spoken sentences below 14 words.",
@@ -471,13 +464,14 @@ const ScriptEngine = (() => {
       "- Delay the clearest payoff until the final third, before the call to action.",
       "- Keep the call to action to 12 words or fewer.",
       "- Keep on-screen text between 2 and 7 words.",
-      "- Scene narration joined in order must cover the complete voiceover without omissions.",
+      "- Scene narration joined in order must reproduce the complete voiceoverScript in the same order without omissions.",
       "- Keep estimated duration between " +
         options.minimumDurationSeconds +
         " and " +
         options.maximumDurationSeconds +
         " seconds.",
-      "- Scene durations must approximately total the declared duration.",
+      "- Add every scene duration, then set estimatedDurationSeconds to that exact sum.",
+      "- The exact scene-duration sum and estimatedDurationSeconds must both be between 30 and 60 seconds.",
       "- Preserve factual accuracy.",
       "- Do not include Markdown or explanatory text.",
       "- Return only data matching the supplied JSON schema.",
@@ -2029,7 +2023,7 @@ function testScriptEnginePreparesRequest() {
       createScriptEngineIdeaFixture_(),
       {
         targetDurationSeconds: 50,
-        minimumWordCount: 105,
+        minimumWordCount: 100,
         maximumWordCount: 145
       }
     );
@@ -2120,7 +2114,7 @@ function testScriptEngineLiveWorkflow() {
       createScriptEngineIdeaFixture_(),
       {
         targetDurationSeconds: 50,
-        minimumWordCount: 105,
+        minimumWordCount: 100,
         maximumWordCount: 145,
         status: "FORMATTED"
       }

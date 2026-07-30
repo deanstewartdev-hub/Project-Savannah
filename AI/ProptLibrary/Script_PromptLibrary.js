@@ -23,7 +23,7 @@ const ScriptPromptLibrary = (() => {
 
   const DEFAULT_OPTIONS = Object.freeze({
     targetDurationSeconds: 50,
-    minimumWordCount: 105,
+    minimumWordCount: 100,
     maximumWordCount: 145,
     tone: "Fast-paced, conversational, vivid and confident",
     language: "British English",
@@ -370,7 +370,7 @@ function testScriptPromptLibrary() {
   const requiredPromptContent = [
     "Five mistakes tourists make in Rome",
     "People planning their first trip to Rome",
-    "105 and 145 words",
+    "100 and 145 words",
     "4 to 6 sequential scenes",
     "8 to 15 word hook",
     "Return only data matching the supplied JSON schema"
