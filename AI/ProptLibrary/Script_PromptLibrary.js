@@ -19,15 +19,15 @@
  ****************************************************/
 
 const ScriptPromptLibrary = (() => {
-  const PROMPT_VERSION = "scripts-v1.0";
+  const PROMPT_VERSION = "scripts-v1.1-retention";
 
   const DEFAULT_OPTIONS = Object.freeze({
     targetDurationSeconds: 50,
     minimumWordCount: 105,
     maximumWordCount: 145,
-    tone: "Fast-paced, useful, friendly and confident",
+    tone: "Fast-paced, conversational, vivid and confident",
     language: "British English",
-    callToActionStyle: "Short, natural and relevant"
+    callToActionStyle: "Eight words or fewer, natural and relevant"
   });
 
   /**
@@ -73,31 +73,45 @@ const ScriptPromptLibrary = (() => {
         " and " +
         settings.maximumWordCount +
         " words.",
-      "- Begin immediately with a strong hook.",
+      "- Rewrite the source hook when needed; do not preserve weak wording.",
+      "- Begin with an 8 to 15 word hook that creates a specific curiosity gap.",
+      "- Make the first spoken line understandable in under two seconds.",
+      "- Prefer surprise, consequence, contrast or an unanswered question over hype.",
+      "- Never begin with 'Did you know', 'Here are', 'Welcome', 'Today', or 'In this video'.",
       "- Do not use introductions such as 'Welcome back' or " +
         "'In today’s video'.",
-      "- Use concise, natural sentences suitable for spoken delivery.",
+      "- Use short, clean sentences suitable for spoken delivery and captions.",
+      "- Keep most sentences below 14 words and vary their rhythm.",
       "- The narration must remain understandable without visuals.",
       "- Deliver clearly on the promise made by the title and hook.",
-      "- Avoid filler, repetition and generic statements.",
+      "- Open a question in the hook, build tension, and delay the clearest payoff until the final third.",
+      "- Add a new reveal, consequence or pattern interrupt every one or two sentences.",
+      "- Lead with a strong example, escalate, and save the most surprising useful detail for last.",
+      "- Avoid filler, repetition, throat-clearing, fake urgency and generic statements.",
+      "- Avoid robotic list transitions such as 'firstly', 'secondly' and 'finally'.",
+      "- Do not repeat the title, hook or the same fact in different words.",
       "- Do not invent statistics, quotations or precise claims.",
       "- When a claim may require verification, mention it briefly in " +
         "generationNotes.",
       "- Do not imitate a named creator or reproduce copyrighted scripts.",
+      "- Place the payoff before the call to action.",
       "- End with a call to action that is " +
         settings.callToActionStyle +
         ".",
       "",
       "SCENE REQUIREMENTS",
-      "- Divide the script into 3 to 12 sequential scenes.",
+      "- Divide the script into 4 to 6 sequential scenes.",
       "- Scene numbers must begin at 1 and increase by exactly 1.",
       "- Each scene must contain narration.",
       "- Each scene must contain concise on-screen text.",
+      "- Keep on-screen text to 2 to 7 words; do not write full sentences.",
       "- Each scene must contain a practical visual direction.",
       "- Each scene must include an estimated duration in seconds.",
       "- The combined scene duration should closely match the declared " +
         "estimatedDurationSeconds.",
       "- The complete script must fit between 30 and 60 seconds.",
+      "- Scene narration joined in order must cover the complete voiceover without omissions.",
+      "- Do not create a separate narrator intro or outro outside the scenes.",
       "",
       "OUTPUT REQUIREMENTS",
       "- Return only data matching the supplied JSON schema.",
@@ -109,11 +123,12 @@ const ScriptPromptLibrary = (() => {
       "",
       "QUALITY CHECK",
       "Before returning the response, confirm internally that:",
-      "1. The hook is strong and appears at the beginning.",
+      "1. The hook creates curiosity, avoids banned openings and appears at the beginning.",
       "2. The voiceover is within the requested word range.",
       "3. Scene numbers are sequential.",
       "4. The scene durations approximately match the total duration.",
-      "5. Every required JSON field is populated."
+      "5. The final third contains the promised payoff.",
+      "6. Every required JSON field is populated."
     ].join("\n");
   }
 
@@ -356,7 +371,8 @@ function testScriptPromptLibrary() {
     "Five mistakes tourists make in Rome",
     "People planning their first trip to Rome",
     "105 and 145 words",
-    "3 to 12 sequential scenes",
+    "4 to 6 sequential scenes",
+    "8 to 15 word hook",
     "Return only data matching the supplied JSON schema"
   ];
 
@@ -371,7 +387,7 @@ function testScriptPromptLibrary() {
 
   if (
     ScriptPromptLibrary.getPromptVersion() !==
-    "scripts-v1.0"
+    "scripts-v1.1-retention"
   ) {
     throw new Error(
       "Unexpected script prompt version."

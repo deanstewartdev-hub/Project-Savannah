@@ -464,6 +464,14 @@ const ScriptEngine = (() => {
         " voiceover words.",
       "- The voiceover must begin with the supplied hook, or wording that contains its first five meaningful words.",
       "- The hook field and opening voiceover must agree.",
+      "- Rewrite weak source-hook wording into an 8 to 15 word curiosity gap.",
+      "- Never begin with 'Did you know', 'Here are', 'Welcome', 'Today', or 'In this video'.",
+      "- Keep most spoken sentences below 14 words.",
+      "- Add a new reveal, consequence or pattern interrupt every one or two sentences.",
+      "- Delay the clearest payoff until the final third, before the call to action.",
+      "- Keep the call to action to 12 words or fewer.",
+      "- Keep on-screen text between 2 and 7 words.",
+      "- Scene narration joined in order must cover the complete voiceover without omissions.",
       "- Keep estimated duration between " +
         options.minimumDurationSeconds +
         " and " +

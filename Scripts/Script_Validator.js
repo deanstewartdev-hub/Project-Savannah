@@ -28,8 +28,20 @@ const ScriptValidator = (() => {
     maximumSceneCount: 12,
     minimumDurationSeconds: 30,
     maximumDurationSeconds: 60,
-    durationToleranceSeconds: 5
+    durationToleranceSeconds: 5,
+    minimumHookWordCount: 6,
+    maximumHookWordCount: 18,
+    maximumCallToActionWordCount: 12,
+    maximumOnScreenTextWordCount: 7
   });
+
+  const WEAK_HOOK_PATTERNS = [
+    /^\s*did you know\b/i,
+    /^\s*here (?:are|is)\b/i,
+    /^\s*welcome\b/i,
+    /^\s*today\b/i,
+    /^\s*in (?:this|today'?s) video\b/i
+  ];
 
   const PLACEHOLDER_PATTERNS = [
     /\bTBD\b/i,
@@ -138,6 +150,18 @@ const ScriptValidator = (() => {
       errors
     );
 
+    validateHookQuality_(
+      script.hook,
+      rules,
+      errors
+    );
+
+    validateCallToActionQuality_(
+      script.callToAction,
+      rules,
+      errors
+    );
+
     if (errors.length > 0) {
       throw createValidationError_(errors);
     }
@@ -228,6 +252,26 @@ const ScriptValidator = (() => {
       durationToleranceSeconds: resolveNumber_(
         supplied.durationToleranceSeconds,
         DEFAULT_RULES.durationToleranceSeconds
+      ),
+
+      minimumHookWordCount: resolveNumber_(
+        supplied.minimumHookWordCount,
+        DEFAULT_RULES.minimumHookWordCount
+      ),
+
+      maximumHookWordCount: resolveNumber_(
+        supplied.maximumHookWordCount,
+        DEFAULT_RULES.maximumHookWordCount
+      ),
+
+      maximumCallToActionWordCount: resolveNumber_(
+        supplied.maximumCallToActionWordCount,
+        DEFAULT_RULES.maximumCallToActionWordCount
+      ),
+
+      maximumOnScreenTextWordCount: resolveNumber_(
+        supplied.maximumOnScreenTextWordCount,
+        DEFAULT_RULES.maximumOnScreenTextWordCount
       )
     };
 
@@ -419,6 +463,20 @@ const ScriptValidator = (() => {
         errors
       );
 
+      if (
+        typeof scene.onScreenText === "string" &&
+        countWords_(scene.onScreenText) >
+          rules.maximumOnScreenTextWordCount
+      ) {
+        errors.push(
+          "On-screen text for scene " +
+          expectedSceneNumber +
+          " must contain no more than " +
+          rules.maximumOnScreenTextWordCount +
+          " words."
+        );
+      }
+
       validateSceneString_(
         scene,
         "visualDirection",
@@ -606,6 +664,58 @@ const ScriptValidator = (() => {
     ) {
       errors.push(
         "The script hook does not appear near the beginning of the voiceover."
+      );
+    }
+  }
+
+  /**
+   * Rejects weak or overlong openings that lose viewers immediately.
+   */
+  function validateHookQuality_(hook, rules, errors) {
+    if (typeof hook !== "string" || !hook.trim()) {
+      return;
+    }
+
+    const wordCount = countWords_(hook);
+
+    if (wordCount < rules.minimumHookWordCount) {
+      errors.push(
+        "The hook contains " + wordCount +
+        " words; minimum is " + rules.minimumHookWordCount + "."
+      );
+    }
+
+    if (wordCount > rules.maximumHookWordCount) {
+      errors.push(
+        "The hook contains " + wordCount +
+        " words; maximum is " + rules.maximumHookWordCount + "."
+      );
+    }
+
+    WEAK_HOOK_PATTERNS.forEach(function (pattern) {
+      if (pattern.test(hook)) {
+        errors.push(
+          "The hook uses a weak opening pattern: " + pattern.toString()
+        );
+      }
+    });
+  }
+
+  /**
+   * Keeps the closing action short so it does not dilute the payoff.
+   */
+  function validateCallToActionQuality_(callToAction, rules, errors) {
+    if (typeof callToAction !== "string" || !callToAction.trim()) {
+      return;
+    }
+
+    const wordCount = countWords_(callToAction);
+
+    if (wordCount > rules.maximumCallToActionWordCount) {
+      errors.push(
+        "Call to action contains " + wordCount +
+        " words; maximum is " +
+        rules.maximumCallToActionWordCount + "."
       );
     }
   }
@@ -848,7 +958,19 @@ const ScriptValidator = (() => {
           DEFAULT_RULES.maximumDurationSeconds,
 
         durationToleranceSeconds:
-          DEFAULT_RULES.durationToleranceSeconds
+          DEFAULT_RULES.durationToleranceSeconds,
+
+        minimumHookWordCount:
+          DEFAULT_RULES.minimumHookWordCount,
+
+        maximumHookWordCount:
+          DEFAULT_RULES.maximumHookWordCount,
+
+        maximumCallToActionWordCount:
+          DEFAULT_RULES.maximumCallToActionWordCount,
+
+        maximumOnScreenTextWordCount:
+          DEFAULT_RULES.maximumOnScreenTextWordCount
       };
     }
   };
@@ -1045,4 +1167,38 @@ function createValidScriptValidatorFixture_() {
 
     generationNotes: ""
   };
+}
+
+/**
+ * Tests that a generic low-retention opening is rejected.
+ *
+ * @return {boolean} True when correctly rejected.
+ */
+function testScriptValidatorRejectsWeakHook() {
+  const script = createValidScriptValidatorFixture_();
+
+  script.hook =
+    "Did you know these common Rome mistakes can ruin your holiday?";
+  script.voiceoverScript =
+    script.hook + " " +
+    script.voiceoverScript.split(" ").slice(11).join(" ");
+
+  try {
+    ScriptValidator.validate(script);
+  } catch (error) {
+    if (
+      error.name === "ScriptValidationError" &&
+      error.validationErrors.some(function (message) {
+        return message.indexOf("weak opening pattern") !== -1;
+      })
+    ) {
+      return true;
+    }
+
+    throw error;
+  }
+
+  throw new Error(
+    "Validator accepted a weak hook opening."
+  );
 }
