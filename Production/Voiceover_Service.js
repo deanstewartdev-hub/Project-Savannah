@@ -6,6 +6,9 @@ const VoiceoverService = (() => {
   const FOLDER_NAME = "Project Savannah Render Audio";
   const MODEL = "tts-1";
   const VOICE = "alloy";
+  const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
+  const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+  const FOLDER_PROPERTY = "SAVANNAH_RENDER_AUDIO_FOLDER_ID";
 
   function prepareSceneAudio(script) {
     if (!script || !script.id) throw error_("A valid script is required.");
@@ -20,16 +23,15 @@ const VoiceoverService = (() => {
   }
 
   function getOrCreateAudio_(scriptId, sceneNumber, narration) {
-    const folder = folder_();
     const name = safeName_(scriptId) + "-scene-" + sceneNumber + ".mp3";
-    const existing = folder.getFilesByName(name);
-    if (existing.hasNext()) return fileResult_(existing.next(), sceneNumber);
-
     const audio = createSpeech_(narration);
-    const file = folder.createFile(audio.setName(name));
-    file.setDescription("Project Savannah narration for " + scriptId + ", scene " + sceneNumber + ".");
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return fileResult_(file, sceneNumber);
+    const fileId = uploadAudio_(audio, {
+      name: name,
+      description: "Project Savannah narration for " + scriptId + ", scene " + sceneNumber + ".",
+      parents: [folderId_()]
+    });
+    shareByLink_(fileId);
+    return fileResult_(fileId, sceneNumber);
   }
 
   function createSpeech_(text) {
@@ -56,16 +58,78 @@ const VoiceoverService = (() => {
     return response.getBlob().setContentType("audio/mpeg");
   }
 
-  function folder_() {
-    const folders = DriveApp.getFoldersByName(FOLDER_NAME);
-    return folders.hasNext() ? folders.next() : DriveApp.createFolder(FOLDER_NAME);
+  function folderId_() {
+    const properties = PropertiesService.getScriptProperties();
+    const stored = properties.getProperty(FOLDER_PROPERTY);
+    if (stored) return stored;
+    const folder = driveJsonRequest_("post", DRIVE_API, {
+      name: FOLDER_NAME,
+      mimeType: "application/vnd.google-apps.folder"
+    });
+    if (!folder.id) throw error_("Google Drive did not return an audio folder ID.");
+    properties.setProperty(FOLDER_PROPERTY, folder.id);
+    return folder.id;
   }
 
-  function fileResult_(file, sceneNumber) {
+  function uploadAudio_(audio, metadata) {
+    const boundary = "savannah_" + Utilities.getUuid().replace(/-/g, "");
+    const prefix = "--" + boundary + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" +
+      JSON.stringify(metadata) + "\r\n--" + boundary + "\r\nContent-Type: audio/mpeg\r\n\r\n";
+    const suffix = "\r\n--" + boundary + "--";
+    const bytes = Utilities.newBlob(prefix).getBytes();
+    appendBytes_(bytes, audio.getBytes());
+    appendBytes_(bytes, Utilities.newBlob(suffix).getBytes());
+    const response = UrlFetchApp.fetch(DRIVE_UPLOAD_API, {
+      method: "post",
+      contentType: "multipart/related; boundary=" + boundary,
+      headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+      payload: Utilities.newBlob(bytes).getBytes(),
+      muteHttpExceptions: true
+    });
+    const body = parseDriveResponse_(response, "Audio upload");
+    if (!body.id) throw error_("Google Drive did not return an audio file ID.");
+    return body.id;
+  }
+
+  function shareByLink_(fileId) {
+    driveJsonRequest_("post", DRIVE_API + "/" + encodeURIComponent(fileId) + "/permissions", {
+      type: "anyone",
+      role: "reader"
+    });
+  }
+
+  function driveJsonRequest_(method, url, payload) {
+    const response = UrlFetchApp.fetch(url, {
+      method: method,
+      contentType: "application/json",
+      headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+      payload: JSON.stringify(payload || {}),
+      muteHttpExceptions: true
+    });
+    return parseDriveResponse_(response, "Google Drive request");
+  }
+
+  function parseDriveResponse_(response, label) {
+    const status = response.getResponseCode();
+    const text = response.getContentText();
+    let body = {};
+    try { body = text ? JSON.parse(text) : {}; } catch (parseError) { body = {}; }
+    if (status < 200 || status >= 300) {
+      const detail = String(body.error && body.error.message || "HTTP " + status).slice(0, 300);
+      throw error_(label + " failed: " + detail);
+    }
+    return body;
+  }
+
+  function appendBytes_(target, source) {
+    for (let index = 0; index < source.length; index++) target.push(source[index]);
+  }
+
+  function fileResult_(fileId, sceneNumber) {
     return {
       sceneNumber: sceneNumber,
-      fileId: file.getId(),
-      url: "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(file.getId())
+      fileId: fileId,
+      url: "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(fileId)
     };
   }
 
