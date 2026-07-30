@@ -3,7 +3,7 @@
     <div>
       <p class="eyebrow">Video rendering</p>
       <h1>Production Workspace</h1>
-      <p>Turn approved scripts and SEO packs into finished vertical Shorts.</p>
+      <p>Turn approved scripts and SEO packs into finished vertical Shorts, then publish them to YouTube.</p>
     </div>
     <button class="button button--secondary" id="production-refresh" type="button">Refresh</button>
   </div>
@@ -12,7 +12,15 @@
     <article class="card"><span>Ready to render</span><strong id="production-ready-count">0</strong></article>
     <article class="card"><span>Active renders</span><strong id="production-active-count">0</strong></article>
     <article class="card"><span>Completed videos</span><strong id="production-complete-count">0</strong></article>
+    <article class="card"><span>Published to YouTube</span><strong id="production-published-count">0</strong></article>
   </div>
+
+  <article class="card">
+    <div class="card__header">
+      <div><h2>YouTube channel</h2><p id="production-youtube-status">Checking authorization…</p></div>
+      <button class="button button--secondary" id="production-youtube-connect" type="button">Connect YouTube</button>
+    </div>
+  </article>
 
   <article class="card">
     <div class="card__header">
@@ -23,7 +31,7 @@
 
   <article class="card">
     <div class="card__header">
-      <div><h2>Render jobs</h2><p>Track Creatomate progress and open completed MP4 videos.</p></div>
+      <div><h2>Render and publishing jobs</h2><p>Track Creatomate progress, open MP4 videos and publish completed Shorts.</p></div>
     </div>
     <div id="production-job-list"><p>Loading render jobs…</p></div>
   </article>

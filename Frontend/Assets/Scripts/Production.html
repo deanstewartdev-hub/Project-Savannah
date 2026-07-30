@@ -7,6 +7,9 @@
   const readyCount = document.getElementById("production-ready-count");
   const activeCount = document.getElementById("production-active-count");
   const completeCount = document.getElementById("production-complete-count");
+  const publishedCount = document.getElementById("production-published-count");
+  const youtubeStatus = document.getElementById("production-youtube-status");
+  const youtubeConnect = document.getElementById("production-youtube-connect");
 
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
@@ -48,17 +51,36 @@
         return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
       }).length;
       completeCount.textContent = jobs.filter(function (job) { return job.status === "SUCCEEDED"; }).length;
+      publishedCount.textContent = jobs.filter(function (job) {
+        return job.publishingJob && job.publishingJob.status === "PUBLISHED";
+      }).length;
       if (!jobs.length) {
         jobList.innerHTML = '<div class="empty-state"><h3>No renders yet</h3><p>Create the first Short above.</p></div>';
         return;
       }
       jobList.innerHTML = jobs.map(function (job) {
-        const action = job.status === "SUCCEEDED" && job.videoUrl ?
-          '<a class="button button--primary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
+        const videoAction = job.status === "SUCCEEDED" && job.videoUrl ?
+          '<a class="button button--secondary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
           '<button class="button button--secondary production-refresh-job" data-job-id="' +
           escapeHtml(job.id) + '">Refresh status</button>';
+        const published = job.publishingJob && job.publishingJob.status === "PUBLISHED";
+        const seo = job.seoPack || {};
+        const title = seo.titleOptions && seo.titleOptions[0] || "";
+        const publishAction = job.status === "SUCCEEDED" ? (published ?
+          '<a class="button button--primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
+          '" target="_blank" rel="noopener">Open on YouTube</a>' :
+          '<div class="production-publish-panel" style="margin-top:12px">' +
+          '<label>Video title<input class="input production-youtube-title" maxlength="100" value="' +
+          escapeHtml(title) + '"></label>' +
+          '<label>Visibility<select class="input production-youtube-privacy">' +
+          '<option value="private">Private</option><option value="unlisted">Unlisted</option>' +
+          '<option value="public">Public</option></select></label>' +
+          '<button class="button button--primary production-publish" data-job-id="' +
+          escapeHtml(job.id) + '">Upload to YouTube</button></div>') : "";
         return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(job.status) + '</h3>' +
-          '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + action +
+          '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + videoAction + publishAction +
+          (job.publishingJob && job.publishingJob.status === "FAILED" ?
+            '<p>' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
           (job.errorMessage ? '<p>' + escapeHtml(job.errorMessage) + '</p>' : '') + '</div>';
       }).join("");
     }).withFailureHandler(function (error) { showError(jobList, { error: error }); }).productionListJobs();
@@ -87,11 +109,47 @@
         loadReady(); loadJobs();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
         .productionRefresh({ jobId: refresh.dataset.jobId });
+      return;
+    }
+    const publish = event.target.closest(".production-publish");
+    if (publish) {
+      const panel = publish.closest(".production-publish-panel");
+      const title = panel.querySelector(".production-youtube-title").value.trim();
+      const privacyStatus = panel.querySelector(".production-youtube-privacy").value;
+      if (!title) return showError(jobList, { error: { message: "A YouTube title is required." } });
+      publish.disabled = true; publish.textContent = "Uploading…";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionPublish({ renderJobId: publish.dataset.jobId, title: title, privacyStatus: privacyStatus });
     }
   });
   document.getElementById("production-refresh").addEventListener("click", function () {
-    loadReady(); loadJobs();
+    loadReady(); loadJobs(); loadYouTubeConnection();
   });
-  loadReady(); loadJobs();
+  function loadYouTubeConnection() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) {
+        youtubeStatus.textContent = response && response.error ? response.error.message : "YouTube authorization required.";
+        return;
+      }
+      const channel = response.data.channel;
+      youtubeStatus.textContent = channel ? "Connected to " + channel.title : "No YouTube channel was found.";
+      youtubeConnect.textContent = channel ? "Reconnect" : "Connect YouTube";
+    }).withFailureHandler(function () {
+      youtubeStatus.textContent = "YouTube authorization required.";
+    }).productionGetYouTubeConnection();
+  }
+  youtubeConnect.addEventListener("click", function () {
+    youtubeConnect.disabled = true; youtubeConnect.textContent = "Authorizing…";
+    google.script.run.withSuccessHandler(function () {
+      youtubeConnect.disabled = false; loadYouTubeConnection();
+    }).withFailureHandler(function (error) {
+      youtubeConnect.disabled = false; youtubeConnect.textContent = "Connect YouTube";
+      youtubeStatus.textContent = error && error.message ? error.message : "YouTube authorization is required.";
+    }).authorizeYouTubePublishing();
+  });
+  loadReady(); loadJobs(); loadYouTubeConnection();
 })();
 </script>

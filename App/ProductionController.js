@@ -76,9 +76,68 @@ const ProductionController = (() => {
 
   function listJobs() {
     return run_("Render jobs loaded.", function () {
+      const publishingJobs = PublishingJobRepository.getAll();
       return { jobs: RenderJobRepository.getAll().sort(function (a, b) {
         return new Date(b.updatedAt) - new Date(a.updatedAt);
+      }).map(function (job) {
+        const result = Object.assign({}, job);
+        result.publishingJob = publishingJobs.filter(function (publishingJob) {
+          return publishingJob.renderJobId === job.id;
+        }).sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); })[0] || null;
+        result.seoPack = job.seoPackId ? SeoRepository.getById(job.seoPackId) : null;
+        return result;
       }) };
+    });
+  }
+
+  function getYouTubeConnection() {
+    return run_("YouTube connection loaded.", function () {
+      return { channel: YouTubeService.getChannel() };
+    });
+  }
+
+  function publish(request) {
+    return run_("Short uploaded to YouTube.", function () {
+      const source = request || {};
+      const renderJobId = String(source.renderJobId || "").trim();
+      const renderJob = RenderJobRepository.getById(renderJobId);
+      if (!renderJob) throw error_("Render job was not found.");
+      if (renderJob.status !== "SUCCEEDED" || !renderJob.videoUrl) {
+        throw error_("Only a completed render can be uploaded.");
+      }
+      const existing = PublishingJobRepository.getByRenderJobId(renderJobId);
+      if (existing && existing.status === "PUBLISHED") throw error_("This render is already published to YouTube.");
+      const seoPack = SeoRepository.getById(renderJob.seoPackId);
+      if (!seoPack) throw error_("The SEO pack for this render was not found.");
+      let job = PublishingJobRepository.save(PublishingJobModel.create({
+        renderJobId: renderJob.id,
+        scriptId: renderJob.scriptId,
+        seoPackId: renderJob.seoPackId,
+        title: source.title || seoPack.titleOptions[0],
+        description: source.description || seoPack.description,
+        tags: seoPack.tags,
+        privacyStatus: source.privacyStatus || "private"
+      }));
+      try {
+        const upload = YouTubeService.upload(renderJob, seoPack, source);
+        job = PublishingJobRepository.update(PublishingJobModel.update(job, {
+          youtubeVideoId: upload.videoId,
+          youtubeUrl: upload.videoUrl,
+          title: upload.title,
+          description: upload.description,
+          tags: upload.tags,
+          privacyStatus: upload.privacyStatus,
+          status: "PUBLISHED",
+          providerResponse: upload.response
+        }));
+      } catch (caught) {
+        PublishingJobRepository.update(PublishingJobModel.update(job, {
+          status: "FAILED",
+          errorMessage: String(caught && caught.message || "YouTube upload failed.").slice(0, 500)
+        }));
+        throw caught;
+      }
+      return { job: job };
     });
   }
 
@@ -111,7 +170,8 @@ const ProductionController = (() => {
   }
   function error_(message) { const error = new Error(message); error.name = "ProductionControllerError"; return error; }
 
-  return { testConnection: testConnection, listReady: listReady, submit: submit, refresh: refresh, listJobs: listJobs };
+  return { testConnection: testConnection, listReady: listReady, submit: submit, refresh: refresh,
+    listJobs: listJobs, getYouTubeConnection: getYouTubeConnection, publish: publish };
 })();
 
 function productionTestConnection() { return ProductionController.testConnection(); }
@@ -119,3 +179,5 @@ function productionListReady() { return ProductionController.listReady(); }
 function productionSubmit(request) { return ProductionController.submit(request); }
 function productionRefresh(request) { return ProductionController.refresh(request); }
 function productionListJobs() { return ProductionController.listJobs(); }
+function productionGetYouTubeConnection() { return ProductionController.getYouTubeConnection(); }
+function productionPublish(request) { return ProductionController.publish(request); }
