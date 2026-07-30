@@ -22,6 +22,15 @@ const VoiceoverService = (() => {
     });
   }
 
+  function authoriseDrive() {
+    const folderId = folderId_();
+    return {
+      authorised: true,
+      folderId: folderId,
+      scope: "drive.file"
+    };
+  }
+
   function getOrCreateAudio_(scriptId, sceneNumber, narration) {
     const name = safeName_(scriptId) + "-scene-" + sceneNumber + ".mp3";
     const audio = createSpeech_(narration);
@@ -142,5 +151,9 @@ const VoiceoverService = (() => {
     return error;
   }
 
-  return { prepareSceneAudio: prepareSceneAudio };
+  return { prepareSceneAudio: prepareSceneAudio, authoriseDrive: authoriseDrive };
 })();
+
+function authorizeProductionDrive() {
+  return VoiceoverService.authoriseDrive();
+}
