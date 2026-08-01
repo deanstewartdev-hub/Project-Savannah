@@ -19,12 +19,12 @@
  ****************************************************/
 
 const ScriptPromptLibrary = (() => {
-  const PROMPT_VERSION = "scripts-v1.1-retention";
+  const PROMPT_VERSION = "scripts-v1.2-duration-aware";
 
   const DEFAULT_OPTIONS = Object.freeze({
     targetDurationSeconds: 50,
-    minimumWordCount: 100,
-    maximumWordCount: 145,
+    minimumWordCount: 113,
+    maximumWordCount: 125,
     tone: "Fast-paced, conversational, vivid and confident",
     language: "British English",
     callToActionStyle: "Eight words or fewer, natural and relevant"
@@ -73,6 +73,7 @@ const ScriptPromptLibrary = (() => {
         " and " +
         settings.maximumWordCount +
         " words.",
+      "- Longer target durations require proportionally more spoken narration; do not pad with silent scenes.",
       "- Rewrite the source hook when needed; do not preserve weak wording.",
       "- Begin with an 8 to 15 word hook that creates a specific curiosity gap.",
       "- Make the first spoken line understandable in under two seconds.",

@@ -33,8 +33,8 @@ const ScriptEngine = (() => {
         temperature: null,
         maxTokens: null,
         targetDurationSeconds: 50,
-        minimumWordCount: 100,
-        maximumWordCount: 145,
+        minimumWordCount: 113,
+        maximumWordCount: 125,
         status: "FORMATTED",
         maxValidationAttempts: 3
     });
@@ -454,7 +454,7 @@ const ScriptEngine = (() => {
         " and " +
         options.maximumWordCount +
         " words.",
-      "- Aim for 125 to 135 voiceover words. Count them before returning JSON.",
+      "- Aim for " + Math.round((options.minimumWordCount + options.maximumWordCount) / 2) + " voiceover words. Count them before returning JSON.",
       "- Write the final hook first, then copy that exact hook text to the beginning of voiceoverScript.",
       "- The hook field must be the exact opening words of voiceoverScript; do not paraphrase it in either location.",
       "- Rewrite weak source-hook wording into an 8 to 15 word curiosity gap.",
@@ -1273,8 +1273,12 @@ const ScriptEngine = (() => {
       );
     }
 
-    const validatorDefaults =
-      ScriptValidator.getDefaultRules();
+    const validatorDefaults = ScriptValidator.getDefaultRules();
+    const targetDurationSeconds = resolvePositiveNumber_(
+      supplied.targetDurationSeconds,
+      DEFAULT_OPTIONS.targetDurationSeconds
+    );
+    const durationWordRange = wordRangeForDuration_(targetDurationSeconds);
 
     const resolved = {
       temperature:
@@ -1295,25 +1299,18 @@ const ScriptEngine = (() => {
           )
         ),
 
-      targetDurationSeconds:
-        resolvePositiveNumber_(
-          supplied.targetDurationSeconds,
-          DEFAULT_OPTIONS
-            .targetDurationSeconds
-        ),
+      targetDurationSeconds: targetDurationSeconds,
 
       minimumWordCount:
         resolvePositiveNumber_(
           supplied.minimumWordCount,
-          validatorDefaults
-            .minimumWordCount
+          durationWordRange.minimumWordCount
         ),
 
       maximumWordCount:
         resolvePositiveNumber_(
           supplied.maximumWordCount,
-          validatorDefaults
-            .maximumWordCount
+          durationWordRange.maximumWordCount
         ),
 
       minimumDurationSeconds:
@@ -1418,8 +1415,12 @@ const ScriptEngine = (() => {
       );
     }
 
-    const validatorDefaults =
-      ScriptValidator.getDefaultRules();
+    const validatorDefaults = ScriptValidator.getDefaultRules();
+    const targetDurationSeconds = resolvePositiveNumber_(
+      supplied.targetDurationSeconds,
+      DEFAULT_OPTIONS.targetDurationSeconds
+    );
+    const durationWordRange = wordRangeForDuration_(targetDurationSeconds);
 
     const resolved = {
       temperature:
@@ -1440,25 +1441,18 @@ const ScriptEngine = (() => {
           )
         ),
 
-      targetDurationSeconds:
-        resolvePositiveNumber_(
-          supplied.targetDurationSeconds,
-          DEFAULT_OPTIONS
-            .targetDurationSeconds
-        ),
+      targetDurationSeconds: targetDurationSeconds,
 
       minimumWordCount:
         resolvePositiveNumber_(
           supplied.minimumWordCount,
-          validatorDefaults
-            .minimumWordCount
+          durationWordRange.minimumWordCount
         ),
 
       maximumWordCount:
         resolvePositiveNumber_(
           supplied.maximumWordCount,
-          validatorDefaults
-            .maximumWordCount
+          durationWordRange.maximumWordCount
         ),
 
       minimumDurationSeconds:
@@ -1560,6 +1554,14 @@ const ScriptEngine = (() => {
     }
 
     return resolved;
+  }
+
+  function wordRangeForDuration_(targetDurationSeconds) {
+    const seconds = Math.max(30, Math.min(60, Number(targetDurationSeconds) || 50));
+    return {
+      minimumWordCount: Math.round(seconds * 2.25),
+      maximumWordCount: Math.round(seconds * 2.5)
+    };
   }
 
   /**

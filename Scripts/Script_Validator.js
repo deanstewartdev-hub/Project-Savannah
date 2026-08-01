@@ -22,8 +22,8 @@
 
 const ScriptValidator = (() => {
   const DEFAULT_RULES = Object.freeze({
-    minimumWordCount: 100,
-    maximumWordCount: 145,
+    minimumWordCount: 90,
+    maximumWordCount: 150,
     minimumSceneCount: 3,
     maximumSceneCount: 12,
     minimumDurationSeconds: 30,

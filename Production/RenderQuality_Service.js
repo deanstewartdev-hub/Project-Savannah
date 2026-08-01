@@ -17,11 +17,17 @@ const RenderQualityService = (() => {
     );
     const actual = Number(response.duration || 0);
     const issues = [];
+    const modifications = payload.modifications || {};
 
     if (job.status !== "SUCCEEDED") issues.push("Render has not succeeded.");
     if (!job.videoUrl) issues.push("Rendered video URL is missing.");
     if (!expected) issues.push("Expected duration is missing.");
     if (!actual) issues.push("Creatomate did not report the finished duration.");
+    for (let sceneNumber = 1; sceneNumber <= 4; sceneNumber++) {
+      if (!String(modifications["Image-" + sceneNumber + ".source"] || "").trim()) {
+        issues.push("Scene-specific visual asset " + sceneNumber + " is missing.");
+      }
+    }
     if (actual && (actual < MINIMUM_DURATION_SECONDS || actual > MAXIMUM_DURATION_SECONDS)) {
       issues.push(
         "Finished duration is " + actual +
@@ -45,7 +51,7 @@ const RenderQualityService = (() => {
       actualDurationSeconds: actual,
       durationRatio: expected && actual ? Math.round(actual / expected * 1000) / 1000 : 0,
       issues: issues,
-      modelVersion: "render-quality-v1.0"
+      modelVersion: "render-quality-v1.1"
     };
   }
 

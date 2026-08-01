@@ -659,7 +659,7 @@ function testScriptFormatterWithDirectScript() {
     );
   }
 
-  if (formattedResult.metadata.wordCount < 100) {
+  if (formattedResult.metadata.wordCount < 90) {
     throw new Error(
       "Direct script formatter test returned an invalid word count."
     );

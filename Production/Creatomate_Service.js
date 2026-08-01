@@ -17,7 +17,8 @@ const CreatomateService = (() => {
   function createRender(script, seoPack) {
     const plan = ScenePlanService.create(script);
     const audioFiles = VoiceoverService.prepareSceneAudio(script, plan);
-    const payload = buildPayload_(script, seoPack, audioFiles, plan);
+    const visualFiles = VisualAssetService.prepareSceneVisuals(script, plan);
+    const payload = buildPayload_(script, seoPack, audioFiles, plan, visualFiles);
     const response = request_("post", "/v2/renders", {
       template_id: payload.template_id,
       modifications: payload.modifications,
@@ -34,15 +35,19 @@ const CreatomateService = (() => {
     return request_("get", "/v2/renders/" + encodeURIComponent(id));
   }
 
-  function buildPayload_(script, seoPack, audioFiles, suppliedPlan) {
+  function buildPayload_(script, seoPack, audioFiles, suppliedPlan, visualFiles) {
     if (!script || !script.id) throw error_("A valid script is required.");
     const plan = suppliedPlan || ScenePlanService.create(script);
     const modifications = {};
     const branding = Secrets.getProductionBranding();
     const scenes = plan.slots || [];
     const audioByScene = {};
+    const visualByScene = {};
     (Array.isArray(audioFiles) ? audioFiles : []).forEach(function (file) {
       audioByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
+    });
+    (Array.isArray(visualFiles) ? visualFiles : []).forEach(function (file) {
+      visualByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
     });
     let currentTime = 0;
     for (let index = 0; index < 4; index++) {
@@ -51,6 +56,9 @@ const CreatomateService = (() => {
       const onScreenText = String(scene.onScreenText || narration || "").trim();
       const audioUrl = audioByScene[index + 1];
       const number = index + 1;
+      const visualUrl = visualByScene[number];
+      if (!visualUrl) throw error_("Scene " + number + " has no topic-matched visual asset.");
+      modifications["Image-" + number + ".source"] = visualUrl;
       if (audioUrl) modifications["Voiceover-" + number + ".source"] = audioUrl;
       modifications["Voiceover-" + number + ".time"] = currentTime;
       modifications["Voiceover-" + number + ".duration"] = "media";
@@ -75,6 +83,8 @@ const CreatomateService = (() => {
         seoPackId: seoPack && seoPack.id || "",
         expectedDurationSeconds: plan.expectedDurationSeconds,
         sourceSceneCount: plan.sourceSceneCount,
+        visualAssetCount: Object.keys(visualByScene).length,
+        visualModel: "gpt-image-2",
         brandName: branding.brandName
       })
     };
@@ -144,8 +154,11 @@ function testCreatomatePayload() {
   const payload = CreatomateService.buildPayload(script, { id: "SEO-TEST" },
     plan.slots.map(function (slot) {
       return { sceneNumber: slot.slotNumber, url: "https://example.com/voiceover-" + slot.slotNumber + ".mp3" };
-    }), plan);
+    }), plan, plan.slots.map(function (slot) {
+      return { sceneNumber: slot.slotNumber, url: "https://example.com/visual-" + slot.slotNumber + ".png" };
+    }));
   if (!payload.modifications["Voiceover-1.source"]) throw new Error("Voiceover modification was not created.");
+  if (!payload.modifications["Image-1.source"]) throw new Error("Visual modification was not created.");
   if (payload.scenePlan.slotCount !== 4) throw new Error("Four-slot render plan was not created.");
   return { passed: true, modificationCount: Object.keys(payload.modifications).length };
 }
