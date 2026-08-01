@@ -56,6 +56,61 @@ const ScenePlanService = (() => {
     };
   }
 
+  function fitToDuration(plan, durationSeconds) {
+    const duration = round_(Number(durationSeconds || 0), 2);
+    if (!plan || !Array.isArray(plan.slots) || plan.slots.length !== SLOT_COUNT) {
+      throw error_("A complete four-slot scene plan is required.");
+    }
+    if (duration < 30 || duration > 60) {
+      throw error_("Measured narration duration is " + duration +
+        " seconds; it must be between 30 and 60 seconds.");
+    }
+    const estimated = Number(plan.expectedDurationSeconds || 0);
+    if (!estimated) throw error_("The scene plan has no estimated duration.");
+    let allocated = 0;
+    const slots = plan.slots.map(function (slot, index) {
+      const slotDuration = index === SLOT_COUNT - 1
+        ? round_(duration - allocated, 2)
+        : round_(Number(slot.expectedDurationSeconds || 0) / estimated * duration, 2);
+      allocated += slotDuration;
+      return Object.assign({}, slot, { expectedDurationSeconds: slotDuration });
+    });
+    return Object.assign({}, plan, {
+      slots: slots,
+      expectedDurationSeconds: duration,
+      estimatedDurationSeconds: estimated,
+      timingSource: "measured-mp3",
+      modelVersion: "scene-plan-v1.3-measured-audio"
+    });
+  }
+
+  function fitToSlotDurations(plan, durations) {
+    if (!plan || !Array.isArray(plan.slots) || plan.slots.length !== SLOT_COUNT) {
+      throw error_("A complete four-slot scene plan is required.");
+    }
+    if (!Array.isArray(durations) || durations.length !== SLOT_COUNT) {
+      throw error_("Four measured scene narration durations are required.");
+    }
+    const measured = durations.map(function (value) { return round_(Number(value || 0), 2); });
+    if (measured.some(function (value) { return value <= 0; })) {
+      throw error_("Every scene narration must have a measurable duration.");
+    }
+    const total = round_(measured.reduce(function (sum, value) { return sum + value; }, 0), 2);
+    if (total < 30 || total > 60) {
+      throw error_("Measured narration duration is " + total +
+        " seconds; it must be between 30 and 60 seconds.");
+    }
+    return Object.assign({}, plan, {
+      slots: plan.slots.map(function (slot, index) {
+        return Object.assign({}, slot, { expectedDurationSeconds: measured[index] });
+      }),
+      expectedDurationSeconds: total,
+      estimatedDurationSeconds: Number(plan.expectedDurationSeconds || 0),
+      timingSource: "measured-scene-mp3s",
+      modelVersion: "scene-plan-v1.4-measured-scenes"
+    });
+  }
+
   function narrationForGroups_(sceneGroups, voiceover) {
     const grouped = sceneGroups.map(function (group) {
       return group.map(function (scene) {
@@ -137,7 +192,7 @@ const ScenePlanService = (() => {
     return error;
   }
 
-  return { create: create };
+  return { create: create, fitToDuration: fitToDuration, fitToSlotDurations: fitToSlotDurations };
 })();
 
 function testScenePlanPreservesCompleteVoiceover() {

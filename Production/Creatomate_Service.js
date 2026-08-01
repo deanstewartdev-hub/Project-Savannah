@@ -15,10 +15,13 @@ const CreatomateService = (() => {
   }
 
   function createRender(script, seoPack) {
-    const plan = ScenePlanService.create(script);
-    const continuousAudio = VoiceoverService.prepareContinuousAudio(script);
+    const estimatedPlan = ScenePlanService.create(script);
+    const audioFiles = VoiceoverService.prepareSceneAudio(script, estimatedPlan);
+    const plan = ScenePlanService.fitToSlotDurations(estimatedPlan, audioFiles.map(function (file) {
+      return file.durationSeconds;
+    }));
     const visualFiles = VisualAssetService.prepareSceneVisuals(script, plan);
-    const payload = buildPayload_(script, seoPack, continuousAudio, plan, visualFiles);
+    const payload = buildPayload_(script, seoPack, audioFiles, plan, visualFiles);
     const response = request_("post", "/v2/renders", {
       template_id: payload.template_id,
       modifications: payload.modifications,
@@ -35,38 +38,39 @@ const CreatomateService = (() => {
     return request_("get", "/v2/renders/" + encodeURIComponent(id));
   }
 
-  function buildPayload_(script, seoPack, continuousAudio, suppliedPlan, visualFiles) {
+  function buildPayload_(script, seoPack, audioFiles, suppliedPlan, visualFiles) {
     if (!script || !script.id) throw error_("A valid script is required.");
     const plan = suppliedPlan || ScenePlanService.create(script);
     const modifications = {};
     const branding = Secrets.getProductionBranding();
     const scenes = plan.slots || [];
+    const audioByScene = {};
     const visualByScene = {};
-    const continuousAudioUrl = String(continuousAudio && continuousAudio.url || "").trim();
-    if (!continuousAudioUrl) throw error_("Continuous narration audio was not prepared.");
-    modifications["Voiceover-1.source"] = continuousAudioUrl;
-    modifications["Voiceover-1.time"] = 0;
-    modifications["Voiceover-1.duration"] = "media";
-    for (let voiceNumber = 2; voiceNumber <= 4; voiceNumber++) {
-      modifications["Voiceover-" + voiceNumber + ".volume"] = 0;
-    }
+    (Array.isArray(audioFiles) ? audioFiles : []).forEach(function (file) {
+      audioByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
+    });
     (Array.isArray(visualFiles) ? visualFiles : []).forEach(function (file) {
       visualByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
     });
-    let currentTime = 0;
     for (let index = 0; index < 4; index++) {
       const scene = scenes[index] || {};
       const narration = String(scene.narration || "").trim();
       const onScreenText = String(scene.onScreenText || narration || "").trim();
       const number = index + 1;
       const visualUrl = visualByScene[number];
+      const audioUrl = audioByScene[number];
       if (!visualUrl) throw error_("Scene " + number + " has no topic-matched visual asset.");
+      if (!audioUrl) throw error_("Scene " + number + " has no narration audio.");
       modifications["Image-" + number + ".source"] = visualUrl;
+      modifications["Scene-" + number + ".duration"] = Number(scene.expectedDurationSeconds || 0);
+      modifications["Voiceover-" + number + ".source"] = audioUrl;
+      modifications["Voiceover-" + number + ".time"] = 0;
+      modifications["Voiceover-" + number + ".duration"] = "media";
+      modifications["Voiceover-" + number + ".volume"] = 1;
       if (onScreenText) modifications["Subtitles-" + number + ".text"] = onScreenText;
       modifications["Subtitles-" + number + ".fill_color"] = branding.primaryColor;
-      modifications["Subtitles-" + number + ".time"] = currentTime;
+      modifications["Subtitles-" + number + ".time"] = 0;
       modifications["Subtitles-" + number + ".duration"] = Number(scene.expectedDurationSeconds || 0);
-      currentTime += Number(scene.expectedDurationSeconds || 0);
     }
     modifications.duration = plan.expectedDurationSeconds;
     if (!Object.keys(modifications).some(function (key) { return /^Voiceover-/.test(key); })) {
@@ -85,7 +89,7 @@ const CreatomateService = (() => {
         sourceSceneCount: plan.sourceSceneCount,
         visualAssetCount: Object.keys(visualByScene).length,
         visualModel: "gpt-image-2",
-        narrationMode: "continuous",
+        narrationMode: "measured-scene-audio",
         brandName: branding.brandName
       })
     };
@@ -153,7 +157,9 @@ function testCreatomatePayload() {
   };
   const plan = ScenePlanService.create(script);
   const payload = CreatomateService.buildPayload(script, { id: "SEO-TEST" },
-    { url: "https://example.com/voiceover-continuous.mp3" }, plan, plan.slots.map(function (slot) {
+    plan.slots.map(function (slot) {
+      return { sceneNumber: slot.slotNumber, url: "https://example.com/voiceover-" + slot.slotNumber + ".mp3" };
+    }), plan, plan.slots.map(function (slot) {
       return { sceneNumber: slot.slotNumber, url: "https://example.com/visual-" + slot.slotNumber + ".png" };
     }));
   if (!payload.modifications["Voiceover-1.source"]) throw new Error("Voiceover modification was not created.");
