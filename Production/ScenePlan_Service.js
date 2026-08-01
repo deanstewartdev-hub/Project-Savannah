@@ -12,8 +12,8 @@ const ScenePlanService = (() => {
     const originalScenes = Array.isArray(script.scenes) ? script.scenes : [];
     if (!originalScenes.length) throw error_("The script has no scenes.");
 
-    const narrationParts = splitVoiceover_(voiceover, SLOT_COUNT);
     const sceneGroups = groupScenes_(originalScenes, SLOT_COUNT);
+    const narrationParts = narrationForGroups_(sceneGroups, voiceover);
     const slots = narrationParts.map(function (narration, index) {
       const group = sceneGroups[index] || [];
       const expectedDurationSeconds = round_(Math.max(
@@ -52,8 +52,21 @@ const ScenePlanService = (() => {
       expectedDurationSeconds: expectedDurationSeconds,
       voiceoverWordCount: countWords_(voiceover),
       slots: slots,
-      modelVersion: "scene-plan-v1.0"
+      modelVersion: "scene-plan-v1.1-aligned"
     };
+  }
+
+  function narrationForGroups_(sceneGroups, voiceover) {
+    const grouped = sceneGroups.map(function (group) {
+      return group.map(function (scene) {
+        return String(scene && scene.narration || "").trim();
+      }).filter(Boolean).join(" ");
+    });
+    const rebuilt = grouped.join(" ").replace(/\s+/g, " ").trim();
+    const complete = String(voiceover || "").replace(/\s+/g, " ").trim();
+    return rebuilt === complete && grouped.every(Boolean)
+      ? grouped
+      : splitVoiceover_(voiceover, SLOT_COUNT);
   }
 
   function splitVoiceover_(voiceover, slotCount) {
