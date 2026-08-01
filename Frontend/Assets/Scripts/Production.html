@@ -83,7 +83,7 @@
           escapeHtml(job.id) + '">Approve finished video</button>' :
           (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
         const retryAction = !published && (job.status === "FAILED" ||
-          (job.status === "SUCCEEDED" && !quality.passed)) ?
+          (job.status === "SUCCEEDED" && (!quality.passed || !review.approved))) ?
           '<button class="button button--secondary production-retry" data-job-id="' +
           escapeHtml(job.id) + '">Re-render safely</button>' : '';
         const publishAction = job.status === "SUCCEEDED" ? (published ?

@@ -118,8 +118,11 @@ const ProductionController = (() => {
       return failure_("Published videos cannot be re-rendered from the retry action.");
     }
     const quality = RenderQualityService.evaluate(job);
-    if (job.status !== "FAILED" && quality.passed) {
-      return failure_("Only failed or quality-blocked renders can be retried.");
+    const review = RenderReviewService.get(job.id);
+    const retryable = job.status === "FAILED" || !quality.passed ||
+      (job.status === "SUCCEEDED" && !review.approved);
+    if (!retryable) {
+      return failure_("Only failed, quality-blocked or unapproved completed renders can be retried.");
     }
     return submit({ scriptId: job.scriptId, forceRerender: true });
   }
