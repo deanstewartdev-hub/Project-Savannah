@@ -33,7 +33,7 @@ const ScriptEngine = (() => {
         temperature: null,
         maxTokens: null,
         targetDurationSeconds: 50,
-        minimumWordCount: 113,
+        minimumWordCount: 108,
         maximumWordCount: 125,
         status: "FORMATTED",
         maxValidationAttempts: 3
@@ -1559,7 +1559,7 @@ const ScriptEngine = (() => {
   function wordRangeForDuration_(targetDurationSeconds) {
     const seconds = Math.max(30, Math.min(60, Number(targetDurationSeconds) || 50));
     return {
-      minimumWordCount: Math.round(seconds * 2.25),
+      minimumWordCount: Math.max(90, Math.round(seconds * 2.15)),
       maximumWordCount: Math.round(seconds * 2.5)
     };
   }
