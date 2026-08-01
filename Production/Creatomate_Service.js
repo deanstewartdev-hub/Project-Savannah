@@ -16,9 +16,9 @@ const CreatomateService = (() => {
 
   function createRender(script, seoPack) {
     const plan = ScenePlanService.create(script);
-    const audioFiles = VoiceoverService.prepareSceneAudio(script, plan);
+    const continuousAudio = VoiceoverService.prepareContinuousAudio(script);
     const visualFiles = VisualAssetService.prepareSceneVisuals(script, plan);
-    const payload = buildPayload_(script, seoPack, audioFiles, plan, visualFiles);
+    const payload = buildPayload_(script, seoPack, continuousAudio, plan, visualFiles);
     const response = request_("post", "/v2/renders", {
       template_id: payload.template_id,
       modifications: payload.modifications,
@@ -35,17 +35,21 @@ const CreatomateService = (() => {
     return request_("get", "/v2/renders/" + encodeURIComponent(id));
   }
 
-  function buildPayload_(script, seoPack, audioFiles, suppliedPlan, visualFiles) {
+  function buildPayload_(script, seoPack, continuousAudio, suppliedPlan, visualFiles) {
     if (!script || !script.id) throw error_("A valid script is required.");
     const plan = suppliedPlan || ScenePlanService.create(script);
     const modifications = {};
     const branding = Secrets.getProductionBranding();
     const scenes = plan.slots || [];
-    const audioByScene = {};
     const visualByScene = {};
-    (Array.isArray(audioFiles) ? audioFiles : []).forEach(function (file) {
-      audioByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
-    });
+    const continuousAudioUrl = String(continuousAudio && continuousAudio.url || "").trim();
+    if (!continuousAudioUrl) throw error_("Continuous narration audio was not prepared.");
+    modifications["Voiceover-1.source"] = continuousAudioUrl;
+    modifications["Voiceover-1.time"] = 0;
+    modifications["Voiceover-1.duration"] = "media";
+    for (let voiceNumber = 2; voiceNumber <= 4; voiceNumber++) {
+      modifications["Voiceover-" + voiceNumber + ".volume"] = 0;
+    }
     (Array.isArray(visualFiles) ? visualFiles : []).forEach(function (file) {
       visualByScene[Number(file.sceneNumber)] = String(file.url || "").trim();
     });
@@ -54,14 +58,10 @@ const CreatomateService = (() => {
       const scene = scenes[index] || {};
       const narration = String(scene.narration || "").trim();
       const onScreenText = String(scene.onScreenText || narration || "").trim();
-      const audioUrl = audioByScene[index + 1];
       const number = index + 1;
       const visualUrl = visualByScene[number];
       if (!visualUrl) throw error_("Scene " + number + " has no topic-matched visual asset.");
       modifications["Image-" + number + ".source"] = visualUrl;
-      if (audioUrl) modifications["Voiceover-" + number + ".source"] = audioUrl;
-      modifications["Voiceover-" + number + ".time"] = currentTime;
-      modifications["Voiceover-" + number + ".duration"] = "media";
       if (onScreenText) modifications["Subtitles-" + number + ".text"] = onScreenText;
       modifications["Subtitles-" + number + ".fill_color"] = branding.primaryColor;
       modifications["Subtitles-" + number + ".time"] = currentTime;
@@ -85,6 +85,7 @@ const CreatomateService = (() => {
         sourceSceneCount: plan.sourceSceneCount,
         visualAssetCount: Object.keys(visualByScene).length,
         visualModel: "gpt-image-2",
+        narrationMode: "continuous",
         brandName: branding.brandName
       })
     };
@@ -152,9 +153,7 @@ function testCreatomatePayload() {
   };
   const plan = ScenePlanService.create(script);
   const payload = CreatomateService.buildPayload(script, { id: "SEO-TEST" },
-    plan.slots.map(function (slot) {
-      return { sceneNumber: slot.slotNumber, url: "https://example.com/voiceover-" + slot.slotNumber + ".mp3" };
-    }), plan, plan.slots.map(function (slot) {
+    { url: "https://example.com/voiceover-continuous.mp3" }, plan, plan.slots.map(function (slot) {
       return { sceneNumber: slot.slotNumber, url: "https://example.com/visual-" + slot.slotNumber + ".png" };
     }));
   if (!payload.modifications["Voiceover-1.source"]) throw new Error("Voiceover modification was not created.");

@@ -3,7 +3,7 @@
  ****************************************************/
 const ScenePlanService = (() => {
   const SLOT_COUNT = 4;
-  const WORDS_PER_SECOND = 2.5;
+  const WORDS_PER_SECOND = 2.0;
 
   function create(script) {
     if (!script || !script.id) throw error_("A valid script is required.");
@@ -52,7 +52,7 @@ const ScenePlanService = (() => {
       expectedDurationSeconds: expectedDurationSeconds,
       voiceoverWordCount: countWords_(voiceover),
       slots: slots,
-      modelVersion: "scene-plan-v1.1-aligned"
+      modelVersion: "scene-plan-v1.2-continuous"
     };
   }
 

@@ -6,6 +6,21 @@ const VoiceoverService = (() => {
   const FOLDER_NAME = "Project Savannah Render Audio";
   const MODEL = "tts-1";
 
+  function prepareContinuousAudio(script) {
+    requireDriveScope_();
+    if (!script || !script.id) throw error_("A valid script is required.");
+    const narration = String(script.voiceoverScript || "").trim();
+    if (!narration) throw error_("The script has no complete voiceover.");
+    const name = safeName_(script.id) + "-continuous-" + digest_(narration) + ".mp3";
+    const folder = folder_();
+    const existing = folder.getFilesByName(name);
+    if (existing.hasNext()) return continuousResult_(existing.next().getId());
+    const file = folder.createFile(createSpeech_(narration).setName(name));
+    file.setDescription("Project Savannah continuous narration for " + script.id + ".");
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return continuousResult_(file.getId());
+  }
+
   function prepareSceneAudio(script, plan) {
     requireDriveScope_();
     if (!script || !script.id) throw error_("A valid script is required.");
@@ -90,6 +105,14 @@ const VoiceoverService = (() => {
     };
   }
 
+  function continuousResult_(fileId) {
+    return {
+      fileId: fileId,
+      url: "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(fileId),
+      continuous: true
+    };
+  }
+
   function digest_(value) {
     const bytes = Utilities.computeDigest(
       Utilities.DigestAlgorithm.SHA_256,
@@ -111,7 +134,7 @@ const VoiceoverService = (() => {
     return error;
   }
 
-  return { prepareSceneAudio: prepareSceneAudio, authoriseDrive: authoriseDrive };
+  return { prepareSceneAudio: prepareSceneAudio, prepareContinuousAudio: prepareContinuousAudio, authoriseDrive: authoriseDrive };
 })();
 
 function authorizeProductionDrive() {
