@@ -33,7 +33,7 @@ const ScriptEngine = (() => {
         temperature: null,
         maxTokens: null,
         targetDurationSeconds: 50,
-        minimumWordCount: 100,
+        minimumWordCount: 99,
         maximumWordCount: 125,
         status: "FORMATTED",
         maxValidationAttempts: 3
@@ -382,6 +382,7 @@ const ScriptEngine = (() => {
     generatedScript,
     options
   ) {
+    normaliseGeneratedTiming_(generatedScript, options.targetDurationSeconds);
     return ScriptValidator.validate(
       generatedScript,
       {
@@ -401,6 +402,19 @@ const ScriptEngine = (() => {
           options.durationToleranceSeconds
       }
     );
+  }
+
+  function normaliseGeneratedTiming_(generatedScript, targetDurationSeconds) {
+    if (!generatedScript || !Array.isArray(generatedScript.scenes) || !generatedScript.scenes.length) return;
+    const target = Math.max(30, Math.min(60, Math.round(Number(targetDurationSeconds) || 50)));
+    const sceneCount = generatedScript.scenes.length;
+    const baseSeconds = Math.floor(target / sceneCount);
+    let remainder = target - baseSeconds * sceneCount;
+    generatedScript.scenes.forEach(function (scene) {
+      scene.estimatedSeconds = baseSeconds + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder -= 1;
+    });
+    generatedScript.estimatedDurationSeconds = target;
   }
 
   /**
@@ -1559,7 +1573,7 @@ const ScriptEngine = (() => {
   function wordRangeForDuration_(targetDurationSeconds) {
     const seconds = Math.max(30, Math.min(60, Number(targetDurationSeconds) || 50));
     return {
-      minimumWordCount: Math.max(90, Math.round(seconds * 2)),
+      minimumWordCount: Math.max(90, Math.round(seconds * 1.98)),
       maximumWordCount: Math.round(seconds * 2.5)
     };
   }
