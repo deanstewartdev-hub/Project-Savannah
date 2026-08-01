@@ -23,7 +23,7 @@ const ScriptPromptLibrary = (() => {
 
   const DEFAULT_OPTIONS = Object.freeze({
     targetDurationSeconds: 50,
-    minimumWordCount: 108,
+    minimumWordCount: 100,
     maximumWordCount: 125,
     tone: "Fast-paced, conversational, vivid and confident",
     language: "British English",
