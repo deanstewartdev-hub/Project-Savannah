@@ -19,6 +19,7 @@
       document.getElementById("production-voice").value = branding.voice || "alloy";
       document.getElementById("production-speech-speed").value = branding.speechSpeed || 1;
       document.getElementById("production-image-quality").value = branding.imageQuality || "high";
+      document.getElementById("production-voice-instructions").value = branding.voiceInstructions || "";
     }).settingsGetIntegrations();
   }
   form.addEventListener("submit", function (event) {
@@ -58,7 +59,8 @@
       primaryColor: document.getElementById("production-primary-color").value,
       voice: document.getElementById("production-voice").value,
       speechSpeed: document.getElementById("production-speech-speed").value,
-      imageQuality: document.getElementById("production-image-quality").value
+      imageQuality: document.getElementById("production-image-quality").value,
+      voiceInstructions: document.getElementById("production-voice-instructions").value
     });
   });
   refresh();

@@ -92,11 +92,12 @@ const YouTubeService = (() => {
 
   function buildDescription_(description, hashtags) {
     const body = String(description || "").trim();
+    const disclosure = "Narration in this video was generated using an AI voice.";
     const hashLine = (Array.isArray(hashtags) ? hashtags : []).map(function (tag) {
       const value = String(tag || "").trim();
       return value ? (value.charAt(0) === "#" ? value : "#" + value.replace(/\s+/g, "")) : "";
     }).filter(Boolean).join(" ");
-    return (body + (hashLine ? "\n\n" + hashLine : "")).slice(0, 5000);
+    return (body + "\n\n" + disclosure + (hashLine ? "\n\n" + hashLine : "")).slice(0, 5000);
   }
   function normaliseTags_(tags) {
     return (Array.isArray(tags) ? tags : []).map(function (tag) {

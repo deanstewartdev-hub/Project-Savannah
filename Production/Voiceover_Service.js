@@ -4,7 +4,7 @@
 const VoiceoverService = (() => {
   const SPEECH_URL = "https://api.openai.com/v1/audio/speech";
   const FOLDER_NAME = "Project Savannah Render Audio";
-  const MODEL = "tts-1";
+  const MODEL = "gpt-4o-mini-tts";
 
   function prepareContinuousAudio(script) {
     requireDriveScope_();
@@ -12,7 +12,7 @@ const VoiceoverService = (() => {
     const narration = String(script.voiceoverScript || "").trim();
     if (!narration) throw error_("The script has no complete voiceover.");
     const branding = Secrets.getProductionBranding();
-    const audioSignature = [MODEL, branding.voice, branding.speechSpeed, narration].join("|");
+    const audioSignature = [MODEL, branding.voice, branding.speechSpeed, branding.voiceInstructions, narration].join("|");
     const name = safeName_(script.id) + "-continuous-" + digest_(audioSignature) + ".mp3";
     const folder = folder_();
     const existing = folder.getFilesByName(name);
@@ -49,7 +49,7 @@ const VoiceoverService = (() => {
 
   function getOrCreateAudio_(scriptId, sceneNumber, narration, expectedDurationSeconds) {
     const branding = Secrets.getProductionBranding();
-    const audioSignature = [MODEL, branding.voice, branding.speechSpeed, narration].join("|");
+    const audioSignature = [MODEL, branding.voice, branding.speechSpeed, branding.voiceInstructions, narration].join("|");
     const name = safeName_(scriptId) + "-scene-" + sceneNumber + "-" + digest_(audioSignature) + ".mp3";
     const folder = folder_();
     const existing = folder.getFilesByName(name);
@@ -76,6 +76,7 @@ const VoiceoverService = (() => {
         model: MODEL,
         voice: branding.voice,
         speed: branding.speechSpeed,
+        instructions: branding.voiceInstructions,
         input: text,
         response_format: "mp3"
       }),
