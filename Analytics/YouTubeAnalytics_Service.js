@@ -47,14 +47,14 @@ const YouTubeAnalyticsService = (() => {
       if (!grouped[snapshot.youtubeVideoId]) grouped[snapshot.youtubeVideoId] = [];
       grouped[snapshot.youtubeVideoId].push(snapshot);
     });
-    const videos = Object.keys(grouped).map(function (videoId) {
+    const videos = enrichVideoContext_(Object.keys(grouped).map(function (videoId) {
       const history = grouped[videoId], latest = history[history.length - 1], previous = history[history.length - 2];
       return Object.assign({}, latest, {
         viewGrowth: previous ? latest.views - previous.views : 0,
         likeGrowth: previous ? latest.likes - previous.likes : 0,
         snapshotCount: history.length
       });
-    }).sort(function (a, b) { return b.views - a.views; });
+    }).sort(function (a, b) { return b.views - a.views; }));
     const totals = videos.reduce(function (sum, video) {
       sum.views += video.views; sum.likes += video.likes; sum.comments += video.comments;
       sum.viewGrowth += video.viewGrowth; return sum;
@@ -223,18 +223,56 @@ const YouTubeAnalyticsService = (() => {
       if (!video.publishedAt || isNaN(new Date(video.publishedAt).getTime())) return "";
       return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date(video.publishedAt).getUTCDay()];
     });
+    const topics = aggregate_(videos, function (video) { return String(video.topic || "").trim(); });
+    const hookTypes = aggregate_(videos, function (video) { return String(video.hookType || "").trim(); });
     return {
       videoCount: (videos || []).length,
       confidence: (videos || []).length >= 10 ? "high" : (videos || []).length >= 5 ? "medium" : "low",
       durationBands: durationBands,
       uploadDays: uploadDays,
+      topics: topics,
+      hookTypes: hookTypes,
       bestDurationBand: durationBands[0] || null,
-      bestUploadDay: uploadDays[0] || null
+      bestUploadDay: uploadDays[0] || null,
+      bestTopic: topics[0] || null,
+      bestHookType: hookTypes[0] || null
     };
+  }
+
+  function enrichVideoContext_(videos) {
+    try {
+      const scripts = ScriptsRepository.getAllScripts(), ideas = IdeasRepository.listIdeas({ limit: 10000, newestFirst: false });
+      const scriptsById = {}, ideasById = {};
+      scripts.forEach(function (script) { scriptsById[script.id] = script; });
+      ideas.forEach(function (idea) { ideasById[idea.id] = idea; });
+      return (videos || []).map(function (video) {
+        const script = scriptsById[video.scriptId], idea = script && ideasById[script.ideaId];
+        const sourceIdea = script && script.metadata && script.metadata.sourceIdea || {};
+        const hook = script && script.hook || idea && idea.hook || "";
+        return Object.assign({}, video, {
+          topic: idea && idea.niche || sourceIdea.niche || sourceIdea.category || "Uncategorised",
+          hookType: classifyHook_(hook)
+        });
+      });
+    } catch (ignored) {
+      return (videos || []).map(function (video) {
+        return Object.assign({}, video, { topic: video.topic || "Uncategorised", hookType: video.hookType || "Unclassified" });
+      });
+    }
+  }
+
+  function classifyHook_(hook) {
+    const text = String(hook || "").trim().toLowerCase();
+    if (!text) return "Unclassified";
+    if (text.indexOf("?") !== -1) return "Question";
+    if (/\b(secret|truth|nobody|hidden|what happens|you won't believe)\b/.test(text)) return "Curiosity gap";
+    if (/\b(avoid|never|don't|do not|mistake|warning|stop)\b/.test(text)) return "Warning";
+    if (/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b/.test(text)) return "List";
+    return "Direct promise";
   }
   return { capture: capture, summary: summary, parseDuration: parseDuration_,
     buildChannelTrend: buildChannelTrend_, buildChannelHealth: buildChannelHealth_,
-    buildPeriodReports: buildPeriodReports_, buildContentInsights: buildContentInsights_ };
+    buildPeriodReports: buildPeriodReports_, buildContentInsights: buildContentInsights_, classifyHook: classifyHook_ };
 })();
 
 function testYouTubeAnalyticsDurationParsing() {
@@ -283,15 +321,22 @@ function testYouTubeAnalyticsPeriodReports() {
 
 function testYouTubeAnalyticsContentInsights() {
   const insights = YouTubeAnalyticsService.buildContentInsights([
-    { durationSeconds: 35, views: 100, publishedAt: "2026-01-05T12:00:00.000Z" },
-    { durationSeconds: 36, views: 200, publishedAt: "2026-01-05T18:00:00.000Z" },
-    { durationSeconds: 52, views: 90, publishedAt: "2026-01-06T12:00:00.000Z" }
+    { durationSeconds: 35, views: 100, publishedAt: "2026-01-05T12:00:00.000Z", topic: "Travel", hookType: "Warning" },
+    { durationSeconds: 36, views: 200, publishedAt: "2026-01-05T18:00:00.000Z", topic: "Travel", hookType: "Warning" },
+    { durationSeconds: 52, views: 90, publishedAt: "2026-01-06T12:00:00.000Z", topic: "History", hookType: "Question" }
   ]);
   if (insights.bestDurationBand.label !== "30-39 sec" || insights.bestDurationBand.averageViews !== 150) {
     throw new Error("Duration-band performance analysis failed.");
   }
   if (insights.bestUploadDay.label !== "Monday" || insights.bestUploadDay.videoCount !== 2 || insights.confidence !== "low") {
     throw new Error("Upload-day performance analysis failed.");
+  }
+  if (insights.bestTopic.label !== "Travel" || insights.bestHookType.label !== "Warning") {
+    throw new Error("Topic or hook-pattern performance analysis failed.");
+  }
+  if (YouTubeAnalyticsService.classifyHook("Never make these five mistakes") !== "Warning" ||
+      YouTubeAnalyticsService.classifyHook("What happens after midnight?") !== "Question") {
+    throw new Error("Hook classification failed.");
   }
   return { passed: true };
 }

@@ -106,7 +106,8 @@
       target.innerHTML = '<div class="empty-state"><h3>No content sample yet</h3><p>Track published Shorts to compare performance.</p></div>';
       return;
     }
-    const duration = data.bestDurationBand, day = data.bestUploadDay;
+    const duration = data.bestDurationBand, day = data.bestUploadDay,
+      topic = data.bestTopic, hook = data.bestHookType;
     target.innerHTML = '<p class="analytics-insight-note"><strong>' + escapeHtml(data.confidence) +
       ' confidence</strong> from ' + formatNumber(data.videoCount) + ' tracked video(s). Treat small samples as directional.</p>' +
       '<div class="analytics-insight-highlights"><div><span>Leading duration band</span><strong>' +
@@ -114,7 +115,12 @@
       (duration ? formatNumber(duration.averageViews) + ' average views across ' + formatNumber(duration.videoCount) + ' video(s)' : '') +
       '</small></div><div><span>Leading UTC upload day</span><strong>' + escapeHtml(day ? day.label : "Not available") +
       '</strong><small>' + (day ? formatNumber(day.averageViews) + ' average views across ' + formatNumber(day.videoCount) + ' video(s)' : '') +
-      '</small></div></div><div class="analytics-insight-tables">' + insightTable('Duration bands', data.durationBands) +
+      '</small></div><div><span>Leading topic</span><strong>' + escapeHtml(topic ? topic.label : "Not available") +
+      '</strong><small>' + (topic ? formatNumber(topic.averageViews) + ' average views across ' + formatNumber(topic.videoCount) + ' video(s)' : '') +
+      '</small></div><div><span>Leading hook pattern</span><strong>' + escapeHtml(hook ? hook.label : "Not available") +
+      '</strong><small>' + (hook ? formatNumber(hook.averageViews) + ' average views across ' + formatNumber(hook.videoCount) + ' video(s)' : '') +
+      '</small></div></div><div class="analytics-insight-tables">' + insightTable('Topics', data.topics) +
+      insightTable('Hook patterns', data.hookTypes) + insightTable('Duration bands', data.durationBands) +
       insightTable('UTC upload days', data.uploadDays) + '</div>';
   }
   function render(summary) {
@@ -178,9 +184,9 @@
       rows.push([report.label, report.complete ? "Yes" : "No", report.elapsedDays,
         report.viewGrowth, report.subscriberGrowth, report.videoGrowth]);
     });
-    rows.push([], ["Video title", "YouTube video ID", "Views", "Likes", "Comments", "View growth", "Duration seconds", "Published at", "Privacy"]);
+    rows.push([], ["Video title", "YouTube video ID", "Topic", "Hook pattern", "Views", "Likes", "Comments", "View growth", "Duration seconds", "Published at", "Privacy"]);
     (data.videos || []).forEach(function (video) {
-      rows.push([video.title, video.youtubeVideoId, video.views, video.likes, video.comments,
+      rows.push([video.title, video.youtubeVideoId, video.topic, video.hookType, video.views, video.likes, video.comments,
         video.viewGrowth, video.durationSeconds, video.publishedAt, video.privacyStatus]);
     });
     return rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
