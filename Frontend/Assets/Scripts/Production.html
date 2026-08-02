@@ -24,6 +24,28 @@
     target.innerHTML = '<div class="empty-state"><h3>Something went wrong</h3><p>' +
       escapeHtml(detail) + '</p></div>';
   }
+  function prepareRenderScenes(request, button, complete, failureLabel) {
+    let sceneNumber = 1;
+    function next() {
+      button.textContent = "Preparing scene " + sceneNumber + "/4…";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) {
+          button.disabled = false;
+          button.textContent = failureLabel;
+          return showError(jobList, response);
+        }
+        sceneNumber += 1;
+        if (sceneNumber <= 4) return next();
+        button.textContent = "Submitting render…";
+        complete();
+      }).withFailureHandler(function (error) {
+        button.disabled = false;
+        button.textContent = failureLabel;
+        showError(jobList, { error: error });
+      }).productionPrepareScene(Object.assign({}, request, { sceneNumber: sceneNumber }));
+    }
+    next();
+  }
   function loadReady() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(readyList, response);
@@ -117,6 +139,20 @@
   root.addEventListener("click", function (event) {
     const submit = event.target.closest(".production-submit");
     if (submit) {
+      submit.disabled = true;
+      prepareRenderScenes({ scriptId: submit.dataset.scriptId }, submit, function () {
+        google.script.run.withSuccessHandler(function (response) {
+          if (!response || !response.success) {
+            submit.disabled = false; submit.textContent = "Create Short";
+            return showError(readyList, response);
+          }
+          loadReady(); loadJobs();
+        }).withFailureHandler(function (error) {
+          submit.disabled = false; submit.textContent = "Create Short";
+          showError(readyList, { error: error });
+        }).productionSubmit({ scriptId: submit.dataset.scriptId });
+      }, "Create Short");
+      return;
       submit.disabled = true; submit.textContent = "Submitting…";
       google.script.run.withSuccessHandler(function (response) {
         if (!response || !response.success) {
@@ -173,6 +209,15 @@
     }
     const retry = event.target.closest(".production-retry");
     if (retry) {
+      retry.disabled = true;
+      prepareRenderScenes({ jobId: retry.dataset.jobId }, retry, function () {
+        google.script.run.withSuccessHandler(function (response) {
+          if (!response || !response.success) return showError(jobList, response);
+          loadReady(); loadJobs();
+        }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+          .productionRetry({ jobId: retry.dataset.jobId });
+      }, "Re-render safely");
+      return;
       retry.disabled = true; retry.textContent = "Starting re-render…";
       google.script.run.withSuccessHandler(function (response) {
         if (!response || !response.success) return showError(jobList, response);

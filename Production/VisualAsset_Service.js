@@ -18,6 +18,17 @@ const VisualAssetService = (() => {
     });
   }
 
+  function prepareSceneVisual(script, plan, sceneNumber) {
+    requireDriveScope_();
+    if (!script || !script.id) throw error_("A valid script is required.");
+    const renderPlan = plan || ScenePlanService.create(script);
+    const number = Number(sceneNumber || 0);
+    const slot = renderPlan.slots && renderPlan.slots[number - 1];
+    if (!slot || number < 1 || number > 4) throw error_("A scene number from 1 to 4 is required.");
+    const prompt = buildPrompt_(script, slot, number);
+    return getOrCreateImage_(script.id, number, prompt);
+  }
+
   function buildPrompt_(script, slot, sceneNumber) {
     return [
       "Create scene " + sceneNumber + " of a vertical YouTube Short.",
@@ -81,5 +92,5 @@ const VisualAssetService = (() => {
   }
   function safeName_(value) { return String(value || "script").replace(/[^A-Za-z0-9_-]+/g, "-").slice(0, 80); }
   function error_(message) { const error = new Error(message); error.name = "VisualAssetServiceError"; return error; }
-  return { prepareSceneVisuals: prepareSceneVisuals };
+  return { prepareSceneVisuals: prepareSceneVisuals, prepareSceneVisual: prepareSceneVisual };
 })();

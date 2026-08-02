@@ -127,6 +127,27 @@ const ProductionController = (() => {
     return submit({ scriptId: job.scriptId, forceRerender: true });
   }
 
+  function prepareScene(request) {
+    return run_("High-quality scene asset prepared.", function () {
+      const source = request || {};
+      let scriptId = String(source.scriptId || "").trim();
+      if (!scriptId && source.jobId) {
+        const job = RenderJobRepository.getById(String(source.jobId || "").trim());
+        if (!job) throw error_("Render job was not found.");
+        scriptId = job.scriptId;
+      }
+      const sceneNumber = Number(source.sceneNumber || 0);
+      if (!scriptId) throw error_("Script ID is required.");
+      if (sceneNumber < 1 || sceneNumber > 4 || sceneNumber % 1 !== 0) {
+        throw error_("A scene number from 1 to 4 is required.");
+      }
+      const script = ScriptsRepository.getScriptById(scriptId);
+      if (!script || script.status !== "APPROVED") throw error_("Only an approved script can be rendered.");
+      const plan = ScenePlanService.create(script);
+      return { sceneNumber: sceneNumber, visual: VisualAssetService.prepareSceneVisual(script, plan, sceneNumber) };
+    });
+  }
+
   function approveRender(request) {
     return run_("Finished video approved for publishing.", function () {
       const jobId = String(request && request.jobId || "").trim();
@@ -273,7 +294,7 @@ const ProductionController = (() => {
   function error_(message) { const error = new Error(message); error.name = "ProductionControllerError"; return error; }
 
   return { testConnection: testConnection, listReady: listReady, submit: submit, refresh: refresh,
-    refreshActive: refreshActive, retry: retry, approveRender: approveRender, listJobs: listJobs,
+    refreshActive: refreshActive, retry: retry, prepareScene: prepareScene, approveRender: approveRender, listJobs: listJobs,
     getYouTubeConnection: getYouTubeConnection, publish: publish,
     refreshPublication: refreshPublication };
 })();
@@ -284,6 +305,7 @@ function productionSubmit(request) { return ProductionController.submit(request)
 function productionRefresh(request) { return ProductionController.refresh(request); }
 function productionRefreshActive() { return ProductionController.refreshActive(); }
 function productionRetry(request) { return ProductionController.retry(request); }
+function productionPrepareScene(request) { return ProductionController.prepareScene(request); }
 function productionApproveRender(request) { return ProductionController.approveRender(request); }
 function productionListJobs() { return ProductionController.listJobs(); }
 function productionGetYouTubeConnection() { return ProductionController.getYouTubeConnection(); }
