@@ -6,6 +6,7 @@ const PublishingJobModel = (() => {
   const STATUS = Object.freeze({
     UPLOADING: "UPLOADING",
     PUBLISHED: "PUBLISHED",
+    RECONCILE: "RECONCILE",
     FAILED: "FAILED"
   });
 

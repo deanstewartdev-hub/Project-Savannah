@@ -1,0 +1,65 @@
+<script>
+(function initialiseAnalyticsWorkspace() {
+  const root = document.getElementById("analytics-workspace");
+  if (!root) return;
+  const list = document.getElementById("analytics-video-list");
+  const refresh = document.getElementById("analytics-refresh");
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+  function showError(response) {
+    const message = response && response.error && response.error.message || "Analytics could not be loaded.";
+    list.innerHTML = '<div class="empty-state"><h3>Analytics unavailable</h3><p>' + escapeHtml(message) + '</p></div>';
+  }
+  function render(summary) {
+    const data = summary || {}, totals = data.totals || {}, videos = data.videos || [];
+    document.getElementById("analytics-video-count").textContent = formatNumber(data.videoCount);
+    document.getElementById("analytics-view-count").textContent = formatNumber(totals.views);
+    document.getElementById("analytics-like-count").textContent = formatNumber(totals.likes);
+    document.getElementById("analytics-comment-count").textContent = formatNumber(totals.comments);
+    const channel = data.channel || {};
+    document.getElementById("analytics-subscriber-count").textContent = formatNumber(channel.subscribers);
+    document.getElementById("analytics-channel-view-count").textContent = formatNumber(channel.totalViews);
+    document.getElementById("analytics-channel-summary").textContent = data.channel ?
+      (channel.channelTitle + " | " + formatNumber(channel.videoCount) + " videos | subscriber growth since previous snapshot: " +
+      (channel.subscriberGrowth >= 0 ? "+" : "") + formatNumber(channel.subscriberGrowth)) :
+      "Capture metrics to create the first channel baseline.";
+    document.getElementById("analytics-captured-at").textContent = data.lastCapturedAt ?
+      "Latest snapshot: " + new Date(data.lastCapturedAt).toLocaleString() : "No analytics snapshot has been captured yet.";
+    if (!videos.length) {
+      list.innerHTML = '<div class="empty-state"><h3>No snapshots yet</h3><p>Select Refresh YouTube metrics to capture the first snapshot.</p></div>';
+      return;
+    }
+    list.innerHTML = videos.map(function (video) {
+      return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(video.title) + '</h3>' +
+        '<p><strong>' + formatNumber(video.views) + '</strong> views | ' + formatNumber(video.likes) +
+        ' likes | ' + formatNumber(video.comments) + ' comments</p>' +
+        '<p>Growth since previous snapshot: +' + formatNumber(Math.max(0, video.viewGrowth)) +
+        ' views | Duration: ' + escapeHtml(video.durationSeconds) + 's | ' + escapeHtml(video.privacyStatus) + '</p>' +
+        '<a class="button button--secondary" href="https://youtu.be/' + encodeURIComponent(video.youtubeVideoId) +
+        '" target="_blank" rel="noopener">Open video</a></div>';
+    }).join("");
+  }
+  function load() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(response);
+      render(response.data);
+    }).withFailureHandler(function (error) { showError({ error: error }); }).analyticsGetDashboard();
+  }
+  refresh.addEventListener("click", function () {
+    refresh.disabled = true; refresh.textContent = "Refreshing...";
+    google.script.run.withSuccessHandler(function (response) {
+      refresh.disabled = false; refresh.textContent = "Refresh YouTube metrics";
+      if (!response || !response.success) return showError(response);
+      render(response.data.summary);
+    }).withFailureHandler(function (error) {
+      refresh.disabled = false; refresh.textContent = "Refresh YouTube metrics";
+      showError({ error: error });
+    }).analyticsRefresh();
+  });
+  load();
+})();
+</script>

@@ -175,8 +175,8 @@ const ScenePlanService = (() => {
     const supplied = scenes.map(function (scene) {
       return String(scene && scene.onScreenText || "").trim();
     }).filter(Boolean);
-    if (supplied.length) return supplied.join(" • ").slice(0, 80);
-    return narration.split(/\s+/).slice(0, 7).join(" ");
+    const source = supplied.length ? supplied[0] : narration;
+    return String(source || "").split(/\s+/).filter(Boolean).slice(0, 5).join(" ");
   }
 
   function countWords_(text) {

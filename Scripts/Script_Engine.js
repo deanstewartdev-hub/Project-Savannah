@@ -477,7 +477,10 @@ const ScriptEngine = (() => {
       "- Add a new reveal, consequence or pattern interrupt every one or two sentences.",
       "- Delay the clearest payoff until the final third, before the call to action.",
       "- Keep the call to action to 12 words or fewer.",
-      "- Keep on-screen text between 2 and 7 words.",
+      "- Keep on-screen text between 2 and 5 words.",
+      "- Give every scene a distinct visual direction naming the subject, action, setting and camera composition.",
+      "- Do not request stock footage, logos, celebrities, copyrighted characters or another creator's style.",
+      "- Keep every scene at 15 seconds or less so visuals change with the narration.",
       "- Scene narration joined in order must reproduce the complete voiceoverScript in the same order without omissions.",
       "- Keep estimated duration between " +
         options.minimumDurationSeconds +

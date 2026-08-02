@@ -24,15 +24,19 @@ const ScriptValidator = (() => {
   const DEFAULT_RULES = Object.freeze({
     minimumWordCount: 90,
     maximumWordCount: 150,
-    minimumSceneCount: 3,
-    maximumSceneCount: 12,
+    minimumSceneCount: 4,
+    maximumSceneCount: 6,
     minimumDurationSeconds: 30,
     maximumDurationSeconds: 60,
     durationToleranceSeconds: 5,
     minimumHookWordCount: 6,
     maximumHookWordCount: 18,
     maximumCallToActionWordCount: 12,
-    maximumOnScreenTextWordCount: 7
+    maximumOnScreenTextWordCount: 5,
+    minimumVisualDirectionWordCount: 4,
+    maximumSceneDurationSeconds: 15,
+    maximumSentenceWordCount: 22,
+    maximumLongSentenceShare: 0.25
   });
 
   const WEAK_HOOK_PATTERNS = [
@@ -124,6 +128,12 @@ const ScriptValidator = (() => {
       errors
     );
 
+    const cadenceResult = validateNarrationCadence_(
+      script.voiceoverScript,
+      rules,
+      errors
+    );
+
     const scenesResult = validateScenes_(
       script.scenes,
       rules,
@@ -204,7 +214,10 @@ const ScriptValidator = (() => {
           Math.abs(
             scenesResult.totalDurationSeconds -
             estimatedDuration
-          )
+          ),
+
+        longSentenceCount:
+          cadenceResult.longSentenceCount
       }
     };
   }
@@ -272,6 +285,26 @@ const ScriptValidator = (() => {
       maximumOnScreenTextWordCount: resolveNumber_(
         supplied.maximumOnScreenTextWordCount,
         DEFAULT_RULES.maximumOnScreenTextWordCount
+      ),
+
+      minimumVisualDirectionWordCount: resolveNumber_(
+        supplied.minimumVisualDirectionWordCount,
+        DEFAULT_RULES.minimumVisualDirectionWordCount
+      ),
+
+      maximumSceneDurationSeconds: resolveNumber_(
+        supplied.maximumSceneDurationSeconds,
+        DEFAULT_RULES.maximumSceneDurationSeconds
+      ),
+
+      maximumSentenceWordCount: resolveNumber_(
+        supplied.maximumSentenceWordCount,
+        DEFAULT_RULES.maximumSentenceWordCount
+      ),
+
+      maximumLongSentenceShare: resolveNumber_(
+        supplied.maximumLongSentenceShare,
+        DEFAULT_RULES.maximumLongSentenceShare
       )
     };
 
@@ -418,6 +451,7 @@ const ScriptValidator = (() => {
     }
 
     let totalDurationSeconds = 0;
+    const visualDirections = [];
 
     scenes.forEach(function (scene, index) {
       const expectedSceneNumber =
@@ -485,6 +519,20 @@ const ScriptValidator = (() => {
         errors
       );
 
+      if (
+        typeof scene.visualDirection === "string" &&
+        countWords_(scene.visualDirection) < rules.minimumVisualDirectionWordCount
+      ) {
+        errors.push(
+          "Visual direction for scene " + expectedSceneNumber +
+          " must name enough concrete detail for an original scene."
+        );
+      }
+
+      if (typeof scene.visualDirection === "string" && scene.visualDirection.trim()) {
+        visualDirections.push(normaliseComparableText_(scene.visualDirection));
+      }
+
       const duration =
         Number(scene.estimatedSeconds);
 
@@ -499,8 +547,22 @@ const ScriptValidator = (() => {
         );
       } else {
         totalDurationSeconds += duration;
+
+        if (duration > rules.maximumSceneDurationSeconds) {
+          errors.push(
+            "Scene " + expectedSceneNumber + " lasts " + duration +
+            " seconds; maximum visual hold is " +
+            rules.maximumSceneDurationSeconds + " seconds."
+          );
+        }
       }
     });
+
+    if (visualDirections.length && new Set(visualDirections).size !== visualDirections.length) {
+      errors.push(
+        "Every scene must use a distinct visual direction to create visible pattern interrupts."
+      );
+    }
 
     return {
       totalDurationSeconds:
@@ -718,6 +780,33 @@ const ScriptValidator = (() => {
         rules.maximumCallToActionWordCount + "."
       );
     }
+  }
+
+  /**
+   * Rejects narration dominated by long sentences that sound robotic in TTS.
+   */
+  function validateNarrationCadence_(voiceover, rules, errors) {
+    if (typeof voiceover !== "string" || !voiceover.trim()) {
+      return { sentenceCount: 0, longSentenceCount: 0 };
+    }
+
+    const sentences = voiceover.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [voiceover];
+    const longSentenceCount = sentences.filter(function (sentence) {
+      return countWords_(sentence) > rules.maximumSentenceWordCount;
+    }).length;
+    const allowedLongSentences = Math.floor(sentences.length * rules.maximumLongSentenceShare);
+
+    if (longSentenceCount > allowedLongSentences) {
+      errors.push(
+        "Voiceover contains " + longSentenceCount +
+        " overlong sentences; shorten them for natural narration and faster captions."
+      );
+    }
+
+    return {
+      sentenceCount: sentences.length,
+      longSentenceCount: longSentenceCount
+    };
   }
 
   /**

@@ -8,7 +8,8 @@ const RenderJobModel = (() => {
     PLANNED: "PLANNED",
     RENDERING: "RENDERING",
     SUCCEEDED: "SUCCEEDED",
-    FAILED: "FAILED"
+    FAILED: "FAILED",
+    CANCELLED: "CANCELLED"
   });
 
   function create(data) {
@@ -32,7 +33,7 @@ const RenderJobModel = (() => {
       version: integer_(source.version, 1),
       modelVersion: VERSION
     };
-    if (job.status !== STATUS.QUEUED && !job.renderId) {
+    if ([STATUS.PLANNED, STATUS.RENDERING, STATUS.SUCCEEDED].indexOf(job.status) !== -1 && !job.renderId) {
       throw error_("A provider render ID is required after submission.");
     }
     return job;

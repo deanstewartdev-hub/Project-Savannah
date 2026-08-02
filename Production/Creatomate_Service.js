@@ -3,6 +3,9 @@
  ****************************************************/
 const CreatomateService = (() => {
   const API_BASE = "https://api.creatomate.com";
+  // Paid Creatomate projects export the template's native 1080x1920 canvas at 1x.
+  // Free trials clamp renders to low resolution regardless of this parameter.
+  const PREMIUM_RENDER_SCALE = 1;
 
   function testConnection() {
     const templateId = templateId_();
@@ -21,10 +24,11 @@ const CreatomateService = (() => {
       return file.durationSeconds;
     }));
     const visualFiles = VisualAssetService.prepareSceneVisuals(script, plan);
-    const payload = buildPayload_(script, seoPack, audioFiles, plan, visualFiles);
+    const payload = buildPayload_(script, seoPack, audioFiles, plan, visualFiles, PREMIUM_RENDER_SCALE);
     const response = request_("post", "/v2/renders", {
       template_id: payload.template_id,
       modifications: payload.modifications,
+      render_scale: payload.render_scale,
       metadata: payload.metadata
     });
     const render = Array.isArray(response) ? response[0] : response;
@@ -38,7 +42,7 @@ const CreatomateService = (() => {
     return request_("get", "/v2/renders/" + encodeURIComponent(id));
   }
 
-  function buildPayload_(script, seoPack, audioFiles, suppliedPlan, visualFiles) {
+  function buildPayload_(script, seoPack, audioFiles, suppliedPlan, visualFiles, suppliedRenderScale) {
     if (!script || !script.id) throw error_("A valid script is required.");
     const plan = suppliedPlan || ScenePlanService.create(script);
     const modifications = {};
@@ -78,6 +82,7 @@ const CreatomateService = (() => {
     }
     return {
       template_id: templateId_(),
+      render_scale: Number(suppliedRenderScale || PREMIUM_RENDER_SCALE),
       modifications: modifications,
       expectedDurationSeconds: plan.expectedDurationSeconds,
       scenePlan: plan,
@@ -90,6 +95,7 @@ const CreatomateService = (() => {
         visualAssetCount: Object.keys(visualByScene).length,
         visualModel: "gpt-image-2",
         narrationMode: "measured-scene-audio",
+        renderScale: Number(suppliedRenderScale || PREMIUM_RENDER_SCALE),
         brandName: branding.brandName
       })
     };
@@ -108,17 +114,28 @@ const CreatomateService = (() => {
       options.contentType = "application/json";
       options.payload = JSON.stringify(payload);
     }
-    const response = UrlFetchApp.fetch(API_BASE + path, options);
-    const status = response.getResponseCode();
-    const body = response.getContentText();
-    let parsed = {};
-    try { parsed = body ? JSON.parse(body) : {}; } catch (parseError) { parsed = {}; }
-    if (status < 200 || status >= 300) {
-      const detail = String(parsed.message || parsed.error || "HTTP " + status).slice(0, 300);
-      throw error_("Creatomate request failed: " + detail);
+    const maximumAttempts = String(method).toLowerCase() === "get" ? 3 : 1;
+    let lastError = null;
+    for (let attempt = 1; attempt <= maximumAttempts; attempt++) {
+      try {
+        const response = UrlFetchApp.fetch(API_BASE + path, options);
+        const status = response.getResponseCode();
+        const body = response.getContentText();
+        let parsed = {};
+        try { parsed = body ? JSON.parse(body) : {}; } catch (parseError) { parsed = {}; }
+        if (status >= 200 && status < 300) return parsed;
+        const detail = String(parsed.message || parsed.error || "HTTP " + status).slice(0, 300);
+        lastError = error_("Creatomate request failed (HTTP " + status + "): " + detail);
+        if ([408, 429, 500, 502, 503, 504].indexOf(status) === -1 || attempt >= maximumAttempts) throw lastError;
+      } catch (caught) {
+        lastError = caught;
+        if (attempt >= maximumAttempts) throw caught;
+      }
+      Utilities.sleep(Math.min(2000, 400 * Math.pow(2, attempt - 1)));
     }
-    return parsed;
+    throw lastError || error_("Creatomate request failed.");
   }
+
 
   function apiKey_() {
     const value = Secrets.getCreatomateApiKey();
@@ -165,5 +182,6 @@ function testCreatomatePayload() {
   if (!payload.modifications["Voiceover-1.source"]) throw new Error("Voiceover modification was not created.");
   if (!payload.modifications["Image-1.source"]) throw new Error("Visual modification was not created.");
   if (payload.scenePlan.slotCount !== 4) throw new Error("Four-slot render plan was not created.");
+  if (payload.render_scale !== 1) throw new Error("Creatomate should render the paid template at native scale.");
   return { passed: true, modificationCount: Object.keys(payload.modifications).length };
 }

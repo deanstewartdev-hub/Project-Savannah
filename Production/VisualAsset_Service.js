@@ -5,6 +5,12 @@ const VisualAssetService = (() => {
   const IMAGE_URL = "https://api.openai.com/v1/images/generations";
   const FOLDER_NAME = "Project Savannah Render Visuals";
   const MODEL = "gpt-image-2";
+  const CAMERA_COMPOSITIONS = [
+    "immediate close-up with a strong foreground subject",
+    "wide establishing view with clear depth and movement",
+    "medium action shot from an unexpected low or side angle",
+    "tight payoff shot with one unmistakable focal detail"
+  ];
 
   function prepareSceneVisuals(script, plan) {
     requireDriveScope_();
@@ -30,13 +36,17 @@ const VisualAssetService = (() => {
   }
 
   function buildPrompt_(script, slot, sceneNumber) {
+    const composition = CAMERA_COMPOSITIONS[(sceneNumber - 1) % CAMERA_COMPOSITIONS.length];
     return [
       "Create scene " + sceneNumber + " of a vertical YouTube Short.",
       "Topic: " + String(script.title || "travel discovery") + ".",
       "Visual direction: " + String(slot.visualDirection || slot.narration || "Show a relevant establishing shot") + ".",
-      "Style: cinematic, photorealistic travel documentary, authentic location and people, vivid natural lighting, strong depth, 9:16 composition.",
+      "Composition: " + composition + ".",
+      "Style: cinematic, photorealistic travel documentary, authentic location and people, vivid natural lighting, strong depth, energetic 9:16 composition.",
       "The image must directly illustrate this scene, not generic food or unrelated stock imagery.",
-      "No captions, letters, logos, watermarks, borders, or split screens. Keep the central lower area visually calm for subtitles."
+      "Create a new original composition rather than imitating a named creator, living artist, film, franchise or copyrighted character.",
+      "Do not show recognisable brands, celebrities, captions, letters, logos, watermarks, borders, or split screens.",
+      "Keep faces and hands natural. Keep the central lower area visually calm for subtitles."
     ].join(" ");
   }
 

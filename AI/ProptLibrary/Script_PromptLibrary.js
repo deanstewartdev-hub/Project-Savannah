@@ -19,7 +19,7 @@
  ****************************************************/
 
 const ScriptPromptLibrary = (() => {
-  const PROMPT_VERSION = "scripts-v1.2-duration-aware";
+  const PROMPT_VERSION = "scripts-v1.3-visual-retention";
 
   const DEFAULT_OPTIONS = Object.freeze({
     targetDurationSeconds: 50,
@@ -83,6 +83,8 @@ const ScriptPromptLibrary = (() => {
         "'In today’s video'.",
       "- Use short, clean sentences suitable for spoken delivery and captions.",
       "- Keep most sentences below 14 words and vary their rhythm.",
+      "- Use punctuation deliberately so text-to-speech sounds natural, expressive and unhurried.",
+      "- Write difficult names and numbers in a form that can be pronounced clearly.",
       "- The narration must remain understandable without visuals.",
       "- Deliver clearly on the promise made by the title and hook.",
       "- Open a question in the hook, build tension, and delay the clearest payoff until the final third.",
@@ -96,6 +98,7 @@ const ScriptPromptLibrary = (() => {
         "generationNotes.",
       "- Do not imitate a named creator or reproduce copyrighted scripts.",
       "- Place the payoff before the call to action.",
+      "- Make the call to action a natural extension of the story, preferably inviting a specific comment or follow.",
       "- End with a call to action that is " +
         settings.callToActionStyle +
         ".",
@@ -105,8 +108,12 @@ const ScriptPromptLibrary = (() => {
       "- Scene numbers must begin at 1 and increase by exactly 1.",
       "- Each scene must contain narration.",
       "- Each scene must contain concise on-screen text.",
-      "- Keep on-screen text to 2 to 7 words; do not write full sentences.",
-      "- Each scene must contain a practical visual direction.",
+      "- Keep on-screen text to 2 to 5 words; do not write full sentences.",
+      "- Each scene must contain a practical visual direction naming a subject, action, setting and camera composition.",
+      "- The opening visual must communicate the topic immediately, even with the sound off.",
+      "- Change the subject, action or camera composition in every scene to create a visible pattern interrupt.",
+      "- Use original visual concepts. Do not request stock footage, logos, watermarks, celebrities, copyrighted characters or another creator's style.",
+      "- Keep every scene at 15 seconds or less so the visual never lingers after its narration beat.",
       "- Each scene must include an estimated duration in seconds.",
       "- The combined scene duration should closely match the declared " +
         "estimatedDurationSeconds.",
@@ -129,7 +136,8 @@ const ScriptPromptLibrary = (() => {
       "3. Scene numbers are sequential.",
       "4. The scene durations approximately match the total duration.",
       "5. The final third contains the promised payoff.",
-      "6. Every required JSON field is populated."
+      "6. Every scene has a distinct visual action and concise caption.",
+      "7. Every required JSON field is populated."
     ].join("\n");
   }
 
@@ -371,7 +379,7 @@ function testScriptPromptLibrary() {
   const requiredPromptContent = [
     "Five mistakes tourists make in Rome",
     "People planning their first trip to Rome",
-    "100 and 145 words",
+    "99 and 125 words",
     "4 to 6 sequential scenes",
     "8 to 15 word hook",
     "Return only data matching the supplied JSON schema"
@@ -388,7 +396,7 @@ function testScriptPromptLibrary() {
 
   if (
     ScriptPromptLibrary.getPromptVersion() !==
-    "scripts-v1.1-retention"
+    "scripts-v1.3-visual-retention"
   ) {
     throw new Error(
       "Unexpected script prompt version."
