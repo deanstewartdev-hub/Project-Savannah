@@ -91,6 +91,32 @@
         escapeHtml(new Date(report.to).toLocaleDateString()) + '</small></section>';
     }).join('');
   }
+  function insightTable(title, groups) {
+    if (!groups || !groups.length) return '<div class="empty-state"><h3>No ' + escapeHtml(title.toLowerCase()) +
+      ' data</h3><p>More published Shorts are needed.</p></div>';
+    return '<section><h3>' + escapeHtml(title) + '</h3><div class="table-wrap"><table class="table"><thead><tr>' +
+      '<th>Group</th><th>Videos</th><th>Average views</th><th>Total views</th></tr></thead><tbody>' +
+      groups.map(function (group) { return '<tr><td>' + escapeHtml(group.label) + '</td><td>' +
+        formatNumber(group.videoCount) + '</td><td>' + formatNumber(group.averageViews) + '</td><td>' +
+        formatNumber(group.totalViews) + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
+  }
+  function renderContentInsights(insights) {
+    const target = document.getElementById("analytics-content-insights"), data = insights || {};
+    if (!data.videoCount) {
+      target.innerHTML = '<div class="empty-state"><h3>No content sample yet</h3><p>Track published Shorts to compare performance.</p></div>';
+      return;
+    }
+    const duration = data.bestDurationBand, day = data.bestUploadDay;
+    target.innerHTML = '<p class="analytics-insight-note"><strong>' + escapeHtml(data.confidence) +
+      ' confidence</strong> from ' + formatNumber(data.videoCount) + ' tracked video(s). Treat small samples as directional.</p>' +
+      '<div class="analytics-insight-highlights"><div><span>Leading duration band</span><strong>' +
+      escapeHtml(duration ? duration.label : "Not available") + '</strong><small>' +
+      (duration ? formatNumber(duration.averageViews) + ' average views across ' + formatNumber(duration.videoCount) + ' video(s)' : '') +
+      '</small></div><div><span>Leading UTC upload day</span><strong>' + escapeHtml(day ? day.label : "Not available") +
+      '</strong><small>' + (day ? formatNumber(day.averageViews) + ' average views across ' + formatNumber(day.videoCount) + ' video(s)' : '') +
+      '</small></div></div><div class="analytics-insight-tables">' + insightTable('Duration bands', data.durationBands) +
+      insightTable('UTC upload days', data.uploadDays) + '</div>';
+  }
   function render(summary) {
     const data = summary || {}, totals = data.totals || {}, videos = data.videos || [];
     latestSummary = data;
@@ -112,6 +138,7 @@
     renderTrendChart("analytics-channel-view-chart", data.channelTrend, "totalViews", "Channel view growth over captured snapshots");
     renderChannelHealth(data.channelHealth);
     renderPeriodReports(data.periodReports);
+    renderContentInsights(data.contentInsights);
     if (!videos.length) {
       list.innerHTML = '<div class="empty-state"><h3>No snapshots yet</h3><p>Select Refresh YouTube metrics to capture the first snapshot.</p></div>';
       return;

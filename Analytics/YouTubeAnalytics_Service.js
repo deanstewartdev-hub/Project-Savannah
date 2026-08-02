@@ -80,6 +80,7 @@ const YouTubeAnalyticsService = (() => {
       channel: channelSummary,
       channelHealth: buildChannelHealth_(channelSummary, videos, lastCapturedAt),
       periodReports: buildPeriodReports_(channelHistory),
+      contentInsights: buildContentInsights_(videos),
       lastCapturedAt: lastCapturedAt
     };
   }
@@ -191,9 +192,49 @@ const YouTubeAnalyticsService = (() => {
       };
     });
   }
+  function buildContentInsights_(videos) {
+    function aggregate_(items, keyCallback) {
+      const groups = {};
+      (items || []).forEach(function (video) {
+        const key = keyCallback(video);
+        if (!key) return;
+        if (!groups[key]) groups[key] = { label: key, videoCount: 0, totalViews: 0 };
+        groups[key].videoCount += 1;
+        groups[key].totalViews += Number(video.views || 0);
+      });
+      return Object.keys(groups).map(function (key) {
+        const group = groups[key];
+        group.averageViews = Math.round(group.totalViews / group.videoCount);
+        return group;
+      }).sort(function (a, b) {
+        return b.averageViews - a.averageViews || b.videoCount - a.videoCount || a.label.localeCompare(b.label);
+      });
+    }
+    const durationBands = aggregate_(videos, function (video) {
+      const seconds = Number(video.durationSeconds || 0);
+      if (!seconds) return "";
+      if (seconds < 30) return "Under 30 sec";
+      if (seconds < 40) return "30-39 sec";
+      if (seconds < 50) return "40-49 sec";
+      if (seconds <= 60) return "50-60 sec";
+      return "Over 60 sec";
+    });
+    const uploadDays = aggregate_(videos, function (video) {
+      if (!video.publishedAt || isNaN(new Date(video.publishedAt).getTime())) return "";
+      return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date(video.publishedAt).getUTCDay()];
+    });
+    return {
+      videoCount: (videos || []).length,
+      confidence: (videos || []).length >= 10 ? "high" : (videos || []).length >= 5 ? "medium" : "low",
+      durationBands: durationBands,
+      uploadDays: uploadDays,
+      bestDurationBand: durationBands[0] || null,
+      bestUploadDay: uploadDays[0] || null
+    };
+  }
   return { capture: capture, summary: summary, parseDuration: parseDuration_,
     buildChannelTrend: buildChannelTrend_, buildChannelHealth: buildChannelHealth_,
-    buildPeriodReports: buildPeriodReports_ };
+    buildPeriodReports: buildPeriodReports_, buildContentInsights: buildContentInsights_ };
 })();
 
 function testYouTubeAnalyticsDurationParsing() {
@@ -237,5 +278,20 @@ function testYouTubeAnalyticsPeriodReports() {
   }
   const monthly = reports.filter(function (report) { return report.key === "monthly"; })[0];
   if (monthly.complete || monthly.elapsedDays !== 7) throw new Error("Partial reporting period was not identified.");
+  return { passed: true };
+}
+
+function testYouTubeAnalyticsContentInsights() {
+  const insights = YouTubeAnalyticsService.buildContentInsights([
+    { durationSeconds: 35, views: 100, publishedAt: "2026-01-05T12:00:00.000Z" },
+    { durationSeconds: 36, views: 200, publishedAt: "2026-01-05T18:00:00.000Z" },
+    { durationSeconds: 52, views: 90, publishedAt: "2026-01-06T12:00:00.000Z" }
+  ]);
+  if (insights.bestDurationBand.label !== "30-39 sec" || insights.bestDurationBand.averageViews !== 150) {
+    throw new Error("Duration-band performance analysis failed.");
+  }
+  if (insights.bestUploadDay.label !== "Monday" || insights.bestUploadDay.videoCount !== 2 || insights.confidence !== "low") {
+    throw new Error("Upload-day performance analysis failed.");
+  }
   return { passed: true };
 }

@@ -1606,11 +1606,39 @@
     flex-wrap: wrap;
   }
 
+  .analytics-insight-note {
+    padding: 12px 14px;
+    border-radius: var(--radius-medium);
+    background: var(--color-info-background);
+    color: var(--color-info-text);
+  }
+
+  .analytics-insight-highlights,
+  .analytics-insight-tables {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .analytics-insight-highlights { margin: 16px 0 22px; }
+  .analytics-insight-highlights > div {
+    display: grid;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+  }
+  .analytics-insight-highlights span,
+  .analytics-insight-highlights small { color: var(--color-text-secondary); }
+  .analytics-insight-highlights strong { font-size: 20px; }
+
   @media (max-width: 900px) {
     .analytics-chart-grid { grid-template-columns: 1fr; }
     .analytics-health-signals { grid-template-columns: 1fr; }
     .analytics-report-grid { grid-template-columns: 1fr; }
     .page-header__actions { width: 100%; }
     .page-header__actions .button { flex: 1; }
+    .analytics-insight-highlights,
+    .analytics-insight-tables { grid-template-columns: 1fr; }
   }
 </style>

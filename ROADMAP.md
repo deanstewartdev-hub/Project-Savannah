@@ -1,7 +1,7 @@
 # Project Savannah Roadmap
 
 Last updated: 2 August 2026
-Live Apps Script deployment: version 70
+Live Apps Script deployment: version 71
 Canonical branch: `sprint-2`
 
 ## Overall progress
@@ -10,7 +10,7 @@ Canonical branch: `sprint-2`
 Phase 1  Foundation Platform        ██████████ 100%
 Phase 2  Content Automation         █████████▌  95%
 Phase 3  Production Hardening       ███████▊░░  78%
-Phase 4  Growth & Analytics         ██████▌░░░  65%
+Phase 4  Growth & Analytics         ███████▌░░  75%
 Phase 5  Intelligent Automation     ░░░░░░░░░░   0%
 Phase 6  Multi-Channel Platform     ░░░░░░░░░░   0%
 Phase 7  Enterprise Platform        ░░░░░░░░░░   0%
@@ -151,7 +151,7 @@ Remaining:
 - motion presets, transitions, subtitle themes, and music ducking
 - email or in-app failure notifications
 
-## Phase 4 — Growth & Analytics: 65%
+## Phase 4 — Growth & Analytics: 75%
 
 Existing foundations:
 
@@ -167,13 +167,14 @@ Existing foundations:
 - explainable channel-health score with freshness, upload cadence, momentum, confidence, and recommended actions
 - daily, weekly, and monthly growth cards with full-period versus partial-period disclosure
 - downloadable CSV report for channel health, period growth, and per-video performance
+- duration-band and UTC upload-day performance comparisons with visible sample sizes and confidence
 
 Next:
 
 - add YouTube Analytics API ingestion for watch time, retention, subscribers, and revenue where available
 - schedule daily metric snapshots after trigger authorization
 - add unattended channel-health alerts after trigger authorization
-- compare topics, hooks, durations, and upload times
+- compare topics and hooks after structured labels are available
 - combine OpenAI and render cost with video performance
 - optional PDF report export
 
