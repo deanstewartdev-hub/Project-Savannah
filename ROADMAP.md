@@ -1,7 +1,7 @@
 # Project Savannah Roadmap
 
 Last updated: 2 August 2026
-Live Apps Script deployment: version 74
+Live Apps Script deployment: version 75
 Canonical branch: `sprint-3`
 
 ## Overall progress
@@ -9,7 +9,7 @@ Canonical branch: `sprint-3`
 ```text
 Phase 1  Foundation Platform        ██████████ 100%
 Phase 2  Content Automation         █████████▌  95%
-Phase 3  Production Hardening       ████████░░  80%
+Phase 3  Production Hardening       ████████▏░  82%
 Phase 4  Growth & Analytics         ████████░░  80%
 Phase 5  Intelligent Automation     ░░░░░░░░░░   0%
 Phase 6  Multi-Channel Platform     ░░░░░░░░░░   0%
@@ -51,7 +51,7 @@ Remaining:
 - add first-class thumbnail generation and selection
 - finish end-to-end regression on one new Short after the resolution fix
 
-## Phase 3 — Production Hardening: 80%
+## Phase 3 — Production Hardening: 82%
 
 ### Error handling: 95%
 
@@ -122,7 +122,7 @@ Remaining:
 - loudness target and clipping detection
 - visual-topic relevance scoring
 
-### Scheduling: 90%
+### Scheduling: 100%
 
 Completed:
 
@@ -134,10 +134,9 @@ Completed:
 - one-hour conflict prevention for scheduled Shorts
 - timezone-aware 12:00 and 18:00 local slot suggestions
 - maximum of two scheduled Shorts per local day
+- balanced, daily-evening, weekday, and weekend recurring cadence templates
 
-Remaining:
-
-- recurring schedule templates
+Remaining: none for the current scheduling scope.
 
 ### Templates and monitoring: 45%
 

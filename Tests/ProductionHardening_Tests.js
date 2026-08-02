@@ -195,6 +195,25 @@ function runProductionHardeningTests() {
     if (!rejected) throw new Error("An invalid daily publishing time was accepted.");
   });
 
+  test("Weekday cadence template skips the weekend", function () {
+    const result = PublishingScheduleService.suggestSlots([], {
+      now: "2026-01-09T19:00:00.000Z", timezoneOffsetMinutes: 0,
+      template: "weekdays", limit: 1, daysAhead: 7
+    });
+    if (result.slots.length !== 1 || result.slots[0].localDate !== "2026-01-12" ||
+        result.slots[0].localTime !== "18:00" || result.template.key !== "weekdays") {
+      throw new Error("The weekday cadence template did not skip Saturday and Sunday.");
+    }
+  });
+
+  test("Publishing schedule rejects an unknown cadence template", function () {
+    let rejected = false;
+    try {
+      PublishingScheduleService.suggestSlots([], { template: "unknown-pattern" });
+    } catch (error) { rejected = error.name === "PublishingScheduleError"; }
+    if (!rejected) throw new Error("An unknown cadence template was accepted.");
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };

@@ -345,7 +345,7 @@ const ProductionController = (() => {
         schedule: PublishingScheduleService.upcoming(jobs),
         suggestions: PublishingScheduleService.suggestSlots(jobs, {
           timezoneOffsetMinutes: source.timezoneOffsetMinutes,
-          dailyTimes: ["12:00", "18:00"], maxPerDay: 2, limit: 6, daysAhead: 14
+          template: source.template, limit: 6, daysAhead: 21
         })
       };
     });

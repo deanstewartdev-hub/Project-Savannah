@@ -14,6 +14,7 @@
   const automationToggle = document.getElementById("production-automation-toggle");
   const scheduleStatus = document.getElementById("production-schedule-status");
   const slotSuggestions = document.getElementById("production-slot-suggestions");
+  const scheduleTemplate = document.getElementById("production-schedule-template");
   let automationEnabled = false;
   let activeRenderCount = 0;
   let pollTimer = null;
@@ -305,6 +306,11 @@
   });
 
   root.addEventListener("change", function (event) {
+    if (event.target === scheduleTemplate) {
+      slotSuggestions.innerHTML = '<p>Finding the next available slots&hellip;</p>';
+      loadPublishingSchedule();
+      return;
+    }
     const priorityControl = event.target.closest(".production-task-priority");
     if (!priorityControl) return;
     priorityControl.disabled = true;
@@ -371,7 +377,9 @@
         }).join('');
       }
       const slots = suggestions.slots || [];
-      slotSuggestions.innerHTML = slots.length ? '<p><strong>Next available local slots</strong></p><div class="production-slot-list">' +
+      const selectedTemplate = suggestions.template || {};
+      slotSuggestions.innerHTML = slots.length ? '<p><strong>Next available local slots</strong> &mdash; ' +
+        escapeHtml(selectedTemplate.label || "Selected cadence") + '</p><div class="production-slot-list">' +
         slots.map(function (slot) {
           return '<button class="button button--secondary production-slot-use" type="button" data-publish-at="' +
             escapeHtml(slot.publishAt) + '">' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</button>';
@@ -379,7 +387,8 @@
         '<p>No available daily slots were found in the next 14 days.</p>';
     }).withFailureHandler(function (error) {
       showError(scheduleStatus, { error: error });
-    }).productionGetPublishingSchedule({ timezoneOffsetMinutes: new Date().getTimezoneOffset() });
+    }).productionGetPublishingSchedule({ timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+      template: scheduleTemplate.value });
   }
 
   function schedulePolling() {

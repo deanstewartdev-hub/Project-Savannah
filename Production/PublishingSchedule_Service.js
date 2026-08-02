@@ -4,6 +4,12 @@
 const PublishingScheduleService = (() => {
   const MINIMUM_GAP_MINUTES = 60;
   const MINIMUM_GAP_MS = MINIMUM_GAP_MINUTES * 60 * 1000;
+  const TEMPLATES = Object.freeze({
+    balanced: { key: "balanced", label: "Balanced: daily at 12:00 and 18:00", dailyTimes: ["12:00", "18:00"], weekdays: [0, 1, 2, 3, 4, 5, 6], maxPerDay: 2 },
+    evening: { key: "evening", label: "Daily evening: 18:00", dailyTimes: ["18:00"], weekdays: [0, 1, 2, 3, 4, 5, 6], maxPerDay: 1 },
+    weekdays: { key: "weekdays", label: "Weekdays: 18:00", dailyTimes: ["18:00"], weekdays: [1, 2, 3, 4, 5], maxPerDay: 1 },
+    weekends: { key: "weekends", label: "Weekends: 12:00 and 18:00", dailyTimes: ["12:00", "18:00"], weekdays: [0, 6], maxPerDay: 2 }
+  });
 
   function assertAvailable(publishAt, jobs, excludeRenderJobId, options) {
     const requested = normalise_(publishAt);
@@ -52,11 +58,12 @@ const PublishingScheduleService = (() => {
 
   function suggestSlots(jobs, options) {
     const config = options || {};
+    const template = scheduleTemplate_(config.template);
     const timezoneOffsetMinutes = boundedInteger_(config.timezoneOffsetMinutes, -840, 840, 0);
-    const maxPerDay = boundedInteger_(config.maxPerDay, 1, 5, 2);
+    const maxPerDay = boundedInteger_(config.maxPerDay, 1, 5, template.maxPerDay);
     const limit = boundedInteger_(config.limit, 1, 20, 6);
     const daysAhead = boundedInteger_(config.daysAhead, 1, 31, 14);
-    const dailyTimes = normaliseTimes_(config.dailyTimes || ["12:00", "18:00"]);
+    const dailyTimes = normaliseTimes_(config.dailyTimes || template.dailyTimes);
     const now = config.now ? new Date(config.now).getTime() : Date.now();
     if (!isFinite(now)) throw error_("The scheduling reference time is invalid.");
     const scheduled = upcomingAt_(jobs, now), counts = {};
@@ -67,6 +74,7 @@ const PublishingScheduleService = (() => {
     const localNow = new Date(now - timezoneOffsetMinutes * 60000), suggestions = [];
     for (let day = 0; day < daysAhead && suggestions.length < limit; day++) {
       const localDay = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), localNow.getUTCDate() + day));
+      if (template.weekdays.indexOf(localDay.getUTCDay()) === -1) continue;
       const dateKey = localDay.toISOString().slice(0, 10);
       if ((counts[dateKey] || 0) >= maxPerDay) continue;
       for (let index = 0; index < dailyTimes.length && suggestions.length < limit; index++) {
@@ -85,7 +93,21 @@ const PublishingScheduleService = (() => {
       }
     }
     return { slots: suggestions, dailyTimes: dailyTimes, maxPerDay: maxPerDay,
-      timezoneOffsetMinutes: timezoneOffsetMinutes };
+      timezoneOffsetMinutes: timezoneOffsetMinutes, template: template, templates: templates() };
+  }
+
+  function templates() {
+    return Object.keys(TEMPLATES).map(function (key) {
+      const template = TEMPLATES[key];
+      return { key: template.key, label: template.label, dailyTimes: template.dailyTimes.slice(),
+        weekdays: template.weekdays.slice(), maxPerDay: template.maxPerDay };
+    });
+  }
+
+  function scheduleTemplate_(value) {
+    const key = String(value || "balanced").trim().toLowerCase();
+    if (!TEMPLATES[key]) throw error_("The selected recurring schedule template is invalid.");
+    return TEMPLATES[key];
   }
 
   function upcomingAt_(jobs, now) {
@@ -140,5 +162,5 @@ const PublishingScheduleService = (() => {
     return error;
   }
 
-  return { assertAvailable: assertAvailable, upcoming: upcoming, suggestSlots: suggestSlots };
+  return { assertAvailable: assertAvailable, upcoming: upcoming, suggestSlots: suggestSlots, templates: templates };
 })();
