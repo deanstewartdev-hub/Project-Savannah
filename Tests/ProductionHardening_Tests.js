@@ -214,6 +214,49 @@ function runProductionHardeningTests() {
     if (!rejected) throw new Error("An unknown cadence template was accepted.");
   });
 
+  test("Notification feed contains only recent failures and warnings", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-1", "2026-08-03T09:00:00.000Z", "REQ-1", "PRODUCTION", "Failed", "Render failed", "stack"],
+      ["LOG-2", "2026-08-03T10:00:00.000Z", "REQ-2", "ANALYTICS", "Success", "Metrics loaded", ""],
+      ["LOG-3", "2026-07-01T10:00:00.000Z", "REQ-3", "PRODUCTION", "Warning", "Old warning", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", limit: 20 });
+    if (result.notifications.length !== 1 || result.notifications[0].id !== "LOG-1") {
+      throw new Error("Notification filtering included an unsupported log row.");
+    }
+  });
+
+  test("Notification feed redacts credentials and groups repeated failures", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-A", "2026-08-03T10:00:00.000Z", "REQ-A", "PRODUCTION", "Failed", "Provider used sk-secret_value_123", ""],
+      ["LOG-B", "2026-08-03T10:30:00.000Z", "REQ-B", "PRODUCTION", "Failed", "Provider used sk-secret_value_123", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", limit: 20 });
+    if (result.notifications.length !== 1 || result.notifications[0].occurrences !== 2 ||
+        result.notifications[0].message.indexOf("secret_value") !== -1) {
+      throw new Error("Notification grouping or credential redaction failed.");
+    }
+  });
+
+  test("Notification feed clarifies legacy production failure messages", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-LEGACY", "2026-08-03T10:00:00.000Z", "REQ-LEGACY", "PRODUCTION", "Failed", "Next scene asset prepared.", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", limit: 20 });
+    if (result.notifications.length !== 1 ||
+        result.notifications[0].message !== "Failed while running: Next scene asset prepared.") {
+      throw new Error("A legacy success-style failure message was not clarified.");
+    }
+  });
+
+  test("Notification unread count respects the user read timestamp", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-OLD", "2026-08-03T09:00:00.000Z", "REQ-OLD", "PRODUCTION", "Warning", "Earlier warning", ""],
+      ["LOG-NEW", "2026-08-03T11:00:00.000Z", "REQ-NEW", "PRODUCTION", "Failed", "New failure", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", readAt: "2026-08-03T10:00:00.000Z", limit: 20 });
+    if (result.unreadCount !== 1 || result.notifications[0].id !== "LOG-NEW" || !result.notifications[0].unread ||
+        result.notifications[1].unread) {
+      throw new Error("Notification unread state is invalid.");
+    }
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };

@@ -515,7 +515,7 @@ const ProductionController = (() => {
         ProductionErrorService.normalise(caught, message)
       );
       const safe = normalised.message;
-      try { LoggingService.failure(requestId, "PRODUCTION", message, caught); } catch (ignored) {}
+      try { LoggingService.failure(requestId, "PRODUCTION", "Failed while running: " + message, caught); } catch (ignored) {}
       Logger.log(JSON.stringify({ requestId: requestId, controller: "ProductionController", error: safe }));
       return { success: false, statusCode: normalised.statusCode, requestId: requestId, message: "Production request failed.",
         data: null, error: normalised,

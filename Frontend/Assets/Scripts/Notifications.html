@@ -1,0 +1,65 @@
+<script>
+(function initialiseSavannahNotifications() {
+  const button = document.getElementById("savannah-notifications-button");
+  const panel = document.getElementById("savannah-notifications-panel");
+  const list = document.getElementById("savannah-notifications-list");
+  const count = document.getElementById("savannah-notifications-count");
+  const markRead = document.getElementById("savannah-notifications-read");
+  if (!button || !panel || !list || !count || !markRead) return;
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  function render(feed) {
+    const data = feed || {}, notifications = data.notifications || [], unreadCount = Number(data.unreadCount || 0);
+    count.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+    count.hidden = unreadCount < 1;
+    if (!notifications.length) {
+      list.innerHTML = '<div class="empty-state"><h3>No recent alerts</h3><p>Savannah has not recorded a failure or warning in the last 14 days.</p></div>';
+      return;
+    }
+    list.innerHTML = notifications.map(function (item) {
+      return '<article class="notification-item" data-severity="' + escapeHtml(item.severity) +
+        '" data-unread="' + (item.unread ? 'true' : 'false') + '"><div><strong>' + escapeHtml(item.action) +
+        '</strong><span class="badge">' + escapeHtml(item.status) + '</span></div><p>' + escapeHtml(item.message) +
+        '</p><small>' + escapeHtml(new Date(item.timestamp).toLocaleString()) +
+        (item.occurrences > 1 ? ' &middot; ' + escapeHtml(item.occurrences) + ' occurrences' : '') +
+        (item.runId ? ' &middot; ' + escapeHtml(item.runId) : '') + '</small></article>';
+    }).join('');
+  }
+  function showFailure(response) {
+    const message = response && response.error && response.error.message || response && response.message ||
+      "Notification monitoring is temporarily unavailable.";
+    list.innerHTML = '<div class="empty-state"><h3>Notifications unavailable</h3><p>' + escapeHtml(message) + '</p></div>';
+  }
+  function load() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showFailure();
+      render(response.data);
+    }).withFailureHandler(function (error) { showFailure({ error: error }); }).notificationsGetFeed();
+  }
+  button.addEventListener("click", function () {
+    const opening = panel.hidden;
+    panel.hidden = !opening;
+    button.setAttribute("aria-expanded", opening ? "true" : "false");
+    if (opening) load();
+  });
+  markRead.addEventListener("click", function () {
+    markRead.disabled = true;
+    google.script.run.withSuccessHandler(function (response) {
+      markRead.disabled = false;
+      if (!response || !response.success) return showFailure();
+      load();
+    }).withFailureHandler(function (error) { markRead.disabled = false; showFailure({ error: error }); }).notificationsMarkAllRead();
+  });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && !panel.hidden) {
+      panel.hidden = true; button.setAttribute("aria-expanded", "false"); button.focus();
+    }
+  });
+  load();
+  window.setInterval(load, 60000);
+})();
+</script>

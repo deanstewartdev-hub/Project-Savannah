@@ -107,6 +107,15 @@ Frontend/Views/Analytics.html
 Frontend/Assets/Scripts/Analytics.html
 ```
 
+Monitoring-specific files:
+
+```text
+App/NotificationController.js
+Services/Services_Logging.js
+Services/Services_Notifications.js
+Frontend/Assets/Scripts/Notifications.html
+```
+
 ## Google Sheets
 
 Savannah currently uses these worksheets:
