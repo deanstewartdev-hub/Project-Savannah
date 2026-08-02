@@ -338,6 +338,12 @@ const ProductionController = (() => {
     });
   }
 
+  function getPublishingSchedule() {
+    return run_("Publishing schedule loaded.", function () {
+      return { schedule: PublishingScheduleService.upcoming(PublishingJobRepository.getAll()) };
+    });
+  }
+
   function setAutomation(request) {
     return run_("Production automation updated.", function () {
       return { automation: request && request.enabled === true ?
@@ -365,6 +371,12 @@ const ProductionController = (() => {
       if (existing && existing.status === "RECONCILE") {
         throw error_("This upload ended in an uncertain state. Check YouTube Studio, then use Confirm no upload before retrying.");
       }
+      const scheduleCheck = PublishingScheduleService.assertAvailable(
+        source.publishAt,
+        PublishingJobRepository.getAll(),
+        renderJobId
+      );
+      if (scheduleCheck.scheduled) source.publishAt = scheduleCheck.publishAt;
       const seoPack = SeoRepository.getById(renderJob.seoPackId);
       if (!seoPack) throw error_("The SEO pack for this render was not found.");
       let job = PublishingJobRepository.save(PublishingJobModel.create({
@@ -523,7 +535,7 @@ const ProductionController = (() => {
     controlPreparation: controlPreparation, submitPrepared: submitPrepared, refresh: refresh,
     refreshActive: refreshActive, retry: retry, prepareScene: prepareScene, approveRender: approveRender, listJobs: listJobs,
     getYouTubeConnection: getYouTubeConnection, getAutomationStatus: getAutomationStatus,
-    setAutomation: setAutomation, publish: publish,
+    getPublishingSchedule: getPublishingSchedule, setAutomation: setAutomation, publish: publish,
     refreshPublication: refreshPublication, abandonPublication: abandonPublication };
 })();
 
@@ -542,6 +554,7 @@ function productionApproveRender(request) { return ProductionController.approveR
 function productionListJobs() { return ProductionController.listJobs(); }
 function productionGetYouTubeConnection() { return ProductionController.getYouTubeConnection(); }
 function productionGetAutomationStatus() { return ProductionController.getAutomationStatus(); }
+function productionGetPublishingSchedule() { return ProductionController.getPublishingSchedule(); }
 function productionSetAutomation(request) { return ProductionController.setAutomation(request); }
 function productionPublish(request) { return ProductionController.publish(request); }
 function productionRefreshPublication(request) { return ProductionController.refreshPublication(request); }

@@ -135,6 +135,31 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Publishing schedule blocks Shorts less than one hour apart", function () {
+    const requested = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const existing = new Date(requested.getTime() + 30 * 60 * 1000).toISOString();
+    let blocked = false;
+    try {
+      PublishingScheduleService.assertAvailable(requested.toISOString(), [{
+        id: "PUB-ONE", renderJobId: "RND-ONE", title: "Existing Short",
+        providerResponse: { publishAt: existing }
+      }], "RND-TWO");
+    } catch (error) { blocked = error.name === "PublishingScheduleError"; }
+    if (!blocked) throw new Error("Conflicting publication time was accepted.");
+  });
+
+  test("Publishing schedule accepts a separated time slot", function () {
+    const requested = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const existing = new Date(requested.getTime() + 2 * 60 * 60 * 1000).toISOString();
+    const result = PublishingScheduleService.assertAvailable(requested.toISOString(), [{
+      id: "PUB-ONE", renderJobId: "RND-ONE", title: "Existing Short",
+      providerResponse: { publishAt: existing }
+    }], "RND-TWO");
+    if (!result.scheduled || result.publishAt !== requested.toISOString()) {
+      throw new Error("Valid publication time was rejected.");
+    }
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };

@@ -7,6 +7,12 @@ const ProductionErrorService = (() => {
 
   const RULES = [
     {
+      code: "PRODUCTION_SCHEDULE_CONFLICT", category: "scheduling", statusCode: 409,
+      retryable: false, retryAfterSeconds: 0,
+      pattern: /scheduled publication conflicts|keep at least .* minutes between shorts/i,
+      recoveryAction: "Choose a different publishing time at least one hour away from the conflicting Short."
+    },
+    {
       code: "PRODUCTION_UPLOAD_UNCERTAIN", category: "reconciliation", statusCode: 409,
       retryable: false, retryAfterSeconds: 0,
       pattern: /uncertain state|completion is unknown|check youtube studio/i,

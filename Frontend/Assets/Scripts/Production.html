@@ -12,6 +12,7 @@
   const youtubeConnect = document.getElementById("production-youtube-connect");
   const automationStatus = document.getElementById("production-automation-status");
   const automationToggle = document.getElementById("production-automation-toggle");
+  const scheduleStatus = document.getElementById("production-schedule-status");
   let automationEnabled = false;
   let activeRenderCount = 0;
   let pollTimer = null;
@@ -73,7 +74,7 @@
       button.textContent = "Submitting render...";
       google.script.run.withSuccessHandler(function (response) {
         if (!response || !response.success) return failed(response);
-        loadReady(); loadJobs();
+        loadReady(); loadJobs(); loadPublishingSchedule();
       }).withFailureHandler(function (error) { failed({ error: error }); })
         .productionSubmitPrepared({ taskId: task.id });
     }
@@ -245,7 +246,7 @@
       publish.disabled = true; publish.textContent = "Uploading...";
       google.script.run.withSuccessHandler(function (response) {
         if (!response || !response.success) return showError(jobList, response);
-        loadJobs();
+        loadJobs(); loadPublishingSchedule();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
         .productionPublish({ renderJobId: publish.dataset.jobId, title: title,
           privacyStatus: privacyStatus, publishAt: publishAt });
@@ -306,7 +307,7 @@
   });
 
   document.getElementById("production-refresh").addEventListener("click", function () {
-    loadReady(); loadJobs(); loadYouTubeConnection();
+    loadReady(); loadJobs(); loadYouTubeConnection(); loadPublishingSchedule();
   });
 
   function loadYouTubeConnection() {
@@ -342,12 +343,29 @@
     }).productionGetAutomationStatus();
   }
 
+  function loadPublishingSchedule() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(scheduleStatus, response);
+      const schedule = response.data.schedule || [];
+      if (!schedule.length) {
+        scheduleStatus.innerHTML = '<p>No Shorts are currently scheduled.</p>';
+        return;
+      }
+      scheduleStatus.innerHTML = schedule.slice(0, 5).map(function (slot) {
+        return '<p><strong>' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</strong> &mdash; ' +
+          escapeHtml(slot.title) + '</p>';
+      }).join('');
+    }).withFailureHandler(function (error) {
+      showError(scheduleStatus, { error: error });
+    }).productionGetPublishingSchedule();
+  }
+
   function schedulePolling() {
     if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
     if (!activeRenderCount) return;
     pollTimer = setTimeout(function () {
       google.script.run.withSuccessHandler(function () {
-        loadReady(); loadJobs();
+        loadReady(); loadJobs(); loadPublishingSchedule();
       }).withFailureHandler(function () {
         pollTimer = setTimeout(schedulePolling, 15000);
       }).productionRefreshActive();
@@ -376,6 +394,6 @@
     }).productionSetAutomation({ enabled: !automationEnabled });
   });
 
-  loadReady(); loadJobs(); loadYouTubeConnection(); loadAutomationStatus();
+  loadReady(); loadJobs(); loadYouTubeConnection(); loadAutomationStatus(); loadPublishingSchedule();
 })();
 </script>
