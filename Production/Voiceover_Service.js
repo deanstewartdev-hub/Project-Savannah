@@ -11,7 +11,9 @@ const VoiceoverService = (() => {
     if (!script || !script.id) throw error_("A valid script is required.");
     const narration = String(script.voiceoverScript || "").trim();
     if (!narration) throw error_("The script has no complete voiceover.");
-    const name = safeName_(script.id) + "-continuous-" + digest_(narration) + ".mp3";
+    const branding = Secrets.getProductionBranding();
+    const audioSignature = [MODEL, branding.voice, branding.speechSpeed, narration].join("|");
+    const name = safeName_(script.id) + "-continuous-" + digest_(audioSignature) + ".mp3";
     const folder = folder_();
     const existing = folder.getFilesByName(name);
     if (existing.hasNext()) return continuousResult_(existing.next().getId());
@@ -46,7 +48,9 @@ const VoiceoverService = (() => {
   }
 
   function getOrCreateAudio_(scriptId, sceneNumber, narration, expectedDurationSeconds) {
-    const name = safeName_(scriptId) + "-scene-" + sceneNumber + "-" + digest_(narration) + ".mp3";
+    const branding = Secrets.getProductionBranding();
+    const audioSignature = [MODEL, branding.voice, branding.speechSpeed, narration].join("|");
+    const name = safeName_(scriptId) + "-scene-" + sceneNumber + "-" + digest_(audioSignature) + ".mp3";
     const folder = folder_();
     const existing = folder.getFilesByName(name);
     if (existing.hasNext()) {

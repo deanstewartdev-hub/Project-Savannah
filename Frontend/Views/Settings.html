@@ -26,6 +26,8 @@
       <label>Narration voice
         <select id="production-voice">
           <option value="alloy">Alloy</option>
+          <option value="ash">Ash</option>
+          <option value="ballad">Ballad</option>
           <option value="coral">Coral</option>
           <option value="echo">Echo</option>
           <option value="fable">Fable</option>
@@ -37,6 +39,13 @@
       </label>
       <label>Speaking speed
         <input id="production-speech-speed" type="number" min="0.75" max="1.25" step="0.05" value="1">
+      </label>
+      <label>Generated image quality
+        <select id="production-image-quality">
+          <option value="high">High (recommended)</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
       </label>
       <button class="button button--primary" type="submit">Save production style</button>
     </form>

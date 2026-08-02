@@ -30,25 +30,27 @@ const VisualAssetService = (() => {
   }
 
   function getOrCreateImage_(scriptId, sceneNumber, prompt) {
-    const name = safeName_(scriptId) + "-scene-" + sceneNumber + "-" + digest_(prompt) + ".png";
+    const imageQuality = Secrets.getProductionBranding().imageQuality;
+    const imageSignature = [MODEL, imageQuality, prompt].join("|");
+    const name = safeName_(scriptId) + "-scene-" + sceneNumber + "-" + digest_(imageSignature) + ".png";
     const folder = folder_();
     const existing = folder.getFilesByName(name);
     if (existing.hasNext()) return fileResult_(existing.next().getId(), sceneNumber, prompt);
-    const blob = createImage_(prompt).setName(name);
+    const blob = createImage_(prompt, imageQuality).setName(name);
     const file = folder.createFile(blob);
     file.setDescription("Project Savannah visual for " + scriptId + ", scene " + sceneNumber + ".");
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return fileResult_(file.getId(), sceneNumber, prompt);
+    return fileResult_(file.getId(), sceneNumber, prompt, imageQuality);
   }
 
-  function createImage_(prompt) {
+  function createImage_(prompt, imageQuality) {
     const apiKey = Secrets.getOpenAIApiKey();
     if (!apiKey) throw error_("OpenAI is not connected.");
     const response = UrlFetchApp.fetch(IMAGE_URL, {
       method: "post",
       contentType: "application/json",
       headers: { Authorization: "Bearer " + apiKey },
-      payload: JSON.stringify({ model: MODEL, prompt: prompt, size: "1024x1536", quality: "low", n: 1 }),
+      payload: JSON.stringify({ model: MODEL, prompt: prompt, size: "1024x1536", quality: imageQuality, n: 1 }),
       muteHttpExceptions: true
     });
     const status = response.getResponseCode();
@@ -68,8 +70,8 @@ const VisualAssetService = (() => {
     return folders.hasNext() ? folders.next() : DriveApp.createFolder(FOLDER_NAME);
   }
   function requireDriveScope_() { ScriptApp.requireScopes(ScriptApp.AuthMode.FULL, ["https://www.googleapis.com/auth/drive"]); }
-  function fileResult_(fileId, sceneNumber, prompt) {
-    return { sceneNumber: sceneNumber, fileId: fileId, url: "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(fileId), prompt: prompt, model: MODEL };
+  function fileResult_(fileId, sceneNumber, prompt, imageQuality) {
+    return { sceneNumber: sceneNumber, fileId: fileId, url: "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(fileId), prompt: prompt, model: MODEL, quality: imageQuality || Secrets.getProductionBranding().imageQuality };
   }
   function digest_(value) {
     return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(value || ""), Utilities.Charset.UTF_8).slice(0, 6).map(function (byte) {
