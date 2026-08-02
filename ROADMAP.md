@@ -1,15 +1,15 @@
 # Project Savannah Roadmap
 
 Last updated: 2 August 2026
-Live Apps Script deployment: version 62
+Live Apps Script deployment: version 63
 Canonical branch: `sprint-2`
 
 ## Overall progress
 
 ```text
 Phase 1  Foundation Platform        ██████████ 100%
-Phase 2  Content Automation         █████████░  94%
-Phase 3  Production Hardening       ██████░░░░  60%
+Phase 2  Content Automation         █████████▌  95%
+Phase 3  Production Hardening       ██████▎░░░  62%
 Phase 4  Growth & Analytics         ██▌░░░░░░░  25%
 Phase 5  Intelligent Automation     ░░░░░░░░░░   0%
 Phase 6  Multi-Channel Platform     ░░░░░░░░░░   0%
@@ -29,7 +29,7 @@ Completed:
 - OpenAI provider abstraction, prompt libraries, logging, and cost records
 - Git, GitHub, VS Code, clasp, and versioned deployments
 
-## Phase 2 — Content Automation: 94%
+## Phase 2 — Content Automation: 95%
 
 Completed:
 
@@ -41,6 +41,7 @@ Completed:
 - measured narration duration and scene timing
 - four-scene planning and narration mapping
 - topic-specific AI image prompts and Drive asset cache
+- model-neutral scene briefs covering motion, physics, continuity, audio alignment, fallback framing, and cost-aware evaluation
 - Creatomate JSON generation, polling, and completed-render history
 - YouTube authorization, metadata, private upload, scheduling input, and processing status
 
@@ -50,7 +51,7 @@ Remaining:
 - add first-class thumbnail generation and selection
 - finish end-to-end regression on one new Short after the resolution fix
 
-## Phase 3 — Production Hardening: 60%
+## Phase 3 — Production Hardening: 62%
 
 ### Error handling: 70%
 
@@ -100,7 +101,7 @@ Remaining:
 - webhook-based Creatomate completion
 - durable reconciliation against YouTube channel uploads after a timeout
 
-### Quality checks: 75%
+### Quality checks: 80%
 
 Completed:
 
@@ -110,6 +111,7 @@ Completed:
 - all four visuals, voiceovers, captions, and scene durations
 - vertical orientation
 - minimum 1080×1920 resolution
+- required model-ready visual briefs for new render plans
 - final human approval gate
 
 Remaining:

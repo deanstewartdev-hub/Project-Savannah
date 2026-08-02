@@ -19,7 +19,7 @@
  ****************************************************/
 
 const ScriptPromptLibrary = (() => {
-  const PROMPT_VERSION = "scripts-v1.3-visual-retention";
+  const PROMPT_VERSION = "scripts-v1.4-benchmark-ready";
 
   const DEFAULT_OPTIONS = Object.freeze({
     targetDurationSeconds: 50,
@@ -110,6 +110,12 @@ const ScriptPromptLibrary = (() => {
       "- Each scene must contain concise on-screen text.",
       "- Keep on-screen text to 2 to 5 words; do not write full sentences.",
       "- Each scene must contain a practical visual direction naming a subject, action, setting and camera composition.",
+      "- Write each visual direction as a renderer-independent shot brief that can be tested unchanged across different image or video models.",
+      "- Give each scene one clear primary physical action, its motion intensity, and an audio-relevant beat that should align with the narration.",
+      "- Prioritise believable physics and continuity of subject identity, wardrobe, props, location and lighting between connected scenes.",
+      "- Avoid risky multi-subject choreography unless it is essential; simplify complex motion to one readable action and one camera move.",
+      "- Make every visual direction work both as a strong still frame and as a future image-to-video prompt.",
+      "- Do not name a video generator or model in the visual direction.",
       "- The opening visual must communicate the topic immediately, even with the sound off.",
       "- Change the subject, action or camera composition in every scene to create a visible pattern interrupt.",
       "- Use original visual concepts. Do not request stock footage, logos, watermarks, celebrities, copyrighted characters or another creator's style.",
@@ -136,8 +142,9 @@ const ScriptPromptLibrary = (() => {
       "3. Scene numbers are sequential.",
       "4. The scene durations approximately match the total duration.",
       "5. The final third contains the promised payoff.",
-      "6. Every scene has a distinct visual action and concise caption.",
-      "7. Every required JSON field is populated."
+      "6. Every scene has a distinct, physically plausible visual action and concise caption.",
+      "7. Visual directions are model-neutral, continuity-aware and include a clear motion beat.",
+      "8. Every required JSON field is populated."
     ].join("\n");
   }
 
@@ -396,7 +403,7 @@ function testScriptPromptLibrary() {
 
   if (
     ScriptPromptLibrary.getPromptVersion() !==
-    "scripts-v1.3-visual-retention"
+    "scripts-v1.4-benchmark-ready"
   ) {
     throw new Error(
       "Unexpected script prompt version."

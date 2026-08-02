@@ -30,6 +30,7 @@ const ScenePlanService = (() => {
         visualDirection: group.map(function (scene) {
           return String(scene && scene.visualDirection || "").trim();
         }).filter(Boolean).join(" Then "),
+        visualBrief: buildVisualBrief_(script, group, narration, index),
         expectedDurationSeconds: expectedDurationSeconds
       };
     });
@@ -52,7 +53,41 @@ const ScenePlanService = (() => {
       expectedDurationSeconds: expectedDurationSeconds,
       voiceoverWordCount: countWords_(voiceover),
       slots: slots,
-      modelVersion: "scene-plan-v1.2-continuous"
+      modelVersion: "scene-plan-v1.5-model-ready"
+    };
+  }
+
+  function buildVisualBrief_(script, group, narration, index) {
+    const directions = group.map(function (scene) {
+      return String(scene && scene.visualDirection || "").trim();
+    }).filter(Boolean);
+    const purposes = [
+      "instant hook and topic recognition",
+      "clear evidence or discovery",
+      "escalation through one readable action",
+      "payoff reveal with a memorable final detail"
+    ];
+    const motionProfiles = [
+      "immediate subject movement toward or across frame; fast visual recognition",
+      "controlled environmental movement with one obvious focal action",
+      "single physically plausible action with a clean camera follow",
+      "decisive reveal or transformation followed by a stable payoff frame"
+    ];
+    return {
+      scenePurpose: purposes[index] || "support the current narration beat",
+      primaryAction: directions.join(" Then ") || String(narration || "").trim(),
+      motionProfile: motionProfiles[index] || "one clear, physically plausible action",
+      continuityAnchor: String(script.title || "the established subject and location").trim(),
+      audioCue: String(narration || "").replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/)[0].slice(0, 180),
+      evaluationCriteria: [
+        "topic fidelity",
+        "physical plausibility",
+        "subject and setting continuity",
+        "audio beat alignment",
+        "caption-safe composition",
+        "quality relative to generation cost"
+      ],
+      fallbackStrategy: "Preserve the same subject and composition as a strong still frame with a subtle push-in."
     };
   }
 

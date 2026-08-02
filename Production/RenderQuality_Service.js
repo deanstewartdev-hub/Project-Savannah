@@ -41,8 +41,12 @@ const RenderQualityService = (() => {
       captionsConcise: true,
       visualCadence: true,
       visualVariety: true,
+      visualBriefsComplete: true,
       narrationDensity: true
     };
+    const requiresVisualBriefs = /^scene-plan-v1\.(?:[5-9]|[1-9][0-9])/.test(
+      String(payload.scenePlan && payload.scenePlan.modelVersion || "")
+    );
 
     if (job.status !== "SUCCEEDED") issues.push("Render has not succeeded.");
     if (!job.videoUrl) issues.push("Rendered video URL is missing.");
@@ -86,6 +90,17 @@ const RenderQualityService = (() => {
       const plannedNarration = String(
         plannedSlots[sceneNumber - 1] && plannedSlots[sceneNumber - 1].narration || ""
       ).trim();
+      const visualBrief = plannedSlots[sceneNumber - 1] && plannedSlots[sceneNumber - 1].visualBrief;
+      if (requiresVisualBriefs && (
+        !visualBrief ||
+        !String(visualBrief.primaryAction || "").trim() ||
+        !String(visualBrief.motionProfile || "").trim() ||
+        !Array.isArray(visualBrief.evaluationCriteria) ||
+        visualBrief.evaluationCriteria.length < 5
+      )) {
+        checks.visualBriefsComplete = false;
+        issues.push("Scene " + sceneNumber + " is missing its model-ready visual brief.");
+      }
       if (plannedNarration && sceneDuration > 0) {
         const narrationRate = countWords_(plannedNarration) / sceneDuration;
         if (
@@ -140,7 +155,7 @@ const RenderQualityService = (() => {
       durationRatio: expected && actual ? Math.round(actual / expected * 1000) / 1000 : 0,
       checks: checks,
       issues: issues,
-      modelVersion: "render-quality-v1.3-retention"
+      modelVersion: "render-quality-v1.4-model-ready"
     };
   }
 

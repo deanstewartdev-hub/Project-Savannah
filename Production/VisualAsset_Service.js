@@ -37,12 +37,20 @@ const VisualAssetService = (() => {
 
   function buildPrompt_(script, slot, sceneNumber) {
     const composition = CAMERA_COMPOSITIONS[(sceneNumber - 1) % CAMERA_COMPOSITIONS.length];
+    const brief = slot.visualBrief || {};
     return [
       "Create scene " + sceneNumber + " of a vertical YouTube Short.",
       "Topic: " + String(script.title || "travel discovery") + ".",
       "Visual direction: " + String(slot.visualDirection || slot.narration || "Show a relevant establishing shot") + ".",
+      "Scene purpose: " + String(brief.scenePurpose || "support the current narration beat") + ".",
+      "Primary action: " + String(brief.primaryAction || slot.visualDirection || "one clear subject action") + ".",
+      "Motion profile: " + String(brief.motionProfile || "one clear, physically plausible action") + ".",
+      "Continuity anchor: " + String(brief.continuityAnchor || script.title || "the established subject and location") + ".",
       "Composition: " + composition + ".",
       "Style: cinematic, photorealistic travel documentary, authentic location and people, vivid natural lighting, strong depth, energetic 9:16 composition.",
+      "Freeze a believable peak-action moment with clear subject separation, realistic balance, gravity, anatomy and object interaction.",
+      "Use one readable physical action and one implied camera movement so this frame can later seed an image-to-video model.",
+      "Preserve consistent identity, wardrobe, props, setting and lighting when the same subject continues from another scene.",
       "The image must directly illustrate this scene, not generic food or unrelated stock imagery.",
       "Create a new original composition rather than imitating a named creator, living artist, film, franchise or copyrighted character.",
       "Do not show recognisable brands, celebrities, captions, letters, logos, watermarks, borders, or split screens.",

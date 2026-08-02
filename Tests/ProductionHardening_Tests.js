@@ -79,6 +79,15 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Model-ready scene briefs are required for new render plans", function () {
+    const job = qualityFixture_();
+    delete job.requestPayload.scenePlan.slots[2].visualBrief.motionProfile;
+    const result = RenderQualityService.evaluate(job);
+    if (result.passed || result.checks.visualBriefsComplete) {
+      throw new Error("Incomplete model-ready visual brief was not detected.");
+    }
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };
@@ -92,9 +101,24 @@ function qualityFixture_() {
     modifications["Subtitles-" + scene + ".text"] = "Caption " + scene;
     modifications["Scene-" + scene + ".duration"] = 10;
   }
+  const slots = [];
+  for (let scene = 1; scene <= 4; scene++) {
+    slots.push({
+      narration: "This scene uses enough spoken words to maintain a natural measured narration pace.",
+      visualBrief: {
+        primaryAction: "A traveller performs one clear action in the featured location.",
+        motionProfile: "One physically plausible action with a controlled camera follow.",
+        evaluationCriteria: ["topic", "physics", "continuity", "audio", "composition", "cost"]
+      }
+    });
+  }
   return {
     status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
-    requestPayload: { expectedDurationSeconds: 40, modifications: modifications },
+    requestPayload: {
+      expectedDurationSeconds: 40,
+      modifications: modifications,
+      scenePlan: { modelVersion: "scene-plan-v1.5-model-ready", slots: slots }
+    },
     providerResponse: { duration: 40, width: 1080, height: 1920 }
   };
 }
