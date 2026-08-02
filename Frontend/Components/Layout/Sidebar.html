@@ -1,0 +1,98 @@
+<aside
+  id="appSidebar"
+  class="app-sidebar"
+  aria-label="Application sidebar"
+>
+  <div class="sidebar-brand">
+    <a
+      class="sidebar-brand-link"
+      href="<?= webAppUrl ?>?page=dashboard"
+      target="_top"
+      aria-label="Project Savannah dashboard"
+    >
+      <span
+        class="sidebar-logo"
+        aria-hidden="true"
+      >
+        S
+      </span>
+
+      <span class="sidebar-brand-copy">
+        <strong><?= appName ?></strong>
+        <small>AI Content Platform</small>
+      </span>
+    </a>
+
+    <button
+      id="sidebarClose"
+      class="sidebar-close-button"
+      type="button"
+      aria-label="Close navigation"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M6 6l12 12"></path>
+        <path d="M18 6 6 18"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div class="sidebar-scroll-area">
+    <?!= renderNavigation(
+      currentRoute,
+      navigationItems,
+      webAppUrl
+    ); ?>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-health-card">
+      <div class="sidebar-health-heading">
+        <span
+          class="sidebar-health-dot"
+          aria-hidden="true"
+        ></span>
+
+        <strong>System operational</strong>
+      </div>
+
+      <p>
+        AI and Google services are connected.
+      </p>
+    </div>
+
+    <a
+      class="sidebar-account"
+      href="<?= webAppUrl ?>?page=settings"
+      target="_top"
+    >
+      <span
+        class="sidebar-account-avatar"
+        aria-hidden="true"
+      >
+        DS
+      </span>
+
+      <span class="sidebar-account-copy">
+        <strong>Dean Stewart</strong>
+        <small>Project owner</small>
+      </span>
+
+      <svg
+        class="sidebar-account-arrow"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="m9 18 6-6-6-6"></path>
+      </svg>
+    </a>
+  </div>
+</aside>
+
+<div
+  id="sidebarOverlay"
+  class="sidebar-overlay"
+  aria-hidden="true"
+></div>

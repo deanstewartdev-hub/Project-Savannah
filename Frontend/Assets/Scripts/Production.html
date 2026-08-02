@@ -1,0 +1,399 @@
+<script>
+(function initialiseProductionWorkspace() {
+  const root = document.getElementById("production-workspace");
+  if (!root) return;
+  const readyList = document.getElementById("production-ready-list");
+  const jobList = document.getElementById("production-job-list");
+  const readyCount = document.getElementById("production-ready-count");
+  const activeCount = document.getElementById("production-active-count");
+  const completeCount = document.getElementById("production-complete-count");
+  const publishedCount = document.getElementById("production-published-count");
+  const youtubeStatus = document.getElementById("production-youtube-status");
+  const youtubeConnect = document.getElementById("production-youtube-connect");
+  const automationStatus = document.getElementById("production-automation-status");
+  const automationToggle = document.getElementById("production-automation-toggle");
+  const scheduleStatus = document.getElementById("production-schedule-status");
+  let automationEnabled = false;
+  let activeRenderCount = 0;
+  let pollTimer = null;
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function showError(target, response) {
+    const error = response && response.error ? response.error : {};
+    const detail = error.message || "The request could not be completed.";
+    const recovery = error.recoveryAction || "Refresh Production and try the action again.";
+    const heading = error.repeated ? "This production step keeps failing" : "Production needs attention";
+    const retryNote = error.retryable ?
+      '<p><strong>Safe to retry:</strong> yes' +
+      (error.retryAfterSeconds ? ', after ' + escapeHtml(error.retryAfterSeconds) + ' seconds' : '') + '.</p>' :
+      '<p><strong>Safe to retry:</strong> not until the recovery step is completed.</p>';
+    const reference = [error.code, response && response.requestId].filter(Boolean).join(' | ');
+    target.innerHTML = '<div class="empty-state"><h3>' + escapeHtml(heading) + '</h3><p>' +
+      escapeHtml(detail) + '</p><p><strong>Next step:</strong> ' + escapeHtml(recovery) + '</p>' +
+      retryNote + (reference ? '<p><small>' + escapeHtml(reference) + '</small></p>' : '') + '</div>';
+  }
+
+  function runPreparation(request, button, failureLabel) {
+    button.disabled = true;
+    button.textContent = "Opening preparation...";
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return failed(response);
+      continueTask(response.data.task);
+    }).withFailureHandler(function (error) { failed({ error: error }); })
+      .productionStartPreparation(request);
+
+    function continueTask(task) {
+      if (task.status === "PAUSED" || task.status === "FAILED") {
+        button.textContent = "Resuming preparation...";
+        return google.script.run.withSuccessHandler(function (response) {
+          if (!response || !response.success) return failed(response);
+          prepareNext(response.data.task);
+        }).withFailureHandler(function (error) { failed({ error: error }); })
+          .productionControlPreparation({ taskId: task.id, action: "resume" });
+      }
+      prepareNext(task);
+    }
+
+    function prepareNext(task) {
+      if (task.status === "READY" || Number(task.nextScene || 1) > 4) return submitTask(task);
+      button.textContent = "Preparing scene " + task.nextScene + "/4...";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return failed(response);
+        if (response.data.complete) return submitTask(response.data.task);
+        prepareNext(response.data.task);
+      }).withFailureHandler(function (error) { failed({ error: error }); })
+        .productionPrepareNextScene({ taskId: task.id });
+    }
+
+    function submitTask(task) {
+      button.textContent = "Submitting render...";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return failed(response);
+        loadReady(); loadJobs(); loadPublishingSchedule();
+      }).withFailureHandler(function (error) { failed({ error: error }); })
+        .productionSubmitPrepared({ taskId: task.id });
+    }
+
+    function failed(response) {
+      button.disabled = false;
+      button.textContent = failureLabel;
+      showError(jobList, response);
+      loadReady();
+    }
+  }
+
+  function loadReady() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(readyList, response);
+      const items = response.data.items || [];
+      readyCount.textContent = items.length;
+      if (!items.length) {
+        readyList.innerHTML = '<div class="empty-state"><h3>Nothing is ready yet</h3>' +
+          '<p>Approve a script and generate its SEO pack first.</p></div>';
+        return;
+      }
+      readyList.innerHTML = items.map(function (item) {
+        const jobs = item.existingJobs || [];
+        const latest = jobs.length ? jobs.sort(function (a, b) {
+          return new Date(b.updatedAt) - new Date(a.updatedAt);
+        })[0] : null;
+        const busy = latest && ["QUEUED", "PLANNED", "RENDERING"].indexOf(latest.status) !== -1;
+        const task = item.preparationTask;
+        const prepared = task && task.preparedScenes ? task.preparedScenes.length : 0;
+        const taskLabel = task ? (task.status === "READY" ? "Submit prepared render" :
+          (task.status === "FAILED" ? "Retry scene preparation (" + prepared + "/4)" :
+          "Resume scene preparation (" + prepared + "/4)")) : "Create Short";
+        const priorityControl = task && !busy ? '<label style="display:block;margin-top:8px">Queue priority' +
+          '<select class="input production-task-priority" data-task-id="' + escapeHtml(task.id) + '">' +
+          [1, 2, 3, 4, 5].map(function (priority) {
+            const label = priority === 5 ? '5 — Urgent' : (priority === 3 ? '3 — Normal' :
+              (priority === 1 ? '1 — Low' : String(priority)));
+            return '<option value="' + priority + '"' +
+              (Number(task.priority || 3) === priority ? ' selected' : '') + '>' + label + '</option>';
+          }).join('') + '</select></label>' : '';
+        const controls = task && !busy ? priorityControl + '<div style="margin-top:8px">' +
+          (task.status === "PREPARING" ? '<button class="button button--secondary production-task-control" data-action="pause" data-task-id="' +
+            escapeHtml(task.id) + '">Pause</button>' : '') +
+          (["PAUSED", "FAILED", "READY"].indexOf(task.status) !== -1 ?
+            '<button class="button button--secondary production-task-control" data-action="cancel" data-task-id="' +
+            escapeHtml(task.id) + '">Cancel</button>' : '') + '</div>' : '';
+        return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(item.script.title) + '</h3>' +
+          '<p>' + escapeHtml(item.script.hook) + '</p><p><span class="badge">SEO ready</span></p>' +
+          '<button class="button button--primary production-submit" data-script-id="' +
+          escapeHtml(item.script.id) + '"' + (busy ? ' disabled' : '') + '>' +
+          (busy ? 'Rendering...' : taskLabel) + '</button>' +
+          (task && task.errorMessage ? '<p>' + escapeHtml(task.errorMessage) + '</p>' : '') + controls + '</div>';
+      }).join("");
+    }).withFailureHandler(function (error) { showError(readyList, { error: error }); }).productionListReady();
+  }
+
+  function loadJobs() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(jobList, response);
+      const jobs = response.data.jobs || [];
+      activeCount.textContent = jobs.filter(function (job) {
+        return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+      }).length;
+      activeRenderCount = Number(activeCount.textContent || 0);
+      schedulePolling();
+      completeCount.textContent = jobs.filter(function (job) { return job.status === "SUCCEEDED"; }).length;
+      publishedCount.textContent = jobs.filter(function (job) {
+        return job.publishingJob && job.publishingJob.status === "PUBLISHED";
+      }).length;
+      if (!jobs.length) {
+        jobList.innerHTML = '<div class="empty-state"><h3>No renders yet</h3><p>Create the first Short above.</p></div>';
+        return;
+      }
+      jobList.innerHTML = jobs.map(renderJobCard).join("");
+    }).withFailureHandler(function (error) { showError(jobList, { error: error }); }).productionListJobs();
+  }
+
+  function renderJobCard(job) {
+    const published = job.publishingJob && job.publishingJob.status === "PUBLISHED";
+    const uncertainUpload = job.publishingJob && job.publishingJob.status === "RECONCILE";
+    const uploading = job.publishingJob && job.publishingJob.status === "UPLOADING";
+    const publishingDetails = published && job.publishingJob.providerResponse || {};
+    const seo = job.seoPack || {}, quality = job.quality || {}, review = job.review || {};
+    const title = seo.titleOptions && seo.titleOptions[0] || "";
+    const videoAction = job.status === "SUCCEEDED" && job.videoUrl ?
+      '<a class="button button--secondary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
+      (job.renderId ? '<button class="button button--secondary production-refresh-job" data-job-id="' +
+      escapeHtml(job.id) + '">Refresh status</button>' : '');
+    const qualitySummary = job.status === "SUCCEEDED" ?
+      '<p><strong>Quality:</strong> ' + (quality.passed ? 'Passed' : 'Blocked') + ' | ' +
+      escapeHtml(quality.actualDurationSeconds || 0) + 's rendered / ' +
+      escapeHtml(quality.expectedDurationSeconds || 0) + 's planned' +
+      (quality.width && quality.height ? ' | ' + escapeHtml(quality.width) + 'x' + escapeHtml(quality.height) : '') + '</p>' +
+      (!quality.passed && quality.issues ? '<p>' + escapeHtml(quality.issues.join(' ')) + '</p>' : '') : '';
+    const reviewAction = job.status === "SUCCEEDED" && quality.passed && !review.approved && !published ?
+      '<button class="button button--primary production-approve-render" data-job-id="' +
+      escapeHtml(job.id) + '">Approve finished video</button>' :
+      (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
+    const retryAction = !published && (job.status === "FAILED" ||
+      (job.status === "SUCCEEDED" && (!quality.passed || !review.approved))) ?
+      '<button class="button button--secondary production-retry" data-job-id="' +
+      escapeHtml(job.id) + '">Re-render safely</button>' : '';
+    const publishAction = job.status === "SUCCEEDED" ? (published ?
+      '<a class="button button--primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
+      '" target="_blank" rel="noopener">Open on YouTube</a>' +
+      '<p><strong>YouTube:</strong> ' +
+      escapeHtml(publishingDetails.processingStatus || publishingDetails.uploadStatus || 'uploaded') +
+      ' | ' + escapeHtml(job.publishingJob.privacyStatus) + '</p>' +
+      (publishingDetails.publishAt ? '<p>Scheduled: ' +
+        escapeHtml(new Date(publishingDetails.publishAt).toLocaleString()) + '</p>' : '') +
+      '<button class="button button--secondary production-refresh-publication" data-job-id="' +
+      escapeHtml(job.id) + '">Refresh YouTube status</button>' : uncertainUpload ?
+      '<p><strong>Upload needs reconciliation.</strong> Check YouTube Studio for this title before retrying.</p>' +
+      '<button class="button button--secondary production-abandon-publication" data-job-id="' +
+      escapeHtml(job.id) + '">Confirm no upload and allow retry</button>' : uploading ?
+      '<p><strong>YouTube upload is in progress.</strong> Savannah is preventing a duplicate submission.</p>' :
+      (quality.passed && review.approved ? '<div class="production-publish-panel" style="margin-top:12px">' +
+      '<label>Video title<input class="input production-youtube-title" maxlength="100" value="' +
+      escapeHtml(title) + '"></label>' +
+      '<label>Visibility<select class="input production-youtube-privacy">' +
+      '<option value="private">Private</option><option value="unlisted">Unlisted</option>' +
+      '<option value="public">Public</option></select></label>' +
+      '<label>Schedule (optional)<input class="input production-youtube-schedule" type="datetime-local"></label>' +
+      '<button class="button button--primary production-publish" data-job-id="' +
+      escapeHtml(job.id) + '">Upload to YouTube</button></div>' : '')) : '';
+    return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(job.status) + '</h3>' +
+      '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + qualitySummary + videoAction +
+      reviewAction + retryAction + publishAction +
+      (job.publishingJob && job.publishingJob.status === "FAILED" ?
+        '<p>' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
+      (job.errorMessage ? '<p>' + escapeHtml(job.errorMessage) + '</p>' : '') + '</div>';
+  }
+
+  root.addEventListener("click", function (event) {
+    const submit = event.target.closest(".production-submit");
+    if (submit) {
+      runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
+      return;
+    }
+    const taskControl = event.target.closest(".production-task-control");
+    if (taskControl) {
+      taskControl.disabled = true;
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(readyList, response);
+        loadReady();
+      }).withFailureHandler(function (error) { showError(readyList, { error: error }); })
+        .productionControlPreparation({ taskId: taskControl.dataset.taskId, action: taskControl.dataset.action });
+      return;
+    }
+    const refresh = event.target.closest(".production-refresh-job");
+    if (refresh) {
+      refresh.disabled = true; refresh.textContent = "Refreshing...";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadReady(); loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionRefresh({ jobId: refresh.dataset.jobId });
+      return;
+    }
+    const publish = event.target.closest(".production-publish");
+    if (publish) {
+      const panel = publish.closest(".production-publish-panel");
+      const title = panel.querySelector(".production-youtube-title").value.trim();
+      const privacyStatus = panel.querySelector(".production-youtube-privacy").value;
+      const scheduleValue = panel.querySelector(".production-youtube-schedule").value;
+      const publishAt = scheduleValue ? new Date(scheduleValue).toISOString() : "";
+      if (!title) return showError(jobList, { error: { message: "A YouTube title is required." } });
+      publish.disabled = true; publish.textContent = "Uploading...";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs(); loadPublishingSchedule();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionPublish({ renderJobId: publish.dataset.jobId, title: title,
+          privacyStatus: privacyStatus, publishAt: publishAt });
+      return;
+    }
+    const approveRender = event.target.closest(".production-approve-render");
+    if (approveRender) {
+      approveRender.disabled = true; approveRender.textContent = "Approving...";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionApproveRender({ jobId: approveRender.dataset.jobId });
+      return;
+    }
+    const retry = event.target.closest(".production-retry");
+    if (retry) {
+      runPreparation({ jobId: retry.dataset.jobId }, retry, "Re-render safely");
+      return;
+    }
+    const refreshPublication = event.target.closest(".production-refresh-publication");
+    if (refreshPublication) {
+      refreshPublication.disabled = true; refreshPublication.textContent = "Refreshing...";
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionRefreshPublication({ renderJobId: refreshPublication.dataset.jobId });
+      return;
+    }
+    const abandonPublication = event.target.closest(".production-abandon-publication");
+    if (abandonPublication) {
+      if (!window.confirm("Confirm that you checked YouTube Studio and no copy of this video was uploaded.")) return;
+      abandonPublication.disabled = true;
+      google.script.run.withSuccessHandler(function (response) {
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs();
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+        .productionAbandonPublication({ renderJobId: abandonPublication.dataset.jobId, confirmNoUpload: true });
+    }
+  });
+
+  root.addEventListener("change", function (event) {
+    const priorityControl = event.target.closest(".production-task-priority");
+    if (!priorityControl) return;
+    priorityControl.disabled = true;
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(readyList, response);
+      loadReady();
+    }).withFailureHandler(function (error) {
+      priorityControl.disabled = false;
+      showError(readyList, { error: error });
+    }).productionControlPreparation({
+      taskId: priorityControl.dataset.taskId,
+      action: "priority",
+      priority: Number(priorityControl.value)
+    });
+  });
+
+  document.getElementById("production-refresh").addEventListener("click", function () {
+    loadReady(); loadJobs(); loadYouTubeConnection(); loadPublishingSchedule();
+  });
+
+  function loadYouTubeConnection() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) {
+        youtubeStatus.textContent = response && response.error ? response.error.message : "YouTube authorization required.";
+        return;
+      }
+      const channel = response.data.channel;
+      youtubeStatus.textContent = channel ? "Connected to " + channel.title : "No YouTube channel was found.";
+      youtubeConnect.textContent = channel ? "Reconnect" : "Connect YouTube";
+    }).withFailureHandler(function () {
+      youtubeStatus.textContent = "YouTube authorization required.";
+    }).productionGetYouTubeConnection();
+  }
+
+  function loadAutomationStatus() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) {
+        automationStatus.textContent = response && response.error ? response.error.message : "Automation status unavailable.";
+        return;
+      }
+      const automation = response.data.automation || {};
+      automationEnabled = automation.enabled === true;
+      automationStatus.textContent = automationEnabled ?
+        "Enabled | " + automation.actionableTasks + " task(s) ready to advance" :
+        "Disabled | browser must remain open during preparation";
+      automationToggle.textContent = automationEnabled ? "Disable" : "Enable";
+      automationToggle.disabled = false;
+    }).withFailureHandler(function (error) {
+      automationStatus.textContent = error && error.message ? error.message : "Automation status unavailable.";
+      automationToggle.disabled = false;
+    }).productionGetAutomationStatus();
+  }
+
+  function loadPublishingSchedule() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(scheduleStatus, response);
+      const schedule = response.data.schedule || [];
+      if (!schedule.length) {
+        scheduleStatus.innerHTML = '<p>No Shorts are currently scheduled.</p>';
+        return;
+      }
+      scheduleStatus.innerHTML = schedule.slice(0, 5).map(function (slot) {
+        return '<p><strong>' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</strong> &mdash; ' +
+          escapeHtml(slot.title) + '</p>';
+      }).join('');
+    }).withFailureHandler(function (error) {
+      showError(scheduleStatus, { error: error });
+    }).productionGetPublishingSchedule();
+  }
+
+  function schedulePolling() {
+    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+    if (!activeRenderCount) return;
+    pollTimer = setTimeout(function () {
+      google.script.run.withSuccessHandler(function () {
+        loadReady(); loadJobs(); loadPublishingSchedule();
+      }).withFailureHandler(function () {
+        pollTimer = setTimeout(schedulePolling, 15000);
+      }).productionRefreshActive();
+    }, 12000);
+  }
+
+  youtubeConnect.addEventListener("click", function () {
+    youtubeConnect.disabled = true; youtubeConnect.textContent = "Authorizing...";
+    google.script.run.withSuccessHandler(function () {
+      youtubeConnect.disabled = false; loadYouTubeConnection();
+    }).withFailureHandler(function (error) {
+      youtubeConnect.disabled = false; youtubeConnect.textContent = "Connect YouTube";
+      youtubeStatus.textContent = error && error.message ? error.message : "YouTube authorization is required.";
+    }).authorizeYouTubePublishing();
+  });
+
+  automationToggle.addEventListener("click", function () {
+    automationToggle.disabled = true;
+    automationToggle.textContent = automationEnabled ? "Disabling..." : "Enabling...";
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(jobList, response);
+      loadAutomationStatus();
+    }).withFailureHandler(function (error) {
+      automationToggle.disabled = false;
+      showError(jobList, { error: error });
+    }).productionSetAutomation({ enabled: !automationEnabled });
+  });
+
+  loadReady(); loadJobs(); loadYouTubeConnection(); loadAutomationStatus(); loadPublishingSchedule();
+})();
+</script>

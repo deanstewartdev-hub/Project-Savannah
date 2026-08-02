@@ -7,7 +7,7 @@
 const APP = {
   NAME: "Project Savannah",
   VERSION: "1.0.0",
-  PROMPT_VERSION: "ideas-v1.0"
+  PROMPT_VERSION: "ideas-v1.1-trend-led"
 };
 
 const APP_STATUS = {
@@ -47,6 +47,11 @@ const SHEETS = {
   IDEAS: "Ideas",
   SCRIPTS: "Scripts",
   SEO_PACK: "SEO Pack",
+  RENDER_JOBS: "Render Jobs",
+  PUBLISHING_JOBS: "Publishing Jobs",
+  PRODUCTION_TASKS: "Production Tasks",
+  ANALYTICS: "Analytics",
+  CHANNEL_ANALYTICS: "Channel Analytics",
   APPROVAL_QUEUE: "Approval Queue",
   LOGS: "Logs",
   COSTS: "Costs"

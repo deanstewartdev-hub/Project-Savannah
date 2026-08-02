@@ -1,0 +1,72 @@
+<script>
+(function initialiseSeoWorkspace() {
+  const root = document.getElementById("seo-workspace");
+  if (!root) return;
+  const eligibleList = document.getElementById("seo-eligible-list");
+  const packList = document.getElementById("seo-pack-list");
+  const approvedCount = document.getElementById("seo-approved-count");
+  const packCount = document.getElementById("seo-pack-count");
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  function showError(target, response) {
+    const detail = response && response.error && response.error.message
+      ? response.error.message : "The request could not be completed.";
+    target.innerHTML = '<div class="empty-state"><h3>Something went wrong</h3><p>' + escapeHtml(detail) + '</p></div>';
+  }
+  function loadEligible() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(eligibleList, response);
+      const scripts = response.data.scripts || [];
+      approvedCount.textContent = scripts.length;
+      if (!scripts.length) {
+        eligibleList.innerHTML = '<div class="empty-state"><h3>No approved scripts yet</h3><p>Approve a script in the Approval Queue to continue.</p></div>';
+        return;
+      }
+      eligibleList.innerHTML = scripts.map(function (script) {
+        return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(script.title) + '</h3>' +
+          '<p>' + escapeHtml(script.hook) + '</p><p><span class="badge">' +
+          (script.hasSeoPack ? 'SEO ready' : 'Approved') + '</span></p>' +
+          '<button class="button button--primary seo-generate" data-script-id="' + escapeHtml(script.id) + '"' +
+          (script.hasSeoPack ? ' disabled' : '') + '>' + (script.hasSeoPack ? 'SEO generated' : 'Generate SEO pack') + '</button></div>';
+      }).join("");
+    }).withFailureHandler(function (error) { showError(eligibleList, { error: error }); }).seoListEligibleScripts();
+  }
+  function loadPacks() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(packList, response);
+      const packs = response.data.packs || [];
+      packCount.textContent = packs.length;
+      if (!packs.length) {
+        packList.innerHTML = '<div class="empty-state"><h3>No SEO packs yet</h3><p>Generate one from an approved script above.</p></div>';
+        return;
+      }
+      packList.innerHTML = packs.map(function (pack) {
+        return '<details class="card" style="margin-bottom:12px"><summary><strong>' +
+          escapeHtml(pack.titleOptions[0]) + '</strong></summary><h4>Title options</h4><ol>' +
+          pack.titleOptions.map(function (v) { return '<li>' + escapeHtml(v) + '</li>'; }).join("") +
+          '</ol><h4>Description</h4><p>' + escapeHtml(pack.description) + '</p><h4>Tags</h4><p>' +
+          escapeHtml(pack.tags.join(", ")) + '</p><h4>Hashtags</h4><p>' + escapeHtml(pack.hashtags.join(" ")) +
+          '</p><h4>Thumbnail text</h4><p>' + escapeHtml(pack.thumbnailText) +
+          '</p><h4>Pinned comment</h4><p>' + escapeHtml(pack.pinnedComment) + '</p></details>';
+      }).join("");
+    }).withFailureHandler(function (error) { showError(packList, { error: error }); }).seoListPacks();
+  }
+  root.addEventListener("click", function (event) {
+    const button = event.target.closest(".seo-generate");
+    if (!button) return;
+    button.disabled = true; button.textContent = "Generating…";
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) { button.disabled = false; button.textContent = "Generate SEO pack"; return showError(eligibleList, response); }
+      loadEligible(); loadPacks();
+    }).withFailureHandler(function (error) {
+      button.disabled = false; button.textContent = "Generate SEO pack"; showError(eligibleList, { error: error });
+    }).seoGenerate({ scriptId: button.dataset.scriptId });
+  });
+  document.getElementById("seo-refresh").addEventListener("click", function () { loadEligible(); loadPacks(); });
+  loadEligible(); loadPacks();
+})();
+</script>

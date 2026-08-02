@@ -1,0 +1,100 @@
+<header class="app-topbar">
+  <div class="topbar-leading">
+    <button
+      id="sidebarToggle"
+      class="topbar-icon-button mobile-sidebar-toggle"
+      type="button"
+      aria-label="Open navigation"
+      aria-controls="appSidebar"
+      aria-expanded="false"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M4 7h16"></path>
+        <path d="M4 12h16"></path>
+        <path d="M4 17h16"></path>
+      </svg>
+    </button>
+
+    <div class="topbar-page-context">
+      <p class="topbar-eyebrow">
+        Project Savannah
+      </p>
+
+      <h1 class="topbar-page-title">
+        <?= currentRoute.title ?>
+      </h1>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <div
+      class="topbar-search"
+      role="search"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle
+          cx="11"
+          cy="11"
+          r="7"
+        ></circle>
+
+        <path d="m20 20-3.5-3.5"></path>
+      </svg>
+
+      <input
+        id="appSearch"
+        type="search"
+        placeholder="Search Savannah"
+        aria-label="Search Project Savannah"
+        autocomplete="off"
+      >
+
+      <kbd>/</kbd>
+    </div>
+
+    <div
+      class="topbar-status"
+      title="Savannah services are operational"
+    >
+      <span
+        class="topbar-status-dot"
+        aria-hidden="true"
+      ></span>
+
+      <span>Operational</span>
+    </div>
+
+    <button
+      class="topbar-icon-button"
+      type="button"
+      aria-label="Notifications"
+      title="Notifications"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"
+        ></path>
+
+        <path d="M10 21h4"></path>
+      </svg>
+    </button>
+
+    <button
+      class="topbar-profile"
+      type="button"
+      aria-label="Open user menu"
+      title="User menu"
+    >
+      <span aria-hidden="true">DS</span>
+    </button>
+  </div>
+</header>

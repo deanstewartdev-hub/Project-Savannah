@@ -1,0 +1,53 @@
+<section class="page-section" id="production-workspace">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">Video rendering</p>
+      <h1>Production Workspace</h1>
+      <p>Turn approved scripts and SEO packs into finished vertical Shorts, then publish them to YouTube.</p>
+    </div>
+    <button class="button button--secondary" id="production-refresh" type="button">Refresh</button>
+  </div>
+
+  <div class="dashboard-grid dashboard-grid--metrics">
+    <article class="card"><span>Ready to render</span><strong id="production-ready-count">0</strong></article>
+    <article class="card"><span>Active renders</span><strong id="production-active-count">0</strong></article>
+    <article class="card"><span>Completed videos</span><strong id="production-complete-count">0</strong></article>
+    <article class="card"><span>Published to YouTube</span><strong id="production-published-count">0</strong></article>
+  </div>
+
+  <article class="card">
+    <div class="card__header">
+      <div><h2>YouTube channel</h2><p id="production-youtube-status">Checking authorization…</p></div>
+      <button class="button button--secondary" id="production-youtube-connect" type="button">Connect YouTube</button>
+    </div>
+  </article>
+
+  <article class="card">
+    <div class="card__header">
+      <div><h2>Background automation</h2><p id="production-automation-status">Checking queue worker...</p></div>
+      <button class="button button--secondary" id="production-automation-toggle" type="button">Enable</button>
+    </div>
+    <p>The worker resumes one prepared scene every five minutes if this browser closes.</p>
+  </article>
+
+  <article class="card">
+    <div class="card__header">
+      <div><h2>Publishing schedule</h2><p>Scheduled Shorts must remain at least one hour apart.</p></div>
+    </div>
+    <div id="production-schedule-status"><p>Loading upcoming publicationsâ€¦</p></div>
+  </article>
+
+  <article class="card">
+    <div class="card__header">
+      <div><h2>Ready for production</h2><p>Each item has an approved script and generated SEO pack.</p></div>
+    </div>
+    <div id="production-ready-list"><p>Loading production-ready Shorts…</p></div>
+  </article>
+
+  <article class="card">
+    <div class="card__header">
+      <div><h2>Render and publishing jobs</h2><p>Track Creatomate progress, open MP4 videos and publish completed Shorts.</p></div>
+    </div>
+    <div id="production-job-list"><p>Loading render jobs…</p></div>
+  </article>
+</section>

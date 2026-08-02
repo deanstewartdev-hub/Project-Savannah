@@ -1,0 +1,539 @@
+<section
+  id="dashboard-page"
+  class="page dashboard-page"
+  data-page="dashboard"
+>
+  <!-- ==================================================
+       Dashboard introduction
+       ================================================== -->
+
+  <header class="dashboard-hero">
+    <div class="dashboard-hero-content">
+      <span
+        id="dashboard-system-status"
+        class="badge badge-info"
+      >
+        Loading system status…
+      </span>
+
+      <div class="dashboard-hero-heading">
+        <p class="dashboard-hero-eyebrow">
+          Production overview
+        </p>
+
+        <h2 class="page-title">
+          Welcome back, Dean
+        </h2>
+
+        <p class="page-description">
+          Monitor today’s production, review pipeline
+          progress and manage Project Savannah from one
+          workspace.
+        </p>
+      </div>
+    </div>
+
+    <div class="dashboard-hero-actions">
+      <a
+        class="button button-secondary"
+        href="?page=ideas"
+        target="_top"
+      >
+        <svg
+          class="button-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="M8 6h13"></path>
+          <path d="M8 12h13"></path>
+          <path d="M8 18h13"></path>
+          <path d="M3 6h.01"></path>
+          <path d="M3 12h.01"></path>
+          <path d="M3 18h.01"></path>
+        </svg>
+
+        View ideas
+      </a>
+
+      <a
+        class="button button-primary"
+        href="?page=ideas"
+        target="_top"
+      >
+        <svg
+          class="button-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+
+        Generate ideas
+      </a>
+    </div>
+  </header>
+
+  <!-- ==================================================
+       Dashboard loading and error states
+       ================================================== -->
+
+  <div
+    id="dashboard-loading-message"
+    class="dashboard-data-message dashboard-data-message-loading"
+  >
+    <span
+      class="dashboard-loading-spinner"
+      aria-hidden="true"
+    ></span>
+
+    <div>
+      <strong>Loading dashboard</strong>
+
+      <p>
+        Retrieving the latest Savannah production data.
+      </p>
+    </div>
+  </div>
+
+  <div
+    id="dashboard-error-message"
+    class="alert alert-danger"
+    role="alert"
+    hidden
+  >
+    Dashboard data could not be loaded.
+  </div>
+
+  <!-- ==================================================
+       Today's production
+       ================================================== -->
+
+  <section
+    class="section"
+    aria-labelledby="dashboard-production-title"
+  >
+    <div class="section-header">
+      <div>
+        <p class="section-eyebrow">
+          Daily performance
+        </p>
+
+        <h3
+          id="dashboard-production-title"
+          class="section-title"
+        >
+          Today’s production
+        </h3>
+
+        <p class="section-description">
+          Live progress across the Savannah content
+          pipeline.
+        </p>
+      </div>
+
+      <span class="dashboard-date-label">
+        Today
+      </span>
+    </div>
+
+    <div class="dashboard-kpi-grid">
+      <!-- Ideas generated -->
+
+      <article class="dashboard-kpi-card">
+        <div class="dashboard-kpi-header">
+          <span
+            class="dashboard-kpi-icon dashboard-kpi-icon-ideas"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M9 18h6"></path>
+              <path d="M10 22h4"></path>
+              <path
+                d="M8.5 14.5A7 7 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"
+              ></path>
+            </svg>
+          </span>
+
+          <span class="dashboard-kpi-status">
+            Ideas
+          </span>
+        </div>
+
+        <div class="dashboard-kpi-content">
+          <p class="kpi-label">
+            Ideas generated
+          </p>
+
+          <p
+            id="dashboard-ideas-today"
+            class="kpi-value"
+          >
+            —
+          </p>
+
+          <p
+            id="dashboard-ideas-target"
+            class="kpi-meta"
+          >
+            Daily target: 3
+          </p>
+        </div>
+
+        <div
+          class="dashboard-kpi-accent"
+          aria-hidden="true"
+        ></div>
+      </article>
+
+      <!-- Scripts created -->
+
+      <article class="dashboard-kpi-card">
+        <div class="dashboard-kpi-header">
+          <span
+            class="dashboard-kpi-icon dashboard-kpi-icon-scripts"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M6 3h9l3 3v15H6z"></path>
+              <path d="M14 3v4h4"></path>
+              <path d="M9 12h6"></path>
+              <path d="M9 16h6"></path>
+            </svg>
+          </span>
+
+          <span class="dashboard-kpi-status">
+            Scripts
+          </span>
+        </div>
+
+        <div class="dashboard-kpi-content">
+          <p class="kpi-label">
+            Scripts created
+          </p>
+
+          <p
+            id="dashboard-scripts-today"
+            class="kpi-value"
+          >
+            —
+          </p>
+
+          <p
+            id="dashboard-scripts-target"
+            class="kpi-meta"
+          >
+            Daily target: 3
+          </p>
+        </div>
+
+        <div
+          class="dashboard-kpi-accent"
+          aria-hidden="true"
+        ></div>
+      </article>
+
+      <!-- Approval queue -->
+
+      <article class="dashboard-kpi-card">
+        <div class="dashboard-kpi-header">
+          <span
+            class="dashboard-kpi-icon dashboard-kpi-icon-approval"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M9 11l3 3L22 4"></path>
+              <path
+                d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+              ></path>
+            </svg>
+          </span>
+
+          <span class="dashboard-kpi-status">
+            Review
+          </span>
+        </div>
+
+        <div class="dashboard-kpi-content">
+          <p class="kpi-label">
+            Approval queue
+          </p>
+
+          <p
+            id="dashboard-approval-count"
+            class="kpi-value"
+          >
+            —
+          </p>
+
+          <p class="kpi-meta">
+            Records waiting for review
+          </p>
+        </div>
+
+        <div
+          class="dashboard-kpi-accent"
+          aria-hidden="true"
+        ></div>
+      </article>
+
+      <!-- Estimated cost -->
+
+      <article class="dashboard-kpi-card">
+        <div class="dashboard-kpi-header">
+          <span
+            class="dashboard-kpi-icon dashboard-kpi-icon-cost"
+            aria-hidden="true"
+          >
+            <svg viewBox="0 0 24 24">
+              <circle
+                cx="12"
+                cy="12"
+                r="9"
+              ></circle>
+
+              <path d="M8 9.5h6"></path>
+              <path d="M8 14.5h7"></path>
+              <path
+                d="M10 7v10"
+              ></path>
+            </svg>
+          </span>
+
+          <span class="dashboard-kpi-status">
+            Usage
+          </span>
+        </div>
+
+        <div class="dashboard-kpi-content">
+          <p class="kpi-label">
+            Estimated AI cost
+          </p>
+
+          <p
+            id="dashboard-total-cost"
+            class="kpi-value dashboard-cost-value"
+          >
+            —
+          </p>
+
+          <p class="kpi-meta">
+            Recorded lifetime usage
+          </p>
+        </div>
+
+        <div
+          class="dashboard-kpi-accent"
+          aria-hidden="true"
+        ></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ==================================================
+       Main dashboard panels
+       ================================================== -->
+
+  <div class="dashboard-primary-grid">
+    <!-- Pipeline -->
+
+    <section
+      class="card dashboard-panel"
+      aria-labelledby="dashboard-pipeline-title"
+    >
+      <div class="dashboard-panel-header">
+        <div>
+          <p class="section-eyebrow">
+            Workflow
+          </p>
+
+          <h3
+            id="dashboard-pipeline-title"
+            class="card-title"
+          >
+            Content pipeline
+          </h3>
+
+          <p class="card-description">
+            Current status of each production stage.
+          </p>
+        </div>
+
+        <a
+          class="dashboard-panel-link"
+          href="?page=queue"
+          target="_top"
+        >
+          Open queue
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+        </a>
+      </div>
+
+      <div class="dashboard-panel-body">
+        <div class="table-container dashboard-table-container">
+          <table class="table dashboard-table">
+            <thead>
+              <tr>
+                <th scope="col">
+                  Stage
+                </th>
+
+                <th scope="col">
+                  Status
+                </th>
+
+                <th scope="col">
+                  Records
+                </th>
+              </tr>
+            </thead>
+
+            <tbody id="dashboard-pipeline-body">
+              <tr>
+                <td colspan="3">
+                  Loading pipeline…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent activity -->
+
+    <section
+      class="card dashboard-panel"
+      aria-labelledby="dashboard-activity-title"
+    >
+      <div class="dashboard-panel-header">
+        <div>
+          <p class="section-eyebrow">
+            System history
+          </p>
+
+          <h3
+            id="dashboard-activity-title"
+            class="card-title"
+          >
+            Recent activity
+          </h3>
+
+          <p class="card-description">
+            Latest actions recorded by Project Savannah.
+          </p>
+        </div>
+
+        <span class="dashboard-live-label">
+          <span
+            class="dashboard-live-dot"
+            aria-hidden="true"
+          ></span>
+
+          Live
+        </span>
+      </div>
+
+      <div
+        id="dashboard-recent-activity"
+        class="dashboard-activity-list"
+      >
+        <div class="dashboard-activity-loading">
+          Loading recent activity…
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================================================
+       Lifetime totals
+       ================================================== -->
+
+  <section
+    class="section"
+    aria-labelledby="dashboard-totals-title"
+  >
+    <div class="section-header">
+      <div>
+        <p class="section-eyebrow">
+          Lifetime performance
+        </p>
+
+        <h3
+          id="dashboard-totals-title"
+          class="section-title"
+        >
+          Pipeline totals
+        </h3>
+
+        <p class="section-description">
+          Records stored in the Savannah database.
+        </p>
+      </div>
+    </div>
+
+    <div class="dashboard-total-grid">
+      <article class="dashboard-total-card">
+        <span class="dashboard-total-label">
+          Total ideas
+        </span>
+
+        <strong id="dashboard-total-ideas">
+          —
+        </strong>
+
+        <span class="dashboard-total-meta">
+          Generated concepts
+        </span>
+      </article>
+
+      <article class="dashboard-total-card">
+        <span class="dashboard-total-label">
+          Total scripts
+        </span>
+
+        <strong id="dashboard-total-scripts">
+          —
+        </strong>
+
+        <span class="dashboard-total-meta">
+          Completed scripts
+        </span>
+      </article>
+
+      <article class="dashboard-total-card">
+        <span class="dashboard-total-label">
+          Total SEO packs
+        </span>
+
+        <strong id="dashboard-total-seo">
+          —
+        </strong>
+
+        <span class="dashboard-total-meta">
+          Publishing metadata
+        </span>
+      </article>
+
+      <article class="dashboard-total-card">
+        <span class="dashboard-total-label">
+          Logged activities
+        </span>
+
+        <strong id="dashboard-total-logs">
+          —
+        </strong>
+
+        <span class="dashboard-total-meta">
+          System events
+        </span>
+      </article>
+    </div>
+  </section>
+</section>

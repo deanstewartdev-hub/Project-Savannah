@@ -1,0 +1,163 @@
+<script>
+(function initialiseQueueWorkspace() {
+  if (!document.querySelector('[data-page="queue"]')) return;
+
+  const state = { approvals: [], selected: null, busy: false };
+  const byId = function (id) { return document.getElementById(id); };
+
+  function callServer(name, payload) {
+    return new Promise(function (resolve, reject) {
+      const runner = google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject);
+      if (payload === undefined) runner[name]();
+      else runner[name](payload);
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function showMessage(text, kind) {
+    const element = byId("queue-message");
+    element.hidden = !text;
+    element.textContent = text || "";
+    element.className = "alert alert-" + (kind || "info");
+  }
+
+  function dateText(value) {
+    if (!value) return "—";
+    const parsed = new Date(value);
+    return isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
+  }
+
+  function badge(status) {
+    const label = String(status || "").replace(/_/g, " ").toLowerCase();
+    const style = status === "APPROVED" ? "success" :
+      status === "REJECTED" ? "error" : "warning";
+    return '<span class="badge badge-' + style + '">' +
+      escapeHtml(label.replace(/\b\w/g, function (c) { return c.toUpperCase(); })) +
+      "</span>";
+  }
+
+  function renderTable() {
+    const body = byId("queue-table-body");
+    if (!state.approvals.length) {
+      body.innerHTML = '<tr><td colspan="5">No approval records match this filter.</td></tr>';
+      return;
+    }
+    body.innerHTML = state.approvals.map(function (item) {
+      const decision = item.decisionReason || item.reviewNotes || "—";
+      const action = item.status === "PENDING_APPROVAL"
+        ? '<button class="button button-primary" type="button" data-review-id="' +
+          escapeHtml(item.id) + '">Review</button>'
+        : '<button class="button button-secondary" type="button" data-review-id="' +
+          escapeHtml(item.id) + '">View</button>';
+      return "<tr><td>" + escapeHtml(item.title) + "</td><td>" +
+        badge(item.status) + "</td><td>" + escapeHtml(dateText(item.submittedAt)) +
+        "</td><td>" + escapeHtml(decision) + "</td><td>" + action + "</td></tr>";
+    }).join("");
+  }
+
+  function renderMetrics(metrics) {
+    byId("queue-pending-count").textContent = metrics.pending || 0;
+    byId("queue-approved-count").textContent = metrics.approved || 0;
+    byId("queue-changes-count").textContent = metrics.changesRequested || 0;
+    byId("queue-rejected-count").textContent = metrics.rejected || 0;
+  }
+
+  async function load() {
+    if (state.busy) return;
+    state.busy = true;
+    showMessage("Loading approval queue...", "info");
+    try {
+      const status = byId("queue-status-filter").value;
+      const results = await Promise.all([
+        callServer("queueList", { status: status, limit: 100 }),
+        callServer("queueGetMetrics")
+      ]);
+      if (!results[0].success) throw new Error(results[0].message);
+      if (!results[1].success) throw new Error(results[1].message);
+      state.approvals = results[0].data.approvals || [];
+      renderTable();
+      renderMetrics(results[1].data || {});
+      showMessage("", "info");
+    } catch (error) {
+      showMessage(error && error.message ? error.message : "Queue loading failed.", "error");
+    } finally {
+      state.busy = false;
+    }
+  }
+
+  function openReview(id) {
+    const item = state.approvals.find(function (entry) { return entry.id === id; });
+    if (!item) return;
+    state.selected = item;
+    byId("queue-review-title").textContent = item.title || "Review script";
+    byId("queue-review-notes").value = item.reviewNotes || "";
+    byId("queue-decision-reason").value = item.decisionReason || "";
+    const script = item.script;
+    byId("queue-script-content").innerHTML = script
+      ? "<h3>Hook</h3><p>" + escapeHtml(script.hook) +
+        "</p><h3>Voiceover</h3><p>" + escapeHtml(script.voiceoverScript) +
+        "</p><h3>Call to action</h3><p>" + escapeHtml(script.callToAction) + "</p>"
+      : '<div class="alert alert-error">The linked script could not be loaded.</div>';
+    document.querySelectorAll("[data-queue-decision]").forEach(function (button) {
+      button.hidden = item.status !== "PENDING_APPROVAL";
+    });
+    byId("queue-review-modal").hidden = false;
+  }
+
+  function closeReview() {
+    byId("queue-review-modal").hidden = true;
+    state.selected = null;
+  }
+
+  async function decide(decision) {
+    if (state.busy || !state.selected) return;
+    const reason = byId("queue-decision-reason").value.trim();
+    if ((decision === "REJECT" || decision === "RETURN") && !reason) {
+      showMessage("Enter a decision reason before rejecting or returning the script.", "error");
+      return;
+    }
+    state.busy = true;
+    showMessage("Saving review decision...", "info");
+    try {
+      const response = await callServer("queueDecide", {
+        approvalId: state.selected.id,
+        decision: decision,
+        reviewNotes: byId("queue-review-notes").value,
+        decisionReason: reason
+      });
+      if (!response.success) {
+        throw new Error(response.error && response.error.message ?
+          response.error.message : response.message);
+      }
+      closeReview();
+      showMessage("Review decision saved.", "success");
+      state.busy = false;
+      await load();
+    } catch (error) {
+      state.busy = false;
+      showMessage(error && error.message ? error.message : "Review decision failed.", "error");
+    }
+  }
+
+  byId("queue-refresh-button").addEventListener("click", load);
+  byId("queue-status-filter").addEventListener("change", load);
+  byId("queue-review-close").addEventListener("click", closeReview);
+  byId("queue-table-body").addEventListener("click", function (event) {
+    const button = event.target.closest("[data-review-id]");
+    if (button) openReview(button.getAttribute("data-review-id"));
+  });
+  document.querySelectorAll("[data-queue-decision]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      decide(button.getAttribute("data-queue-decision"));
+    });
+  });
+  load();
+})();
+</script>

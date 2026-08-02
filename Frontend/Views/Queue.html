@@ -1,0 +1,92 @@
+<section class="page" data-page="queue">
+  <header class="page-header">
+    <div>
+      <p class="page-eyebrow">Human review</p>
+      <h1 class="page-title">Approval Queue</h1>
+      <p class="page-description">
+        Review saved scripts and approve, reject or return them for changes.
+      </p>
+    </div>
+    <button id="queue-refresh-button" class="button button-secondary" type="button">
+      Refresh
+    </button>
+  </header>
+
+  <div id="queue-message" class="alert alert-info" role="status" hidden></div>
+
+  <section class="dashboard-grid" aria-label="Approval metrics">
+    <article class="card"><div class="card-body">
+      <p class="card-label">Pending</p><p id="queue-pending-count" class="card-value">0</p>
+    </div></article>
+    <article class="card"><div class="card-body">
+      <p class="card-label">Approved</p><p id="queue-approved-count" class="card-value">0</p>
+    </div></article>
+    <article class="card"><div class="card-body">
+      <p class="card-label">Changes requested</p><p id="queue-changes-count" class="card-value">0</p>
+    </div></article>
+    <article class="card"><div class="card-body">
+      <p class="card-label">Rejected</p><p id="queue-rejected-count" class="card-value">0</p>
+    </div></article>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Scripts awaiting review</h2>
+        <p class="card-description">Open a script to record a review decision.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="queue-status-filter">Status</label>
+        <select id="queue-status-filter" class="form-control">
+          <option value="PENDING_APPROVAL">Pending approval</option>
+          <option value="">All statuses</option>
+          <option value="APPROVED">Approved</option>
+          <option value="CHANGES_REQUESTED">Changes requested</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table">
+          <thead><tr>
+            <th>Title</th><th>Status</th><th>Submitted</th><th>Decision</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="queue-table-body">
+            <tr><td colspan="5">Loading approval queue...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div id="queue-review-modal" class="modal" role="dialog" aria-modal="true"
+    aria-labelledby="queue-review-title" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div><p class="page-eyebrow">Script review</p>
+          <h2 id="queue-review-title" class="modal-title">Review script</h2></div>
+        <button id="queue-review-close" class="button button-secondary" type="button">Close</button>
+      </div>
+      <div class="modal-body">
+        <div id="queue-script-content"></div>
+        <div class="form-group">
+          <label class="form-label" for="queue-review-notes">Reviewer notes</label>
+          <textarea id="queue-review-notes" class="form-control" rows="4"
+            placeholder="Optional notes for the review history"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="queue-decision-reason">Decision reason</label>
+          <textarea id="queue-decision-reason" class="form-control" rows="3"
+            placeholder="Required when rejecting or returning for changes"></textarea>
+        </div>
+        <div class="page-actions">
+          <button class="button button-primary" type="button" data-queue-decision="APPROVE">Approve</button>
+          <button class="button button-secondary" type="button" data-queue-decision="RETURN">Return for changes</button>
+          <button class="button button-danger" type="button" data-queue-decision="REJECT">Reject</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

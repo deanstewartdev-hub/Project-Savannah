@@ -1,0 +1,47 @@
+<section class="page-section" id="analytics-workspace">
+  <div class="page-header">
+    <div><p class="eyebrow">Channel intelligence</p><h1>YouTube Analytics</h1>
+      <p>Track the latest public metrics for Shorts uploaded by Project Savannah.</p></div>
+    <div class="page-header__actions">
+      <button class="button button--secondary" id="analytics-export" type="button" disabled>Download CSV report</button>
+      <button class="button button--primary" id="analytics-refresh" type="button">Refresh YouTube metrics</button>
+    </div>
+  </div>
+  <div class="dashboard-grid dashboard-grid--metrics">
+    <article class="card"><span>Tracked videos</span><strong id="analytics-video-count">0</strong></article>
+    <article class="card"><span>Total views</span><strong id="analytics-view-count">0</strong></article>
+    <article class="card"><span>Total likes</span><strong id="analytics-like-count">0</strong></article>
+    <article class="card"><span>Total comments</span><strong id="analytics-comment-count">0</strong></article>
+    <article class="card"><span>Subscribers</span><strong id="analytics-subscriber-count">0</strong></article>
+    <article class="card"><span>Channel views</span><strong id="analytics-channel-view-count">0</strong></article>
+  </div>
+  <article class="card"><div class="card__header"><div><h2>Video performance</h2>
+    <p id="analytics-captured-at">No analytics snapshot has been captured yet.</p></div></div>
+    <div id="analytics-video-list"><p>Loading analytics...</p></div>
+  </article>
+  <article class="card"><div class="card__header"><div><h2>Channel baseline</h2>
+    <p id="analytics-channel-summary">Capture metrics to create the first channel baseline.</p></div></div></article>
+  <article class="card analytics-health-card"><div class="card__header"><div><h2>Channel health</h2>
+    <p>A transparent operational score based on Savannah's stored metrics.</p></div>
+    <strong id="analytics-health-score" class="analytics-health-score">--</strong></div>
+    <div id="analytics-health-detail"><p>Capture metrics to calculate channel health.</p></div>
+  </article>
+  <article class="card"><div class="card__header"><div><h2>Growth reports</h2>
+    <p>Daily, weekly, and monthly changes from stored channel snapshots.</p></div></div>
+    <div id="analytics-period-reports" class="analytics-report-grid"><p>Capture metrics to create growth reports.</p></div>
+  </article>
+  <article class="card"><div class="card__header"><div><h2>Content performance insights</h2>
+    <p>Compare topic, hook pattern, duration, and UTC upload day without hiding sample size.</p></div></div>
+    <div id="analytics-content-insights"><p>Track published Shorts to create content insights.</p></div>
+  </article>
+  <div class="analytics-chart-grid" aria-label="Channel growth charts">
+    <article class="card analytics-chart-card"><div class="card__header"><div><h2>Subscriber growth</h2>
+      <p>Up to the latest 30 hourly snapshots.</p></div></div>
+      <div id="analytics-subscriber-chart" class="analytics-chart"><p>Capture another snapshot to show a trend.</p></div>
+    </article>
+    <article class="card analytics-chart-card"><div class="card__header"><div><h2>Channel view growth</h2>
+      <p>Lifetime channel views across captured snapshots.</p></div></div>
+      <div id="analytics-channel-view-chart" class="analytics-chart"><p>Capture another snapshot to show a trend.</p></div>
+    </article>
+  </div>
+</section>

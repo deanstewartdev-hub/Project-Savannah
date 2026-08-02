@@ -1,0 +1,216 @@
+<script>
+(function initialiseAnalyticsWorkspace() {
+  const root = document.getElementById("analytics-workspace");
+  if (!root) return;
+  const list = document.getElementById("analytics-video-list");
+  const refresh = document.getElementById("analytics-refresh");
+  const exportButton = document.getElementById("analytics-export");
+  let latestSummary = null;
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+  function formatNumber(value) { return Number(value || 0).toLocaleString(); }
+  function renderTrendChart(targetId, history, key, accessibleLabel) {
+    const target = document.getElementById(targetId);
+    const points = (history || []).filter(function (snapshot) {
+      return isFinite(Number(snapshot[key])) && !isNaN(new Date(snapshot.capturedAt).getTime());
+    });
+    if (points.length < 2) {
+      target.innerHTML = '<div class="empty-state"><h3>Trend needs two snapshots</h3>' +
+        '<p>Refresh metrics after at least one hour to create the first comparison.</p></div>';
+      return;
+    }
+    const values = points.map(function (point) { return Number(point[key]); });
+    const minimum = Math.min.apply(null, values), maximum = Math.max.apply(null, values);
+    const range = maximum - minimum, left = 48, right = 652, top = 24, bottom = 176;
+    const coordinates = points.map(function (point, index) {
+      const x = left + (right - left) * index / Math.max(1, points.length - 1);
+      const y = range ? bottom - (Number(point[key]) - minimum) / range * (bottom - top) : (top + bottom) / 2;
+      return { x: x, y: y, capturedAt: point.capturedAt };
+    });
+    const line = coordinates.map(function (point) { return point.x.toFixed(1) + ',' + point.y.toFixed(1); }).join(' ');
+    const area = left + ',' + bottom + ' ' + line + ' ' + right + ',' + bottom;
+    const first = coordinates[0], last = coordinates[coordinates.length - 1];
+    target.innerHTML = '<svg viewBox="0 0 700 220" role="img" aria-label="' + escapeHtml(accessibleLabel) + '">' +
+      '<line class="analytics-chart__grid" x1="48" y1="24" x2="652" y2="24"></line>' +
+      '<line class="analytics-chart__grid" x1="48" y1="100" x2="652" y2="100"></line>' +
+      '<line class="analytics-chart__grid" x1="48" y1="176" x2="652" y2="176"></line>' +
+      '<polygon class="analytics-chart__area" points="' + area + '"></polygon>' +
+      '<polyline class="analytics-chart__line" points="' + line + '"></polyline>' +
+      '<circle class="analytics-chart__point" cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="5"></circle>' +
+      '<text class="analytics-chart__label" x="48" y="208">' + escapeHtml(new Date(first.capturedAt).toLocaleDateString()) + '</text>' +
+      '<text class="analytics-chart__label" x="652" y="208" text-anchor="end">' + escapeHtml(new Date(last.capturedAt).toLocaleDateString()) + '</text>' +
+      '<text class="analytics-chart__label" x="48" y="18">' + escapeHtml(formatNumber(maximum)) + '</text>' +
+      '<text class="analytics-chart__label" x="48" y="191">' + escapeHtml(formatNumber(minimum)) + '</text>' +
+      '</svg>';
+  }
+  function showError(response) {
+    const message = response && response.error && response.error.message || "Analytics could not be loaded.";
+    list.innerHTML = '<div class="empty-state"><h3>Analytics unavailable</h3><p>' + escapeHtml(message) + '</p></div>';
+  }
+  function renderChannelHealth(health) {
+    const score = document.getElementById("analytics-health-score");
+    const detail = document.getElementById("analytics-health-detail");
+    const data = health || {};
+    score.textContent = data.available ? formatNumber(data.score) + "/100" : "--";
+    score.dataset.status = data.status || "Awaiting baseline";
+    if (!data.available) {
+      detail.innerHTML = '<div class="empty-state"><h3>Awaiting baseline</h3><p>' +
+        escapeHtml(data.actions && data.actions[0] || "Capture metrics to calculate channel health.") + '</p></div>';
+      return;
+    }
+    const signals = (data.signals || []).map(function (signal) {
+      return '<li class="analytics-health-signal" data-state="' + escapeHtml(signal.state) + '"><strong>' +
+        escapeHtml(signal.label) + '</strong><span>' + escapeHtml(signal.detail) + '</span></li>';
+    }).join('');
+    const actions = (data.actions || []).map(function (action) { return '<li>' + escapeHtml(action) + '</li>'; }).join('');
+    detail.innerHTML = '<p><strong>' + escapeHtml(data.status) + '</strong> | ' + escapeHtml(data.confidence) +
+      ' confidence</p><ul class="analytics-health-signals">' + signals + '</ul>' +
+      (actions ? '<h3>Recommended next actions</h3><ul>' + actions + '</ul>' : '<p>No immediate health actions are required.</p>');
+  }
+  function signedNumber(value) {
+    const number = Number(value || 0);
+    return (number > 0 ? "+" : "") + formatNumber(number);
+  }
+  function renderPeriodReports(reports) {
+    const target = document.getElementById("analytics-period-reports");
+    if (!reports || !reports.length) {
+      target.innerHTML = '<div class="empty-state"><h3>No report history yet</h3><p>Capture metrics to create growth reports.</p></div>';
+      return;
+    }
+    target.innerHTML = reports.map(function (report) {
+      return '<section class="analytics-report" aria-label="' + escapeHtml(report.label) + ' growth report">' +
+        '<div><strong>' + escapeHtml(report.label) + '</strong><span class="badge">' +
+        (report.complete ? 'Full period' : escapeHtml(report.elapsedDays + ' day partial')) + '</span></div>' +
+        '<dl><div><dt>Views</dt><dd>' + signedNumber(report.viewGrowth) + '</dd></div>' +
+        '<div><dt>Subscribers</dt><dd>' + signedNumber(report.subscriberGrowth) + '</dd></div>' +
+        '<div><dt>Videos</dt><dd>' + signedNumber(report.videoGrowth) + '</dd></div></dl>' +
+        '<small>' + escapeHtml(new Date(report.from).toLocaleDateString()) + ' to ' +
+        escapeHtml(new Date(report.to).toLocaleDateString()) + '</small></section>';
+    }).join('');
+  }
+  function insightTable(title, groups) {
+    if (!groups || !groups.length) return '<div class="empty-state"><h3>No ' + escapeHtml(title.toLowerCase()) +
+      ' data</h3><p>More published Shorts are needed.</p></div>';
+    return '<section><h3>' + escapeHtml(title) + '</h3><div class="table-wrap"><table class="table"><thead><tr>' +
+      '<th>Group</th><th>Videos</th><th>Average views</th><th>Total views</th></tr></thead><tbody>' +
+      groups.map(function (group) { return '<tr><td>' + escapeHtml(group.label) + '</td><td>' +
+        formatNumber(group.videoCount) + '</td><td>' + formatNumber(group.averageViews) + '</td><td>' +
+        formatNumber(group.totalViews) + '</td></tr>'; }).join('') + '</tbody></table></div></section>';
+  }
+  function renderContentInsights(insights) {
+    const target = document.getElementById("analytics-content-insights"), data = insights || {};
+    if (!data.videoCount) {
+      target.innerHTML = '<div class="empty-state"><h3>No content sample yet</h3><p>Track published Shorts to compare performance.</p></div>';
+      return;
+    }
+    const duration = data.bestDurationBand, day = data.bestUploadDay,
+      topic = data.bestTopic, hook = data.bestHookType;
+    target.innerHTML = '<p class="analytics-insight-note"><strong>' + escapeHtml(data.confidence) +
+      ' confidence</strong> from ' + formatNumber(data.videoCount) + ' tracked video(s). Treat small samples as directional.</p>' +
+      '<div class="analytics-insight-highlights"><div><span>Leading duration band</span><strong>' +
+      escapeHtml(duration ? duration.label : "Not available") + '</strong><small>' +
+      (duration ? formatNumber(duration.averageViews) + ' average views across ' + formatNumber(duration.videoCount) + ' video(s)' : '') +
+      '</small></div><div><span>Leading UTC upload day</span><strong>' + escapeHtml(day ? day.label : "Not available") +
+      '</strong><small>' + (day ? formatNumber(day.averageViews) + ' average views across ' + formatNumber(day.videoCount) + ' video(s)' : '') +
+      '</small></div><div><span>Leading topic</span><strong>' + escapeHtml(topic ? topic.label : "Not available") +
+      '</strong><small>' + (topic ? formatNumber(topic.averageViews) + ' average views across ' + formatNumber(topic.videoCount) + ' video(s)' : '') +
+      '</small></div><div><span>Leading hook pattern</span><strong>' + escapeHtml(hook ? hook.label : "Not available") +
+      '</strong><small>' + (hook ? formatNumber(hook.averageViews) + ' average views across ' + formatNumber(hook.videoCount) + ' video(s)' : '') +
+      '</small></div></div><div class="analytics-insight-tables">' + insightTable('Topics', data.topics) +
+      insightTable('Hook patterns', data.hookTypes) + insightTable('Duration bands', data.durationBands) +
+      insightTable('UTC upload days', data.uploadDays) + '</div>';
+  }
+  function render(summary) {
+    const data = summary || {}, totals = data.totals || {}, videos = data.videos || [];
+    latestSummary = data;
+    exportButton.disabled = false;
+    document.getElementById("analytics-video-count").textContent = formatNumber(data.videoCount);
+    document.getElementById("analytics-view-count").textContent = formatNumber(totals.views);
+    document.getElementById("analytics-like-count").textContent = formatNumber(totals.likes);
+    document.getElementById("analytics-comment-count").textContent = formatNumber(totals.comments);
+    const channel = data.channel || {};
+    document.getElementById("analytics-subscriber-count").textContent = formatNumber(channel.subscribers);
+    document.getElementById("analytics-channel-view-count").textContent = formatNumber(channel.totalViews);
+    document.getElementById("analytics-channel-summary").textContent = data.channel ?
+      (channel.channelTitle + " | " + formatNumber(channel.videoCount) + " videos | subscriber growth since previous snapshot: " +
+      (channel.subscriberGrowth >= 0 ? "+" : "") + formatNumber(channel.subscriberGrowth)) :
+      "Capture metrics to create the first channel baseline.";
+    document.getElementById("analytics-captured-at").textContent = data.lastCapturedAt ?
+      "Latest snapshot: " + new Date(data.lastCapturedAt).toLocaleString() : "No analytics snapshot has been captured yet.";
+    renderTrendChart("analytics-subscriber-chart", data.channelTrend, "subscribers", "Subscriber growth over captured snapshots");
+    renderTrendChart("analytics-channel-view-chart", data.channelTrend, "totalViews", "Channel view growth over captured snapshots");
+    renderChannelHealth(data.channelHealth);
+    renderPeriodReports(data.periodReports);
+    renderContentInsights(data.contentInsights);
+    if (!videos.length) {
+      list.innerHTML = '<div class="empty-state"><h3>No snapshots yet</h3><p>Select Refresh YouTube metrics to capture the first snapshot.</p></div>';
+      return;
+    }
+    list.innerHTML = videos.map(function (video) {
+      return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(video.title) + '</h3>' +
+        '<p><strong>' + formatNumber(video.views) + '</strong> views | ' + formatNumber(video.likes) +
+        ' likes | ' + formatNumber(video.comments) + ' comments</p>' +
+        '<p>Growth since previous snapshot: +' + formatNumber(Math.max(0, video.viewGrowth)) +
+        ' views | Duration: ' + escapeHtml(video.durationSeconds) + 's | ' + escapeHtml(video.privacyStatus) + '</p>' +
+        '<a class="button button--secondary" href="https://youtu.be/' + encodeURIComponent(video.youtubeVideoId) +
+        '" target="_blank" rel="noopener">Open video</a></div>';
+    }).join("");
+  }
+  function load() {
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) return showError(response);
+      render(response.data);
+    }).withFailureHandler(function (error) { showError({ error: error }); }).analyticsGetDashboard();
+  }
+  function csvCell(value) {
+    return '"' + String(value === undefined || value === null ? "" : value).replace(/"/g, '""') + '"';
+  }
+  function buildCsv(summary) {
+    const data = summary || {}, channel = data.channel || {}, health = data.channelHealth || {};
+    const rows = [
+      ["Project Savannah Analytics Report"],
+      ["Generated at", new Date().toISOString()],
+      [],
+      ["Channel", "Subscribers", "Total views", "Public videos", "Health score", "Health status", "Confidence"],
+      [channel.channelTitle || "", channel.subscribers || 0, channel.totalViews || 0, channel.videoCount || 0,
+        health.available ? health.score : "", health.status || "", health.confidence || ""],
+      [],
+      ["Period", "Complete period", "Elapsed days", "View growth", "Subscriber growth", "Video growth"]
+    ];
+    (data.periodReports || []).forEach(function (report) {
+      rows.push([report.label, report.complete ? "Yes" : "No", report.elapsedDays,
+        report.viewGrowth, report.subscriberGrowth, report.videoGrowth]);
+    });
+    rows.push([], ["Video title", "YouTube video ID", "Topic", "Hook pattern", "Views", "Likes", "Comments", "View growth", "Duration seconds", "Published at", "Privacy"]);
+    (data.videos || []).forEach(function (video) {
+      rows.push([video.title, video.youtubeVideoId, video.topic, video.hookType, video.views, video.likes, video.comments,
+        video.viewGrowth, video.durationSeconds, video.publishedAt, video.privacyStatus]);
+    });
+    return rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+  }
+  exportButton.addEventListener("click", function () {
+    if (!latestSummary) return;
+    const blob = new Blob(["\ufeff" + buildCsv(latestSummary)], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "project-savannah-analytics-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 0);
+  });
+  refresh.addEventListener("click", function () {
+    refresh.disabled = true; refresh.textContent = "Refreshing...";
+    google.script.run.withSuccessHandler(function (response) {
+      refresh.disabled = false; refresh.textContent = "Refresh YouTube metrics";
+      if (!response || !response.success) return showError(response);
+      render(response.data.summary);
+    }).withFailureHandler(function (error) {
+      refresh.disabled = false; refresh.textContent = "Refresh YouTube metrics";
+      showError({ error: error });
+    }).analyticsRefresh();
+  });
+  load();
+})();
+</script>
