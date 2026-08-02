@@ -64,9 +64,11 @@ const YouTubeAnalyticsService = (() => {
     });
     const channel = channelHistory[channelHistory.length - 1] || null;
     const previousChannel = channelHistory[channelHistory.length - 2] || null;
+    const channelTrend = buildChannelTrend_(channelHistory);
     return {
       totals: totals, videoCount: videos.length, videos: videos,
       topVideo: videos[0] || null,
+      channelTrend: channelTrend,
       channel: channel ? Object.assign({}, channel, {
         subscriberGrowth: previousChannel ? channel.subscribers - previousChannel.subscribers : 0,
         channelViewGrowth: previousChannel ? channel.totalViews - previousChannel.totalViews : 0,
@@ -74,7 +76,7 @@ const YouTubeAnalyticsService = (() => {
       }) : null,
       lastCapturedAt: videos.reduce(function (latest, video) {
         return !latest || new Date(video.capturedAt) > new Date(latest) ? video.capturedAt : latest;
-      }, "")
+      }, channel && channel.capturedAt || "")
     };
   }
 
@@ -99,10 +101,34 @@ const YouTubeAnalyticsService = (() => {
     if (!match) return 0;
     return Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0);
   }
-  return { capture: capture, summary: summary, parseDuration: parseDuration_ };
+
+  function buildChannelTrend_(history) {
+    return (history || []).slice().sort(function (a, b) {
+      return new Date(a.capturedAt) - new Date(b.capturedAt);
+    }).slice(-30).map(function (snapshot) {
+      return {
+        capturedAt: new Date(snapshot.capturedAt).toISOString(),
+        subscribers: Math.max(0, Number(snapshot.subscribers || 0)),
+        totalViews: Math.max(0, Number(snapshot.totalViews || 0)),
+        videoCount: Math.max(0, Number(snapshot.videoCount || 0))
+      };
+    });
+  }
+  return { capture: capture, summary: summary, parseDuration: parseDuration_, buildChannelTrend: buildChannelTrend_ };
 })();
 
 function testYouTubeAnalyticsDurationParsing() {
   if (YouTubeAnalyticsService.parseDuration("PT1M3S") !== 63) throw new Error("YouTube duration parsing failed.");
+  return { passed: true };
+}
+
+function testYouTubeAnalyticsTrendBuilding() {
+  const trend = YouTubeAnalyticsService.buildChannelTrend([
+    { capturedAt: "2026-01-02T00:00:00.000Z", subscribers: 12, totalViews: 200, videoCount: 3 },
+    { capturedAt: "2026-01-01T00:00:00.000Z", subscribers: 10, totalViews: 100, videoCount: 2 }
+  ]);
+  if (trend.length !== 2 || trend[0].subscribers !== 10 || trend[1].totalViews !== 200) {
+    throw new Error("YouTube channel trend ordering failed.");
+  }
   return { passed: true };
 }

@@ -1502,4 +1502,39 @@
       margin-left: auto;
     }
   }
+  /* ==================================================
+     Analytics charts
+     ================================================== */
+
+  .analytics-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  .analytics-chart-card { min-width: 0; }
+
+  .analytics-chart {
+    min-height: 220px;
+    display: grid;
+    align-items: center;
+    color: var(--color-text-secondary);
+  }
+
+  .analytics-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .analytics-chart__grid { stroke: var(--color-border); stroke-width: 1; }
+  .analytics-chart__line {
+    fill: none;
+    stroke: var(--color-brand-600);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 4;
+  }
+  .analytics-chart__area { fill: var(--color-brand-50); }
+  .analytics-chart__point { fill: var(--color-surface); stroke: var(--color-brand-700); stroke-width: 3; }
+  .analytics-chart__label { fill: var(--color-text-muted); font-size: 12px; }
+
+  @media (max-width: 900px) {
+    .analytics-chart-grid { grid-template-columns: 1fr; }
+  }
 </style>
