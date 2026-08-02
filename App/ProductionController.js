@@ -13,8 +13,7 @@ const ProductionController = (() => {
   function listReady() {
     return run_("Production-ready Shorts loaded.", function () {
       recoverStaleJobs_();
-      return {
-        items: SeoRepository.getAll().filter(function (pack) {
+      const items = SeoRepository.getAll().filter(function (pack) {
           return pack.status === "GENERATED" || pack.status === "READY_FOR_PRODUCTION";
         }).map(function (pack) {
           const script = ScriptsRepository.getScriptById(pack.scriptId);
@@ -26,7 +25,13 @@ const ProductionController = (() => {
               return job.scriptId === pack.scriptId;
             })
           };
-        }).filter(function (item) { return !!item.script; })
+        }).filter(function (item) { return !!item.script; }).sort(function (a, b) {
+          const aPriority = Number(a.preparationTask && a.preparationTask.priority || 3);
+          const bPriority = Number(b.preparationTask && b.preparationTask.priority || 3);
+          return bPriority - aPriority || String(a.script.title || "").localeCompare(String(b.script.title || ""));
+        });
+      return {
+        items: items
       };
     });
   }
@@ -154,17 +159,31 @@ const ProductionController = (() => {
 
   function controlPreparation(request) {
     return run_("Production preparation updated.", function () {
-      const source = request || {}, action = String(source.action || "").trim().toLowerCase();
-      const task = ProductionTaskRepository.getById(String(source.taskId || "").trim());
-      if (!task) throw error_("Production preparation task was not found.");
-      let status = task.status;
-      if (action === "pause" && task.status === "PREPARING") status = "PAUSED";
-      else if (action === "resume" && ["PAUSED", "FAILED"].indexOf(task.status) !== -1) status = "PREPARING";
-      else if (action === "cancel" && ["SUBMITTED", "CANCELLED"].indexOf(task.status) === -1) status = "CANCELLED";
-      else throw error_("That preparation action is not valid for the current status.");
-      return { task: ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
-        status: status, errorMessage: action === "resume" ? "" : task.errorMessage
-      })) };
+      return withScriptLock_(function () {
+        const source = request || {}, action = String(source.action || "").trim().toLowerCase();
+        const task = ProductionTaskRepository.getById(String(source.taskId || "").trim());
+        if (!task) throw error_("Production preparation task was not found.");
+        if (action === "priority") {
+          const priority = Number(source.priority);
+          if (!Number.isInteger(priority) || priority < 1 || priority > 5) {
+            throw error_("Queue priority must be an integer from 1 to 5.");
+          }
+          if (["SUBMITTED", "CANCELLED"].indexOf(task.status) !== -1) {
+            throw error_("Completed or cancelled preparation cannot be reordered.");
+          }
+          return { task: ProductionTaskRepository.persist(
+            ProductionTaskRepository.update(task, { priority: priority })
+          ) };
+        }
+        let status = task.status;
+        if (action === "pause" && task.status === "PREPARING") status = "PAUSED";
+        else if (action === "resume" && ["PAUSED", "FAILED"].indexOf(task.status) !== -1) status = "PREPARING";
+        else if (action === "cancel" && ["SUBMITTED", "CANCELLED"].indexOf(task.status) === -1) status = "CANCELLED";
+        else throw error_("That preparation action is not valid for the current status.");
+        return { task: ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+          status: status, errorMessage: action === "resume" ? "" : task.errorMessage
+        })) };
+      });
     });
   }
 

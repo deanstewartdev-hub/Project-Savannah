@@ -93,11 +93,16 @@ const ProductionTaskRepository = (() => {
     const prepared = Array.isArray(source.preparedScenes) ? source.preparedScenes.map(Number)
       .filter(function (value, index, values) { return value >= 1 && value <= 4 && values.indexOf(value) === index; }) : [];
     const nextScene = Math.max(1, Math.min(5, Number(source.nextScene || 1)));
+    const priority = source.priority === undefined || source.priority === null || source.priority === "" ?
+      3 : Number(source.priority);
+    if (!Number.isInteger(priority) || priority < 1 || priority > 5) {
+      throw error_("Production task priority must be an integer from 1 to 5.");
+    }
     return {
       id: required_(source.id), scriptId: required_(source.scriptId),
       sourceRenderJobId: String(source.sourceRenderJobId || "").trim(),
       renderJobId: String(source.renderJobId || "").trim(), status: status,
-      priority: Math.max(1, Math.min(5, Math.round(Number(source.priority || 3)))),
+      priority: priority,
       preparedScenes: prepared.sort(), nextScene: nextScene,
       attempts: Math.max(0, Number(source.attempts || 0)),
       errorMessage: String(source.errorMessage || "").trim().slice(0, 500),

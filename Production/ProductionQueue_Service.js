@@ -5,11 +5,9 @@ const ProductionQueueService = (() => {
   const HANDLER = "processProductionQueue";
 
   function processNext() {
-    const tasks = ProductionTaskRepository.getAll().filter(function (task) {
+    const tasks = rankTasks(ProductionTaskRepository.getAll().filter(function (task) {
       return ["PREPARING", "READY"].indexOf(task.status) !== -1;
-    }).sort(function (a, b) {
-      return Number(b.priority || 3) - Number(a.priority || 3) || new Date(a.createdAt) - new Date(b.createdAt);
-    });
+    }));
     if (!tasks.length) return { processed: false, message: "No production tasks are waiting." };
     const task = tasks[0];
     const response = task.status === "READY" ?
@@ -19,6 +17,12 @@ const ProductionQueueService = (() => {
       throw error_(response && response.error && response.error.message || "The queued production step failed.");
     }
     return { processed: true, taskId: task.id, previousStatus: task.status, result: response.data };
+  }
+
+  function rankTasks(tasks) {
+    return (Array.isArray(tasks) ? tasks : []).slice().sort(function (a, b) {
+      return Number(b.priority || 3) - Number(a.priority || 3) || new Date(a.createdAt) - new Date(b.createdAt);
+    });
   }
 
   function install() {
@@ -53,7 +57,7 @@ const ProductionQueueService = (() => {
     });
   }
   function error_(message) { const error = new Error(message); error.name = "ProductionQueueError"; return error; }
-  return { processNext: processNext, install: install, uninstall: uninstall, status: status };
+  return { processNext: processNext, rankTasks: rankTasks, install: install, uninstall: uninstall, status: status };
 })();
 
 function processProductionQueue() {

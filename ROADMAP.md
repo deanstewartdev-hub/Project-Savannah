@@ -1,7 +1,7 @@
 # Project Savannah Roadmap
 
 Last updated: 2 August 2026
-Live Apps Script deployment: version 64
+Live Apps Script deployment: version 65
 Canonical branch: `sprint-2`
 
 ## Overall progress
@@ -9,7 +9,7 @@ Canonical branch: `sprint-2`
 ```text
 Phase 1  Foundation Platform        ██████████ 100%
 Phase 2  Content Automation         █████████▌  95%
-Phase 3  Production Hardening       ██████▊░░░  68%
+Phase 3  Production Hardening       ███████▎░░  73%
 Phase 4  Growth & Analytics         ██▌░░░░░░░  25%
 Phase 5  Intelligent Automation     ░░░░░░░░░░   0%
 Phase 6  Multi-Channel Platform     ░░░░░░░░░░   0%
@@ -51,7 +51,7 @@ Remaining:
 - add first-class thumbnail generation and selection
 - finish end-to-end regression on one new Short after the resolution fix
 
-## Phase 3 — Production Hardening: 68%
+## Phase 3 — Production Hardening: 73%
 
 ### Error handling: 95%
 
@@ -68,7 +68,7 @@ Remaining:
 
 - optional email notification after repeated unattended worker failures
 
-### Render queue: 65%
+### Render queue: 80%
 
 Completed:
 
@@ -78,11 +78,11 @@ Completed:
 - per-scene progress
 - pause, resume, cancel, and retry states
 - optional five-minute background worker implementation
+- persistent 1–5 queue priorities with urgent/normal/low controls and priority-first processing
 
 Remaining:
 
 - authorize/install the time trigger
-- queue reordering UI
 - explicit render cancellation at Creatomate
 
 ### Reliability: 80%

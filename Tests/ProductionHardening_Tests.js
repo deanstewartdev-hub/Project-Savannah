@@ -22,6 +22,28 @@ function runProductionHardeningTests() {
     if (task.priority !== 3) throw new Error("Default production priority is invalid.");
   });
 
+  test("Production queue ranks urgent work before older normal work", function () {
+    const ranked = ProductionQueueService.rankTasks([
+      { id: "NORMAL", priority: 3, createdAt: "2026-01-01T00:00:00.000Z" },
+      { id: "URGENT", priority: 5, createdAt: "2026-01-02T00:00:00.000Z" },
+      { id: "LOW", priority: 1, createdAt: "2025-12-01T00:00:00.000Z" }
+    ]);
+    if (ranked.map(function (task) { return task.id; }).join(",") !== "URGENT,NORMAL,LOW") {
+      throw new Error("Production queue priority order is invalid.");
+    }
+  });
+
+  test("Production task priority rejects values outside one to five", function () {
+    let rejected = false;
+    try {
+      ProductionTaskRepository.create({
+        id: "PRD-BAD", scriptId: "SCR-BAD", priority: 6,
+        createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z"
+      });
+    } catch (error) { rejected = true; }
+    if (!rejected) throw new Error("Invalid production priority was accepted.");
+  });
+
   test("Interrupted render submissions can be marked failed without a provider ID", function () {
     const job = RenderJobModel.create({
       id: "RND-TEST", scriptId: "SCR-TEST", templateId: "TPL-TEST", status: "FAILED",
