@@ -1,7 +1,7 @@
 # Project Savannah Roadmap
 
-Last updated: 2 August 2026  
-Live Apps Script deployment: version 61  
+Last updated: 2 August 2026
+Live Apps Script deployment: version 62
 Canonical branch: `sprint-2`
 
 ## Overall progress
