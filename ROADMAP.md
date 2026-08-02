@@ -1,7 +1,7 @@
 # Project Savannah Roadmap
 
 Last updated: 2 August 2026
-Live Apps Script deployment: version 67
+Live Apps Script deployment: version 68
 Canonical branch: `sprint-2`
 
 ## Overall progress
@@ -10,7 +10,7 @@ Canonical branch: `sprint-2`
 Phase 1  Foundation Platform        ██████████ 100%
 Phase 2  Content Automation         █████████▌  95%
 Phase 3  Production Hardening       ███████▊░░  78%
-Phase 4  Growth & Analytics         ████░░░░░░  40%
+Phase 4  Growth & Analytics         █████░░░░░  50%
 Phase 5  Intelligent Automation     ░░░░░░░░░░   0%
 Phase 6  Multi-Channel Platform     ░░░░░░░░░░   0%
 Phase 7  Enterprise Platform        ░░░░░░░░░░   0%
@@ -151,7 +151,7 @@ Remaining:
 - motion presets, transitions, subtitle themes, and music ducking
 - email or in-app failure notifications
 
-## Phase 4 — Growth & Analytics: 40%
+## Phase 4 — Growth & Analytics: 50%
 
 Existing foundations:
 
@@ -164,12 +164,13 @@ Existing foundations:
 - first live snapshot captured for five Savannah uploads
 - channel subscriber, total-view, and public-video baselines
 - responsive subscriber and channel-view growth charts across the latest 30 snapshots
+- explainable channel-health score with freshness, upload cadence, momentum, confidence, and recommended actions
 
 Next:
 
 - add YouTube Analytics API ingestion for watch time, retention, subscribers, and revenue where available
 - schedule daily metric snapshots after trigger authorization
-- add channel health scoring and alerts
+- add unattended channel-health alerts after trigger authorization
 - compare topics, hooks, durations, and upload times
 - combine OpenAI and render cost with video performance
 - daily, weekly, and monthly reports

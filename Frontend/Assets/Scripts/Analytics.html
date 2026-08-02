@@ -48,6 +48,26 @@
     const message = response && response.error && response.error.message || "Analytics could not be loaded.";
     list.innerHTML = '<div class="empty-state"><h3>Analytics unavailable</h3><p>' + escapeHtml(message) + '</p></div>';
   }
+  function renderChannelHealth(health) {
+    const score = document.getElementById("analytics-health-score");
+    const detail = document.getElementById("analytics-health-detail");
+    const data = health || {};
+    score.textContent = data.available ? formatNumber(data.score) + "/100" : "--";
+    score.dataset.status = data.status || "Awaiting baseline";
+    if (!data.available) {
+      detail.innerHTML = '<div class="empty-state"><h3>Awaiting baseline</h3><p>' +
+        escapeHtml(data.actions && data.actions[0] || "Capture metrics to calculate channel health.") + '</p></div>';
+      return;
+    }
+    const signals = (data.signals || []).map(function (signal) {
+      return '<li class="analytics-health-signal" data-state="' + escapeHtml(signal.state) + '"><strong>' +
+        escapeHtml(signal.label) + '</strong><span>' + escapeHtml(signal.detail) + '</span></li>';
+    }).join('');
+    const actions = (data.actions || []).map(function (action) { return '<li>' + escapeHtml(action) + '</li>'; }).join('');
+    detail.innerHTML = '<p><strong>' + escapeHtml(data.status) + '</strong> | ' + escapeHtml(data.confidence) +
+      ' confidence</p><ul class="analytics-health-signals">' + signals + '</ul>' +
+      (actions ? '<h3>Recommended next actions</h3><ul>' + actions + '</ul>' : '<p>No immediate health actions are required.</p>');
+  }
   function render(summary) {
     const data = summary || {}, totals = data.totals || {}, videos = data.videos || [];
     document.getElementById("analytics-video-count").textContent = formatNumber(data.videoCount);
@@ -65,6 +85,7 @@
       "Latest snapshot: " + new Date(data.lastCapturedAt).toLocaleString() : "No analytics snapshot has been captured yet.";
     renderTrendChart("analytics-subscriber-chart", data.channelTrend, "subscribers", "Subscriber growth over captured snapshots");
     renderTrendChart("analytics-channel-view-chart", data.channelTrend, "totalViews", "Channel view growth over captured snapshots");
+    renderChannelHealth(data.channelHealth);
     if (!videos.length) {
       list.innerHTML = '<div class="empty-state"><h3>No snapshots yet</h3><p>Select Refresh YouTube metrics to capture the first snapshot.</p></div>';
       return;

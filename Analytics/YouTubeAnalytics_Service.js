@@ -65,18 +65,21 @@ const YouTubeAnalyticsService = (() => {
     const channel = channelHistory[channelHistory.length - 1] || null;
     const previousChannel = channelHistory[channelHistory.length - 2] || null;
     const channelTrend = buildChannelTrend_(channelHistory);
+    const channelSummary = channel ? Object.assign({}, channel, {
+      subscriberGrowth: previousChannel ? channel.subscribers - previousChannel.subscribers : 0,
+      channelViewGrowth: previousChannel ? channel.totalViews - previousChannel.totalViews : 0,
+      snapshotCount: channelHistory.length
+    }) : null;
+    const lastCapturedAt = videos.reduce(function (latest, video) {
+      return !latest || new Date(video.capturedAt) > new Date(latest) ? video.capturedAt : latest;
+    }, channel && channel.capturedAt || "");
     return {
       totals: totals, videoCount: videos.length, videos: videos,
       topVideo: videos[0] || null,
       channelTrend: channelTrend,
-      channel: channel ? Object.assign({}, channel, {
-        subscriberGrowth: previousChannel ? channel.subscribers - previousChannel.subscribers : 0,
-        channelViewGrowth: previousChannel ? channel.totalViews - previousChannel.totalViews : 0,
-        snapshotCount: channelHistory.length
-      }) : null,
-      lastCapturedAt: videos.reduce(function (latest, video) {
-        return !latest || new Date(video.capturedAt) > new Date(latest) ? video.capturedAt : latest;
-      }, channel && channel.capturedAt || "")
+      channel: channelSummary,
+      channelHealth: buildChannelHealth_(channelSummary, videos, lastCapturedAt),
+      lastCapturedAt: lastCapturedAt
     };
   }
 
@@ -114,7 +117,54 @@ const YouTubeAnalyticsService = (() => {
       };
     });
   }
-  return { capture: capture, summary: summary, parseDuration: parseDuration_, buildChannelTrend: buildChannelTrend_ };
+
+  function buildChannelHealth_(channel, videos, lastCapturedAt, nowValue) {
+    if (!channel || !lastCapturedAt) return {
+      available: false, score: 0, status: "Awaiting baseline", confidence: "low",
+      signals: [], actions: ["Capture YouTube metrics to create the first channel baseline."]
+    };
+    const now = nowValue ? new Date(nowValue).getTime() : Date.now();
+    const capturedAgeHours = Math.max(0, (now - new Date(lastCapturedAt).getTime()) / 3600000);
+    const latestPublishedAt = (videos || []).map(function (video) { return video.publishedAt; })
+      .filter(Boolean).sort(function (a, b) { return new Date(b) - new Date(a); })[0] || "";
+    const uploadAgeDays = latestPublishedAt ? Math.max(0, (now - new Date(latestPublishedAt).getTime()) / 86400000) : null;
+    const signals = [], actions = [];
+    let score = capturedAgeHours <= 25 ? 30 : capturedAgeHours <= 72 ? 15 : 0;
+    signals.push({ label: "Metric freshness", state: capturedAgeHours <= 25 ? "good" : "warning",
+      detail: capturedAgeHours <= 25 ? "Snapshot is current." : "Latest snapshot is " + Math.floor(capturedAgeHours) + " hours old." });
+    if (capturedAgeHours > 25) actions.push("Refresh YouTube metrics to restore a current baseline.");
+
+    if (uploadAgeDays === null) {
+      score += 5; signals.push({ label: "Upload cadence", state: "warning", detail: "No published Short is tracked yet." });
+      actions.push("Publish and track the first verified Short.");
+    } else if (uploadAgeDays <= 14) {
+      score += 25; signals.push({ label: "Upload cadence", state: "good", detail: "A tracked Short was published recently." });
+    } else if (uploadAgeDays <= 30) {
+      score += 15; signals.push({ label: "Upload cadence", state: "warning", detail: "Latest tracked upload is over two weeks old." });
+      actions.push("Schedule the next approved Short.");
+    } else {
+      score += 5; signals.push({ label: "Upload cadence", state: "warning", detail: "Latest tracked upload is over 30 days old." });
+      actions.push("Restart a consistent Shorts publishing cadence.");
+    }
+
+    score += channel.channelViewGrowth > 0 ? 20 : 10;
+    signals.push({ label: "View momentum", state: channel.channelViewGrowth > 0 ? "good" : "neutral",
+      detail: channel.channelViewGrowth > 0 ? "+" + channel.channelViewGrowth + " channel views since the previous snapshot." : "No new channel views since the previous snapshot." });
+    score += channel.subscriberGrowth > 0 ? 15 : 8;
+    signals.push({ label: "Subscriber momentum", state: channel.subscriberGrowth > 0 ? "good" : "neutral",
+      detail: channel.subscriberGrowth > 0 ? "+" + channel.subscriberGrowth + " subscribers since the previous snapshot." : "Subscriber count is unchanged." });
+    score += channel.snapshotCount >= 7 ? 10 : channel.snapshotCount >= 2 ? 5 : 0;
+    if (channel.snapshotCount < 7) actions.push("Build at least seven snapshots for a more reliable trend.");
+    score = Math.max(0, Math.min(100, score));
+    return {
+      available: true, score: score,
+      status: score >= 75 ? "Healthy" : score >= 50 ? "Watch" : "Needs attention",
+      confidence: channel.snapshotCount >= 7 ? "high" : channel.snapshotCount >= 2 ? "medium" : "low",
+      signals: signals, actions: actions
+    };
+  }
+  return { capture: capture, summary: summary, parseDuration: parseDuration_,
+    buildChannelTrend: buildChannelTrend_, buildChannelHealth: buildChannelHealth_ };
 })();
 
 function testYouTubeAnalyticsDurationParsing() {
@@ -130,5 +180,19 @@ function testYouTubeAnalyticsTrendBuilding() {
   if (trend.length !== 2 || trend[0].subscribers !== 10 || trend[1].totalViews !== 200) {
     throw new Error("YouTube channel trend ordering failed.");
   }
+  return { passed: true };
+}
+
+function testYouTubeAnalyticsChannelHealth() {
+  const now = "2026-01-10T12:00:00.000Z";
+  const health = YouTubeAnalyticsService.buildChannelHealth({
+    capturedAt: "2026-01-10T11:00:00.000Z", subscriberGrowth: 2,
+    channelViewGrowth: 120, snapshotCount: 8
+  }, [{ publishedAt: "2026-01-05T12:00:00.000Z" }], "2026-01-10T11:00:00.000Z", now);
+  if (!health.available || health.score !== 100 || health.status !== "Healthy" || health.confidence !== "high") {
+    throw new Error("Healthy YouTube channel scoring failed.");
+  }
+  const missing = YouTubeAnalyticsService.buildChannelHealth(null, [], "", now);
+  if (missing.available || missing.status !== "Awaiting baseline") throw new Error("Missing channel baseline was not handled.");
   return { passed: true };
 }
