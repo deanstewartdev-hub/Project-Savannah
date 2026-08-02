@@ -23,10 +23,18 @@
   }
 
   function showError(target, response) {
-    const detail = response && response.error && response.error.message ?
-      response.error.message : "The request could not be completed.";
-    target.innerHTML = '<div class="empty-state"><h3>Something went wrong</h3><p>' +
-      escapeHtml(detail) + '</p></div>';
+    const error = response && response.error ? response.error : {};
+    const detail = error.message || "The request could not be completed.";
+    const recovery = error.recoveryAction || "Refresh Production and try the action again.";
+    const heading = error.repeated ? "This production step keeps failing" : "Production needs attention";
+    const retryNote = error.retryable ?
+      '<p><strong>Safe to retry:</strong> yes' +
+      (error.retryAfterSeconds ? ', after ' + escapeHtml(error.retryAfterSeconds) + ' seconds' : '') + '.</p>' :
+      '<p><strong>Safe to retry:</strong> not until the recovery step is completed.</p>';
+    const reference = [error.code, response && response.requestId].filter(Boolean).join(' | ');
+    target.innerHTML = '<div class="empty-state"><h3>' + escapeHtml(heading) + '</h3><p>' +
+      escapeHtml(detail) + '</p><p><strong>Next step:</strong> ' + escapeHtml(recovery) + '</p>' +
+      retryNote + (reference ? '<p><small>' + escapeHtml(reference) + '</small></p>' : '') + '</div>';
   }
 
   function runPreparation(request, button, failureLabel) {

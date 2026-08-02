@@ -83,6 +83,7 @@ Models/RenderJob.js
 Models/PublishingJob.js
 Production/ProductionTask_Repository.js
 Production/ProductionQueue_Service.js
+Production/ProductionError_Service.js
 Production/RenderJob_Repository.js
 Production/PublishingJob_Repository.js
 Production/ScenePlan_Service.js

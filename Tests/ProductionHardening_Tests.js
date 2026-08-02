@@ -88,6 +88,31 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Provider rate limits return retry guidance", function () {
+    const result = ProductionErrorService.normalise(new Error("OpenAI returned HTTP 429 rate limit."), "Prepare scene");
+    if (result.code !== "PROVIDER_RATE_LIMITED" || !result.retryable || result.retryAfterSeconds !== 60) {
+      throw new Error("Rate-limit recovery contract is invalid.");
+    }
+  });
+
+  test("Uncertain YouTube uploads cannot be blindly retried", function () {
+    const result = ProductionErrorService.normalise(
+      new Error("This upload ended in an uncertain state. Check YouTube Studio."), "Publish Short"
+    );
+    if (result.code !== "PRODUCTION_UPLOAD_UNCERTAIN" || result.retryable || result.provider !== "YouTube") {
+      throw new Error("Uncertain-upload recovery contract is invalid.");
+    }
+  });
+
+  test("Production errors redact credentials", function () {
+    const result = ProductionErrorService.normalise(
+      new Error("Request failed using sk-secret_value_123 and Bearer hidden-token"), "Provider request"
+    );
+    if (result.message.indexOf("secret_value") !== -1 || result.message.indexOf("hidden-token") !== -1) {
+      throw new Error("Sensitive error detail was not redacted.");
+    }
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };

@@ -2,7 +2,7 @@
  * Project Savannah v1.3 - production controller.
  ****************************************************/
 const ProductionController = (() => {
-  const VERSION = "production-controller-v1.0";
+  const VERSION = "production-controller-v1.1-recovery-errors";
 
   function testConnection() {
     return run_("Creatomate connection verified.", function () {
@@ -461,8 +461,7 @@ const ProductionController = (() => {
     try { return callback(); } finally { lock.releaseLock(); }
   }
   function friendlyError_(caught) {
-    return String(caught && caught.message || "Unknown production error")
-      .replace(/[a-f0-9]{80,}/ig, "[REDACTED]").slice(0, 500);
+    return ProductionErrorService.normalise(caught).message;
   }
   function run_(message, callback) {
     const requestId = "REQ-" + Utilities.getUuid().slice(0, 8).toUpperCase();
@@ -473,22 +472,28 @@ const ProductionController = (() => {
       return { success: true, statusCode: 200, requestId: requestId, message: message,
         data: data, controllerVersion: VERSION };
     } catch (caught) {
-      const safe = friendlyError_(caught);
+      const normalised = ProductionErrorService.recordOccurrence(
+        ProductionErrorService.normalise(caught, message)
+      );
+      const safe = normalised.message;
       try { LoggingService.failure(requestId, "PRODUCTION", message, caught); } catch (ignored) {}
       Logger.log(JSON.stringify({ requestId: requestId, controller: "ProductionController", error: safe }));
-      return { success: false, statusCode: 400, requestId: requestId, message: "Production request failed.",
-        data: null, error: { code: caught && caught.name || "PRODUCTION_REQUEST_FAILED", message: safe },
+      return { success: false, statusCode: normalised.statusCode, requestId: requestId, message: "Production request failed.",
+        data: null, error: normalised,
         controllerVersion: VERSION };
     }
   }
   function failure_(message) {
+    const normalised = ProductionErrorService.recordOccurrence(
+      ProductionErrorService.normalise(error_(message), "Production request")
+    );
     return {
       success: false,
-      statusCode: 400,
+      statusCode: normalised.statusCode,
       requestId: "REQ-" + Utilities.getUuid().slice(0, 8).toUpperCase(),
       message: "Production request failed.",
       data: null,
-      error: { code: "PRODUCTION_REQUEST_FAILED", message: message },
+      error: normalised,
       controllerVersion: VERSION
     };
   }
