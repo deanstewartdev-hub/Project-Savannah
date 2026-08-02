@@ -1571,8 +1571,37 @@
   .analytics-health-signal[data-state="neutral"] { border-left-color: var(--color-text-muted); }
   .analytics-health-signal span { color: var(--color-text-secondary); font-size: 13px; }
 
+  .analytics-report-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .analytics-report {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background: var(--color-surface-muted);
+  }
+
+  .analytics-report > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .analytics-report dl { display: grid; gap: 8px; margin: 0; }
+  .analytics-report dl div { display: flex; justify-content: space-between; gap: 10px; }
+  .analytics-report dt { color: var(--color-text-secondary); }
+  .analytics-report dd { margin: 0; font-weight: 700; }
+  .analytics-report small { color: var(--color-text-muted); }
+
   @media (max-width: 900px) {
     .analytics-chart-grid { grid-template-columns: 1fr; }
     .analytics-health-signals { grid-template-columns: 1fr; }
+    .analytics-report-grid { grid-template-columns: 1fr; }
   }
 </style>

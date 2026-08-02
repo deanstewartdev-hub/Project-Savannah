@@ -79,6 +79,7 @@ const YouTubeAnalyticsService = (() => {
       channelTrend: channelTrend,
       channel: channelSummary,
       channelHealth: buildChannelHealth_(channelSummary, videos, lastCapturedAt),
+      periodReports: buildPeriodReports_(channelHistory),
       lastCapturedAt: lastCapturedAt
     };
   }
@@ -163,8 +164,36 @@ const YouTubeAnalyticsService = (() => {
       signals: signals, actions: actions
     };
   }
+
+  function buildPeriodReports_(history) {
+    const ordered = (history || []).slice().sort(function (a, b) {
+      return new Date(a.capturedAt) - new Date(b.capturedAt);
+    });
+    if (!ordered.length) return [];
+    const latest = ordered[ordered.length - 1];
+    return [
+      { key: "daily", label: "Daily", days: 1 },
+      { key: "weekly", label: "Weekly", days: 7 },
+      { key: "monthly", label: "Monthly", days: 30 }
+    ].map(function (period) {
+      const cutoff = new Date(latest.capturedAt).getTime() - period.days * 86400000;
+      const eligible = ordered.filter(function (snapshot) { return new Date(snapshot.capturedAt).getTime() <= cutoff; });
+      const baseline = eligible[eligible.length - 1] || ordered[0];
+      const elapsedDays = Math.max(0, (new Date(latest.capturedAt) - new Date(baseline.capturedAt)) / 86400000);
+      return {
+        key: period.key, label: period.label, days: period.days,
+        complete: elapsedDays >= period.days * 0.95,
+        elapsedDays: Math.round(elapsedDays * 10) / 10,
+        from: baseline.capturedAt, to: latest.capturedAt,
+        subscriberGrowth: Number(latest.subscribers || 0) - Number(baseline.subscribers || 0),
+        viewGrowth: Number(latest.totalViews || 0) - Number(baseline.totalViews || 0),
+        videoGrowth: Number(latest.videoCount || 0) - Number(baseline.videoCount || 0)
+      };
+    });
+  }
   return { capture: capture, summary: summary, parseDuration: parseDuration_,
-    buildChannelTrend: buildChannelTrend_, buildChannelHealth: buildChannelHealth_ };
+    buildChannelTrend: buildChannelTrend_, buildChannelHealth: buildChannelHealth_,
+    buildPeriodReports: buildPeriodReports_ };
 })();
 
 function testYouTubeAnalyticsDurationParsing() {
@@ -194,5 +223,19 @@ function testYouTubeAnalyticsChannelHealth() {
   }
   const missing = YouTubeAnalyticsService.buildChannelHealth(null, [], "", now);
   if (missing.available || missing.status !== "Awaiting baseline") throw new Error("Missing channel baseline was not handled.");
+  return { passed: true };
+}
+
+function testYouTubeAnalyticsPeriodReports() {
+  const reports = YouTubeAnalyticsService.buildPeriodReports([
+    { capturedAt: "2026-01-01T00:00:00.000Z", subscribers: 10, totalViews: 100, videoCount: 2 },
+    { capturedAt: "2026-01-08T00:00:00.000Z", subscribers: 14, totalViews: 260, videoCount: 4 }
+  ]);
+  const weekly = reports.filter(function (report) { return report.key === "weekly"; })[0];
+  if (!weekly.complete || weekly.subscriberGrowth !== 4 || weekly.viewGrowth !== 160 || weekly.videoGrowth !== 2) {
+    throw new Error("Weekly YouTube channel report failed.");
+  }
+  const monthly = reports.filter(function (report) { return report.key === "monthly"; })[0];
+  if (monthly.complete || monthly.elapsedDays !== 7) throw new Error("Partial reporting period was not identified.");
   return { passed: true };
 }

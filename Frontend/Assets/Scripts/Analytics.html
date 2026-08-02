@@ -68,6 +68,27 @@
       ' confidence</p><ul class="analytics-health-signals">' + signals + '</ul>' +
       (actions ? '<h3>Recommended next actions</h3><ul>' + actions + '</ul>' : '<p>No immediate health actions are required.</p>');
   }
+  function signedNumber(value) {
+    const number = Number(value || 0);
+    return (number > 0 ? "+" : "") + formatNumber(number);
+  }
+  function renderPeriodReports(reports) {
+    const target = document.getElementById("analytics-period-reports");
+    if (!reports || !reports.length) {
+      target.innerHTML = '<div class="empty-state"><h3>No report history yet</h3><p>Capture metrics to create growth reports.</p></div>';
+      return;
+    }
+    target.innerHTML = reports.map(function (report) {
+      return '<section class="analytics-report" aria-label="' + escapeHtml(report.label) + ' growth report">' +
+        '<div><strong>' + escapeHtml(report.label) + '</strong><span class="badge">' +
+        (report.complete ? 'Full period' : escapeHtml(report.elapsedDays + ' day partial')) + '</span></div>' +
+        '<dl><div><dt>Views</dt><dd>' + signedNumber(report.viewGrowth) + '</dd></div>' +
+        '<div><dt>Subscribers</dt><dd>' + signedNumber(report.subscriberGrowth) + '</dd></div>' +
+        '<div><dt>Videos</dt><dd>' + signedNumber(report.videoGrowth) + '</dd></div></dl>' +
+        '<small>' + escapeHtml(new Date(report.from).toLocaleDateString()) + ' to ' +
+        escapeHtml(new Date(report.to).toLocaleDateString()) + '</small></section>';
+    }).join('');
+  }
   function render(summary) {
     const data = summary || {}, totals = data.totals || {}, videos = data.videos || [];
     document.getElementById("analytics-video-count").textContent = formatNumber(data.videoCount);
@@ -86,6 +107,7 @@
     renderTrendChart("analytics-subscriber-chart", data.channelTrend, "subscribers", "Subscriber growth over captured snapshots");
     renderTrendChart("analytics-channel-view-chart", data.channelTrend, "totalViews", "Channel view growth over captured snapshots");
     renderChannelHealth(data.channelHealth);
+    renderPeriodReports(data.periodReports);
     if (!videos.length) {
       list.innerHTML = '<div class="empty-state"><h3>No snapshots yet</h3><p>Select Refresh YouTube metrics to capture the first snapshot.</p></div>';
       return;
