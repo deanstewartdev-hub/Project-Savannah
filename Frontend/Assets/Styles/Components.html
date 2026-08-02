@@ -1641,4 +1641,19 @@
     .analytics-insight-highlights,
     .analytics-insight-tables { grid-template-columns: 1fr; }
   }
+  .production-slot-suggestions {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .production-slot-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  @media (max-width: 680px) {
+    .production-slot-list .button { width: 100%; }
+  }
 </style>

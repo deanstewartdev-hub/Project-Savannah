@@ -338,9 +338,16 @@ const ProductionController = (() => {
     });
   }
 
-  function getPublishingSchedule() {
+  function getPublishingSchedule(request) {
     return run_("Publishing schedule loaded.", function () {
-      return { schedule: PublishingScheduleService.upcoming(PublishingJobRepository.getAll()) };
+      const jobs = PublishingJobRepository.getAll(), source = request || {};
+      return {
+        schedule: PublishingScheduleService.upcoming(jobs),
+        suggestions: PublishingScheduleService.suggestSlots(jobs, {
+          timezoneOffsetMinutes: source.timezoneOffsetMinutes,
+          dailyTimes: ["12:00", "18:00"], maxPerDay: 2, limit: 6, daysAhead: 14
+        })
+      };
     });
   }
 
@@ -374,7 +381,8 @@ const ProductionController = (() => {
       const scheduleCheck = PublishingScheduleService.assertAvailable(
         source.publishAt,
         PublishingJobRepository.getAll(),
-        renderJobId
+        renderJobId,
+        { timezoneOffsetMinutes: source.timezoneOffsetMinutes, maxPerDay: 2 }
       );
       if (scheduleCheck.scheduled) source.publishAt = scheduleCheck.publishAt;
       const seoPack = SeoRepository.getById(renderJob.seoPackId);
@@ -554,7 +562,7 @@ function productionApproveRender(request) { return ProductionController.approveR
 function productionListJobs() { return ProductionController.listJobs(); }
 function productionGetYouTubeConnection() { return ProductionController.getYouTubeConnection(); }
 function productionGetAutomationStatus() { return ProductionController.getAutomationStatus(); }
-function productionGetPublishingSchedule() { return ProductionController.getPublishingSchedule(); }
+function productionGetPublishingSchedule(request) { return ProductionController.getPublishingSchedule(request); }
 function productionSetAutomation(request) { return ProductionController.setAutomation(request); }
 function productionPublish(request) { return ProductionController.publish(request); }
 function productionRefreshPublication(request) { return ProductionController.refreshPublication(request); }

@@ -13,6 +13,7 @@
   const automationStatus = document.getElementById("production-automation-status");
   const automationToggle = document.getElementById("production-automation-toggle");
   const scheduleStatus = document.getElementById("production-schedule-status");
+  const slotSuggestions = document.getElementById("production-slot-suggestions");
   let automationEnabled = false;
   let activeRenderCount = 0;
   let pollTimer = null;
@@ -210,6 +211,19 @@
   }
 
   root.addEventListener("click", function (event) {
+    const useSlot = event.target.closest(".production-slot-use");
+    if (useSlot) {
+      const scheduleInput = root.querySelector(".production-youtube-schedule");
+      if (!scheduleInput) {
+        useSlot.textContent = "Approve a finished video first";
+        return;
+      }
+      const date = new Date(useSlot.dataset.publishAt);
+      scheduleInput.value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      scheduleInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      scheduleInput.focus();
+      return;
+    }
     const submit = event.target.closest(".production-submit");
     if (submit) {
       runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
@@ -249,7 +263,8 @@
         loadJobs(); loadPublishingSchedule();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
         .productionPublish({ renderJobId: publish.dataset.jobId, title: title,
-          privacyStatus: privacyStatus, publishAt: publishAt });
+          privacyStatus: privacyStatus, publishAt: publishAt,
+          timezoneOffsetMinutes: new Date().getTimezoneOffset() });
       return;
     }
     const approveRender = event.target.closest(".production-approve-render");
@@ -346,18 +361,25 @@
   function loadPublishingSchedule() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(scheduleStatus, response);
-      const schedule = response.data.schedule || [];
+      const schedule = response.data.schedule || [], suggestions = response.data.suggestions || {};
       if (!schedule.length) {
         scheduleStatus.innerHTML = '<p>No Shorts are currently scheduled.</p>';
-        return;
+      } else {
+        scheduleStatus.innerHTML = schedule.slice(0, 5).map(function (slot) {
+          return '<p><strong>' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</strong> &mdash; ' +
+            escapeHtml(slot.title) + '</p>';
+        }).join('');
       }
-      scheduleStatus.innerHTML = schedule.slice(0, 5).map(function (slot) {
-        return '<p><strong>' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</strong> &mdash; ' +
-          escapeHtml(slot.title) + '</p>';
-      }).join('');
+      const slots = suggestions.slots || [];
+      slotSuggestions.innerHTML = slots.length ? '<p><strong>Next available local slots</strong></p><div class="production-slot-list">' +
+        slots.map(function (slot) {
+          return '<button class="button button--secondary production-slot-use" type="button" data-publish-at="' +
+            escapeHtml(slot.publishAt) + '">' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</button>';
+        }).join('') + '</div><p><small>Select a slot to fill the next approved Short.</small></p>' :
+        '<p>No available daily slots were found in the next 14 days.</p>';
     }).withFailureHandler(function (error) {
       showError(scheduleStatus, { error: error });
-    }).productionGetPublishingSchedule();
+    }).productionGetPublishingSchedule({ timezoneOffsetMinutes: new Date().getTimezoneOffset() });
   }
 
   function schedulePolling() {

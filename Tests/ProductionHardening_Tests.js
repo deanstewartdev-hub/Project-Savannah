@@ -160,6 +160,41 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Publishing schedule enforces the daily Short limit", function () {
+    const requested = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    requested.setUTCHours(18, 0, 0, 0);
+    const first = new Date(requested); first.setUTCHours(12);
+    const second = new Date(requested); second.setUTCHours(15);
+    let blocked = false;
+    try {
+      PublishingScheduleService.assertAvailable(requested.toISOString(), [
+        { id: "PUB-A", renderJobId: "RND-A", title: "First", providerResponse: { publishAt: first.toISOString() } },
+        { id: "PUB-B", renderJobId: "RND-B", title: "Second", providerResponse: { publishAt: second.toISOString() } }
+      ], "RND-C", { timezoneOffsetMinutes: 0, maxPerDay: 2 });
+    } catch (error) { blocked = error.name === "PublishingScheduleError"; }
+    if (!blocked) throw new Error("A third Short was accepted on the same local day.");
+  });
+
+  test("Publishing schedule suggestions skip a full local day", function () {
+    const result = PublishingScheduleService.suggestSlots([
+      { id: "PUB-A", renderJobId: "RND-A", title: "First", providerResponse: { publishAt: "2026-01-05T12:00:00.000Z" } },
+      { id: "PUB-B", renderJobId: "RND-B", title: "Second", providerResponse: { publishAt: "2026-01-05T18:00:00.000Z" } }
+    ], { now: "2026-01-05T10:00:00.000Z", timezoneOffsetMinutes: 0,
+      dailyTimes: ["12:00", "18:00"], maxPerDay: 2, limit: 2, daysAhead: 3 });
+    if (result.slots.length !== 2 || result.slots[0].localDate !== "2026-01-06" ||
+        result.slots[0].localTime !== "12:00" || result.slots[1].localTime !== "18:00") {
+      throw new Error("Publishing suggestions did not skip the full local day.");
+    }
+  });
+
+  test("Publishing schedule rejects invalid daily time rules", function () {
+    let rejected = false;
+    try {
+      PublishingScheduleService.suggestSlots([], { now: "2026-01-05T10:00:00.000Z", dailyTimes: ["25:00"] });
+    } catch (error) { rejected = error.name === "PublishingScheduleError"; }
+    if (!rejected) throw new Error("An invalid daily publishing time was accepted.");
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };
