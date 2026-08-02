@@ -4,6 +4,8 @@
   if (!root) return;
   const list = document.getElementById("analytics-video-list");
   const refresh = document.getElementById("analytics-refresh");
+  const exportButton = document.getElementById("analytics-export");
+  let latestSummary = null;
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -91,6 +93,8 @@
   }
   function render(summary) {
     const data = summary || {}, totals = data.totals || {}, videos = data.videos || [];
+    latestSummary = data;
+    exportButton.disabled = false;
     document.getElementById("analytics-video-count").textContent = formatNumber(data.videoCount);
     document.getElementById("analytics-view-count").textContent = formatNumber(totals.views);
     document.getElementById("analytics-like-count").textContent = formatNumber(totals.likes);
@@ -128,6 +132,41 @@
       render(response.data);
     }).withFailureHandler(function (error) { showError({ error: error }); }).analyticsGetDashboard();
   }
+  function csvCell(value) {
+    return '"' + String(value === undefined || value === null ? "" : value).replace(/"/g, '""') + '"';
+  }
+  function buildCsv(summary) {
+    const data = summary || {}, channel = data.channel || {}, health = data.channelHealth || {};
+    const rows = [
+      ["Project Savannah Analytics Report"],
+      ["Generated at", new Date().toISOString()],
+      [],
+      ["Channel", "Subscribers", "Total views", "Public videos", "Health score", "Health status", "Confidence"],
+      [channel.channelTitle || "", channel.subscribers || 0, channel.totalViews || 0, channel.videoCount || 0,
+        health.available ? health.score : "", health.status || "", health.confidence || ""],
+      [],
+      ["Period", "Complete period", "Elapsed days", "View growth", "Subscriber growth", "Video growth"]
+    ];
+    (data.periodReports || []).forEach(function (report) {
+      rows.push([report.label, report.complete ? "Yes" : "No", report.elapsedDays,
+        report.viewGrowth, report.subscriberGrowth, report.videoGrowth]);
+    });
+    rows.push([], ["Video title", "YouTube video ID", "Views", "Likes", "Comments", "View growth", "Duration seconds", "Published at", "Privacy"]);
+    (data.videos || []).forEach(function (video) {
+      rows.push([video.title, video.youtubeVideoId, video.views, video.likes, video.comments,
+        video.viewGrowth, video.durationSeconds, video.publishedAt, video.privacyStatus]);
+    });
+    return rows.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
+  }
+  exportButton.addEventListener("click", function () {
+    if (!latestSummary) return;
+    const blob = new Blob(["\ufeff" + buildCsv(latestSummary)], { type: "text/csv;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "project-savannah-analytics-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 0);
+  });
   refresh.addEventListener("click", function () {
     refresh.disabled = true; refresh.textContent = "Refreshing...";
     google.script.run.withSuccessHandler(function (response) {

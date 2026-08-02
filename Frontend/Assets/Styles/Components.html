@@ -1599,9 +1599,18 @@
   .analytics-report dd { margin: 0; font-weight: 700; }
   .analytics-report small { color: var(--color-text-muted); }
 
+  .page-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
   @media (max-width: 900px) {
     .analytics-chart-grid { grid-template-columns: 1fr; }
     .analytics-health-signals { grid-template-columns: 1fr; }
     .analytics-report-grid { grid-template-columns: 1fr; }
+    .page-header__actions { width: 100%; }
+    .page-header__actions .button { flex: 1; }
   }
 </style>
