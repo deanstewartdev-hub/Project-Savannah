@@ -5,8 +5,8 @@ const ProductionController = (() => {
   const VERSION = "production-controller-v1.1-recovery-errors";
 
   function testConnection() {
-    return run_("Creatomate connection verified.", function () {
-      return CreatomateService.testConnection();
+    return run_("Render provider connection verified.", function () {
+      return VideoProcessingProvider.get().testConnection();
     });
   }
 
@@ -37,7 +37,7 @@ const ProductionController = (() => {
   }
 
   function submit(request) {
-    return run_("Short submitted to Creatomate.", function () {
+    return run_("Short submitted for rendering.", function () {
       return submitCore_(request || {});
     });
   }
@@ -63,15 +63,16 @@ const ProductionController = (() => {
       if (completed && !(request && request.forceRerender === true)) {
         throw error_("This script already has a completed render. Use an explicit re-render action to replace it.");
       }
+      const provider = VideoProcessingProvider.get();
       let job = RenderJobRepository.save(RenderJobModel.create({
         scriptId: script.id,
         seoPackId: seoPack.id,
-        templateId: Secrets.getCreatomateTemplateId(),
+        templateId: resolveTemplateId_(),
         status: "QUEUED",
         requestPayload: { preparationStatus: "assets-ready" }
       }));
       try {
-        const result = CreatomateService.createRender(script, seoPack);
+        const result = provider.submitRender(script, seoPack);
         const render = result.render;
         job = RenderJobRepository.update(RenderJobModel.update(job, {
           renderId: render.id,
@@ -188,7 +189,7 @@ const ProductionController = (() => {
   }
 
   function submitPrepared(request) {
-    return run_("Prepared Short submitted to Creatomate.", function () {
+    return run_("Prepared Short submitted for rendering.", function () {
       let task = ProductionTaskRepository.getById(String(request && request.taskId || "").trim());
       if (!task) throw error_("Production preparation task was not found.");
       if (task.status !== "READY" || task.preparedScenes.length !== 4) {
@@ -215,7 +216,7 @@ const ProductionController = (() => {
       const jobId = String(request && request.jobId || "").trim();
       const job = RenderJobRepository.getById(jobId);
       if (!job) throw error_("Render job was not found.");
-      const render = CreatomateService.getRender(job.renderId);
+      const render = VideoProcessingProvider.forJob(job).getRender(job);
       const updated = RenderJobModel.update(job, {
         status: mapStatus_(render.status),
         progress: render.progress || (String(render.status).toLowerCase() === "succeeded" ? 100 : job.progress),
@@ -238,7 +239,7 @@ const ProductionController = (() => {
         jobs: active.map(function (job) {
           if (!job.renderId) return job;
           try {
-            const render = CreatomateService.getRender(job.renderId);
+            const render = VideoProcessingProvider.forJob(job).getRender(job);
             return RenderJobRepository.update(RenderJobModel.update(job, {
             status: mapStatus_(render.status),
             progress: render.progress ||
@@ -459,6 +460,14 @@ const ProductionController = (() => {
     });
   }
 
+  function resolveTemplateId_() {
+    // RenderJobModel requires a non-empty templateId regardless of provider. Cloud Run
+    // has no template concept, so it gets a constant label instead of touching that
+    // model's validation rules for a field that only ever mattered for Creatomate.
+    return VideoProcessingProvider.get() === CreatomateProviderAdapter
+      ? Secrets.getCreatomateTemplateId()
+      : "cloud-run-worker";
+  }
   function mapStatus_(status) {
     const value = String(status || "").toLowerCase();
     if (value === "succeeded") return "SUCCEEDED";

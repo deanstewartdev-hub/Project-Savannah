@@ -36,17 +36,31 @@ The current Analytics workspace uses the already-authorized YouTube Data API and
 
 Watch time, audience retention, subscriber gains by video, and revenue require enabling the YouTube Analytics API in the linked Google Cloud project and adding the appropriate read-only analytics scope. This was not enabled automatically because it changes Google service configuration and OAuth consent.
 
-## Full-HD replacement upload
+## Cloud Run media worker setup (v1.4)
 
-Status: blocked by Creatomate plan decision.
+Status: blocked on accounts and one deployment step. Not automatic because they involve
+spending decisions and external service configuration.
 
-The Creatomate dashboard reports:
+Per `SAVANNAH_AUDIT_AND_PLAN.md`, Creatomate is not being upgraded — its trial resolution
+clamp was a symptom, not the real problem. `Production/VideoProcessingProvider.js` and
+`media-worker/` are built and default to the new provider, but need:
 
-- free trials are limited to low-resolution renders;
-- 49 of 50 trial credits have been used.
+1. **Google Cloud billing account enabled** on the project that owns this Apps Script
+   project, so `savannah-media-worker` can be deployed to Cloud Run and use Cloud Storage.
+2. **ElevenLabs Creator plan** ($22/month) for continuous narration, and an API key.
+3. **Pexels API key** (free) for stock footage search.
+4. Deploy `media-worker/` to Cloud Run (see `media-worker/README.md`), then run, in the
+   Apps Script editor:
+   ```javascript
+   Secrets.setMediaWorkerUrl("https://<cloud-run-url>");
+   Secrets.setMediaWorkerSharedSecret("<same value as the worker's JOB_SUBMIT_SECRET>");
+   ```
+   `Secrets.getVideoProvider()` already defaults to `"cloud-run"` once these are set.
+5. Curate 10–20 royalty-free music tracks from the YouTube Audio Library and upload them
+   to the `GCS_BUCKET`; point `DEFAULT_MUSIC_TRACK_PATH` at one.
 
-The MP4 stream was independently verified at 270×480 even when the API requested a larger render scale. A paid Creatomate plan is required to unlock the template's native high-quality export. This is a spending decision and was not made automatically.
-
-After upgrading, create one replacement at native 1× scale. Do not approve or upload it until Savannah reports at least 1080×1920 and the video has been watched for scene timing, narration continuity, subtitles, and visual relevance.
-
-When it passes, upload it as **private** first. Public visibility remains a separate explicit decision.
+**Do not delete `Production/Creatomate_Service.js` or `CreatomateProviderAdapter`** until
+a Cloud Run render has been produced end to end and watched side by side against a
+Creatomate render — this is the explicit success condition for v1.4 in `ROADMAP.md`.
+`Secrets.setVideoProvider("creatomate")` switches back if the Cloud Run path needs to be
+paused without losing the ability to render at all.

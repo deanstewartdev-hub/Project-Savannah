@@ -98,6 +98,40 @@ const Secrets = {
       voiceInstructions: properties.getProperty("PRODUCTION_VOICE_INSTRUCTIONS") ||
         "Speak as an engaging travel storyteller: warm, confident and energetic, with natural pacing, crisp pronunciation and brief dramatic emphasis on the opening hook. Avoid an exaggerated advertising delivery."
     };
+  },
+
+  // savannah-media-worker connection (see media-worker/README.md for the job contract).
+  setMediaWorkerUrl(url) {
+    const value = String(url || "").trim().replace(/\/$/, "");
+    if (!/^https:\/\//i.test(value)) throw new Error("The media worker URL must be an https:// Cloud Run URL.");
+    PropertiesService.getScriptProperties().setProperty("MEDIA_WORKER_URL", value);
+  },
+
+  getMediaWorkerUrl() {
+    return PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_URL");
+  },
+
+  setMediaWorkerSharedSecret(secret) {
+    const value = String(secret || "").trim();
+    if (!value) throw new Error("The media worker shared secret cannot be empty.");
+    PropertiesService.getScriptProperties().setProperty("MEDIA_WORKER_SHARED_SECRET", value);
+  },
+
+  getMediaWorkerSharedSecret() {
+    return PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
+  },
+
+  // "cloud-run" (default) or "creatomate", see Production/VideoProcessingProvider.js.
+  setVideoProvider(name) {
+    const value = String(name || "").trim().toLowerCase();
+    if (["cloud-run", "creatomate"].indexOf(value) === -1) {
+      throw new Error("Video provider must be 'cloud-run' or 'creatomate'.");
+    }
+    PropertiesService.getScriptProperties().setProperty("VIDEO_PROVIDER", value);
+  },
+
+  getVideoProvider() {
+    return PropertiesService.getScriptProperties().getProperty("VIDEO_PROVIDER") || "cloud-run";
   }
 
 };

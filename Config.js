@@ -1,12 +1,12 @@
 /****************************************************
- * Project Savannah v1.0
+ * Project Savannah v1.3
  * Config.gs
  * Purpose: Core app constants, sheet names, and defaults
  ****************************************************/
 
 const APP = {
   NAME: "Project Savannah",
-  VERSION: "1.0.0",
+  VERSION: "1.3.0",
   PROMPT_VERSION: "ideas-v1.1-trend-led"
 };
 
