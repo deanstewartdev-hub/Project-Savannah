@@ -14,9 +14,12 @@ export const config = {
   elevenLabsVoiceId: required("ELEVENLABS_VOICE_ID"),
   pexelsApiKey: required("PEXELS_API_KEY"),
   gcsBucket: required("GCS_BUCKET"),
-  // Inline service-account key JSON, for hosts without Cloud Run's attached-service-account
-  // metadata server (e.g. Railway). Leave unset on Cloud Run to keep using ADC.
-  gcsCredentialsJson: process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || "",
+  // Inline service-account key, for hosts without Cloud Run's attached-service-account
+  // metadata server (e.g. Railway). Base64-encoded to survive plain env var UIs without
+  // quote/escape corruption. Leave unset on Cloud Run to keep using ADC.
+  gcsCredentialsJson: process.env.GOOGLE_APPLICATION_CREDENTIALS_B64
+    ? Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_B64, "base64").toString("utf8")
+    : "",
   defaultMusicTrackPath: process.env.DEFAULT_MUSIC_TRACK_PATH || "music/default-bed.mp3",
   video: {
     width: 1080,
