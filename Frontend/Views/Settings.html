@@ -1,60 +1,110 @@
-<section class="page-section" id="settings-workspace">
-  <div class="page-header"><div><p class="eyebrow">Configuration</p><h1>Settings</h1>
-    <p>Securely connect the services used by Project Savannah.</p></div></div>
-  <article class="card">
-    <h2>Creatomate video rendering</h2>
-    <p id="creatomate-status">Checking connection…</p>
-    <form id="creatomate-form" autocomplete="off">
-      <label>API key<input id="creatomate-api-key" type="password" required autocomplete="new-password"
-        placeholder="Stored securely in Apps Script properties"></label>
-      <label>Template ID<input id="creatomate-template-id" type="text" required
-        value="9157fd7e-ef01-4c63-bcf4-388e7282d779"></label>
-      <button class="button button--primary" type="submit">Connect Creatomate</button>
-    </form>
-    <p id="creatomate-message" role="status"></p>
-  </article>
-  <article class="card">
-    <h2>Shorts branding and narration</h2>
-    <p>Reusable production defaults for every newly rendered Short.</p>
-    <form id="production-branding-form">
-      <label>Channel brand name
-        <input id="production-brand-name" type="text" required maxlength="80" value="Savannah Atlas">
-      </label>
-      <label>Caption colour
-        <input id="production-primary-color" type="color" value="#0f766e">
-      </label>
-      <label>Narration voice
-        <select id="production-voice">
-          <option value="alloy">Alloy</option>
-          <option value="ash">Ash</option>
-          <option value="ballad">Ballad</option>
-          <option value="coral">Coral</option>
-          <option value="echo">Echo</option>
-          <option value="fable">Fable</option>
-          <option value="nova">Nova</option>
-          <option value="onyx">Onyx</option>
-          <option value="sage">Sage</option>
-          <option value="shimmer">Shimmer</option>
-          <option value="verse">Verse</option>
-          <option value="marin">Marin (best quality)</option>
-          <option value="cedar">Cedar (best quality)</option>
-        </select>
-      </label>
-      <label>Speaking speed
-        <input id="production-speech-speed" type="number" min="0.75" max="1.25" step="0.05" value="1">
-      </label>
-      <label>Generated image quality
-        <select id="production-image-quality">
-          <option value="high">High (recommended)</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </label>
-      <label>Narration style
-        <textarea id="production-voice-instructions" maxlength="500" rows="4">Speak as an engaging travel storyteller: warm, confident and energetic, with natural pacing, crisp pronunciation and brief dramatic emphasis on the opening hook. Avoid an exaggerated advertising delivery.</textarea>
-      </label>
-      <button class="button button--primary" type="submit">Save production style</button>
-    </form>
-    <p id="production-branding-message" role="status"></p>
-  </article>
+<section class="page" data-page="settings" id="settings-workspace">
+  <header class="page-header">
+    <div>
+      <p class="page-eyebrow">Configuration</p>
+      <h1 class="page-title">Settings</h1>
+      <p class="page-description">Securely connect the services used by Project Savannah.</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Creatomate video rendering</h2>
+        <p class="card-description" id="creatomate-status">Checking connection…</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <form id="creatomate-form" autocomplete="off">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="creatomate-api-key">API key</label>
+            <input
+              id="creatomate-api-key"
+              class="form-control"
+              type="password"
+              required
+              autocomplete="new-password"
+              placeholder="Stored securely in Apps Script properties"
+            >
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="creatomate-template-id">Template ID</label>
+            <input
+              id="creatomate-template-id"
+              class="form-control"
+              type="text"
+              required
+              value="9157fd7e-ef01-4c63-bcf4-388e7282d779"
+            >
+          </div>
+        </div>
+        <div class="page-actions">
+          <button class="button button-primary" type="submit">Connect Creatomate</button>
+        </div>
+      </form>
+      <p id="creatomate-message" role="status" class="form-help"></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Shorts branding and narration</h2>
+        <p class="card-description">Reusable production defaults for every newly rendered Short.</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <form id="production-branding-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="production-brand-name">Channel brand name</label>
+            <input id="production-brand-name" class="form-control" type="text" required maxlength="80" value="Savannah Atlas">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="production-primary-color">Caption colour</label>
+            <input id="production-primary-color" class="form-control" type="color" value="#0f766e">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="production-voice">Narration voice</label>
+            <select id="production-voice" class="form-control">
+              <option value="alloy">Alloy</option>
+              <option value="ash">Ash</option>
+              <option value="ballad">Ballad</option>
+              <option value="coral">Coral</option>
+              <option value="echo">Echo</option>
+              <option value="fable">Fable</option>
+              <option value="nova">Nova</option>
+              <option value="onyx">Onyx</option>
+              <option value="sage">Sage</option>
+              <option value="shimmer">Shimmer</option>
+              <option value="verse">Verse</option>
+              <option value="marin">Marin (best quality)</option>
+              <option value="cedar">Cedar (best quality)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="production-speech-speed">Speaking speed</label>
+            <input id="production-speech-speed" class="form-control" type="number" min="0.75" max="1.25" step="0.05" value="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="production-image-quality">Generated image quality</label>
+            <select id="production-image-quality" class="form-control">
+              <option value="high">High (recommended)</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="production-voice-instructions">Narration style</label>
+          <textarea id="production-voice-instructions" class="form-control" maxlength="500" rows="4">Speak as an engaging travel storyteller: warm, confident and energetic, with natural pacing, crisp pronunciation and brief dramatic emphasis on the opening hook. Avoid an exaggerated advertising delivery.</textarea>
+        </div>
+        <div class="page-actions">
+          <button class="button button-primary" type="submit">Save production style</button>
+        </div>
+      </form>
+      <p id="production-branding-message" role="status" class="form-help"></p>
+    </div>
+  </section>
 </section>

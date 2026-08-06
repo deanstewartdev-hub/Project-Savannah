@@ -150,13 +150,21 @@
       return;
     }
     list.innerHTML = videos.map(function (video) {
-      return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(video.title) + '</h3>' +
-        '<p><strong>' + formatNumber(video.views) + '</strong> views | ' + formatNumber(video.likes) +
-        ' likes | ' + formatNumber(video.comments) + ' comments</p>' +
-        '<p>Growth since previous snapshot: +' + formatNumber(Math.max(0, video.viewGrowth)) +
-        ' views | Duration: ' + escapeHtml(video.durationSeconds) + 's | ' + escapeHtml(video.privacyStatus) + '</p>' +
-        '<a class="button button--secondary" href="https://youtu.be/' + encodeURIComponent(video.youtubeVideoId) +
-        '" target="_blank" rel="noopener">Open video</a></div>';
+      return '<div class="list-card">' +
+        '<div class="list-card-header">' +
+          '<h3 class="list-card-title">' + escapeHtml(video.title) + '</h3>' +
+          '<span class="badge">' + escapeHtml(video.privacyStatus) + '</span>' +
+        '</div>' +
+        '<div class="list-card-body">' +
+          '<p class="list-card-meta"><strong>' + formatNumber(video.views) + '</strong> views | ' + formatNumber(video.likes) +
+          ' likes | ' + formatNumber(video.comments) + ' comments</p>' +
+          '<p class="list-card-meta">Growth since previous snapshot: +' + formatNumber(Math.max(0, video.viewGrowth)) +
+          ' views | Duration: ' + escapeHtml(video.durationSeconds) + 's</p>' +
+          '<div class="list-card-actions">' +
+          '<a class="button button-secondary" href="https://youtu.be/' + encodeURIComponent(video.youtubeVideoId) +
+          '" target="_blank" rel="noopener">Open video</a></div>' +
+        '</div>' +
+      '</div>';
     }).join("");
   }
   function load() {

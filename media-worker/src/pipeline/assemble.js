@@ -3,10 +3,13 @@ import { writeWordPopAss } from "../lib/ass.js";
 import { config } from "../config.js";
 
 function escapeForFilter(filePath) {
-  // ffmpeg filter arguments treat ':' and '\' specially; both the subtitles filter and
-  // amovie-style paths need them escaped even though we run on Linux (absolute tmp paths
-  // never contain ':' here, but the escape is cheap insurance).
-  return filePath.replace(/\\/g, "\\\\").replace(/:/g, "\\:");
+  // The subtitles filter's own argument parser splits on ':' (filename:option=value),
+  // so a Windows drive letter or any literal colon has to be escaped, and the whole
+  // filename wrapped in single quotes below — escaping the colon alone still left
+  // ffmpeg misreading the path as filename:original_size=... in local Windows testing.
+  // Forward slashes work fine in ffmpeg on both platforms. Linux paths have neither
+  // a drive letter nor backslashes, so this is a no-op in the container.
+  return filePath.replace(/\\/g, "/").replace(/:/g, "\\:");
 }
 
 // Normalizes one beat's resolved visual (real clip or AI still) into a silent clip of
@@ -98,7 +101,7 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, musicP
 
   const videoLabel = normalizedClips.length > 1 ? "vconcat" : "0:v";
   const captionedLabel = "vfinal";
-  const subtitleFilter = `[${videoLabel}]subtitles=${escapeForFilter(captionsPath)}[${captionedLabel}]`;
+  const subtitleFilter = `[${videoLabel}]subtitles='${escapeForFilter(captionsPath)}'[${captionedLabel}]`;
 
   const narrationInputIndex = normalizedClips.length;
   const musicInputIndex = normalizedClips.length + 1;

@@ -1,7 +1,9 @@
 import { Storage } from "@google-cloud/storage";
 import { config } from "../config.js";
 
-const storage = new Storage();
+const storage = config.gcsCredentialsJson
+  ? new Storage({ credentials: JSON.parse(config.gcsCredentialsJson) })
+  : new Storage();
 const bucket = storage.bucket(config.gcsBucket);
 
 export async function uploadFile(localPath, destination, contentType) {

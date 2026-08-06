@@ -73,6 +73,15 @@
      Page typography
      ================================================== */
 
+  .page-eyebrow {
+    margin: 0 0 2px;
+    color: var(--color-brand-600);
+    font-size: 11px;
+    font-weight: var(--font-weight-extra-bold);
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
   .page-title {
     margin: 0 0 7px;
     font-size: clamp(26px, 4vw, var(--font-size-page-title));
@@ -116,6 +125,25 @@
     margin: 5px 0 0;
     color: var(--color-text-secondary);
     font-size: var(--font-size-small);
+  }
+
+  /* ==================================================
+     Plain stat card typography (Scripts, Queue, and other
+     simpler stat rows that don't use the full KPI card treatment)
+     ================================================== */
+
+  .card-label {
+    margin: 0 0 8px;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-label);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .card-value {
+    margin: 0;
+    font-size: 28px;
+    font-weight: var(--font-weight-extra-bold);
+    line-height: 1;
   }
 
   /* ==================================================

@@ -51,11 +51,164 @@
   }
 
   /* ==================================================
+     Empty states — used throughout the app (Production,
+     Analytics, SEO, notifications) whenever a list has
+     nothing to show yet.
+     ================================================== */
+
+  .empty-state {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 40px 24px;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-large);
+    background: var(--color-surface-muted);
+    text-align: center;
+  }
+
+  .empty-state h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    font-weight: var(--font-weight-bold);
+  }
+
+  .empty-state p {
+    max-width: 420px;
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .empty-state p:last-child {
+    color: var(--color-text-muted);
+    font-size: 12px;
+  }
+
+  /* ==================================================
+     Job / list cards — Production render jobs, ready-for-
+     production items, and anywhere else that lists records
+     as individual cards with a status + progress readout.
+     ================================================== */
+
+  .list-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-small);
+  }
+
+  .list-card + .list-card {
+    margin-top: 12px;
+  }
+
+  .list-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .list-card-title {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    font-weight: var(--font-weight-bold);
+  }
+
+  .list-card-subtitle {
+    margin: 4px 0 0;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+  }
+
+  .list-card-body {
+    display: grid;
+    gap: 8px;
+  }
+
+  .list-card-meta {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+  }
+
+  .list-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .progress-bar {
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-muted);
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--color-brand-500);
+    transition: width 500ms ease;
+  }
+
+  .progress-bar[data-active="true"] .progress-bar-fill {
+    background: linear-gradient(
+      90deg,
+      var(--color-brand-400),
+      var(--color-brand-600),
+      var(--color-brand-400)
+    );
+    background-size: 200% 100%;
+    animation: progress-bar-shimmer 1.6s linear infinite;
+  }
+
+  @keyframes progress-bar-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .progress-bar[data-active="true"] .progress-bar-fill {
+      animation: none;
+    }
+  }
+
+  /* ==================================================
      KPI cards
      ================================================== */
 
   .kpi-card {
     padding: 20px;
+  }
+
+  /* ==================================================
+     Generic stat-card grid — used by any workspace that shows
+     a row of plain metric cards (Scripts, Queue, Production,
+     Analytics, SEO) rather than the richer dashboard KPI treatment.
+     ================================================== */
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  @media (max-width: 1180px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 680px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   /* ==================================================
@@ -227,6 +380,12 @@
     color: var(--color-text-muted);
   }
 
+  input[type="color"].form-control {
+    width: 64px;
+    min-height: 42px;
+    padding: 4px;
+  }
+
   /* ==================================================
      Alerts
      ================================================== */
@@ -295,6 +454,192 @@
 
   .table tbody tr:last-child td {
     border-bottom: 0;
+  }
+
+  /* ==================================================
+     Entrance animation — cards fade/slide in as they render,
+     with a small stagger across the first several siblings.
+     ================================================== */
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .card,
+  .dashboard-kpi-card,
+  .dashboard-total-card,
+  .idea-workspace-card,
+  .ideas-summary-card {
+    animation: fade-in-up 480ms ease both;
+  }
+
+  .card:nth-of-type(1), .dashboard-kpi-card:nth-of-type(1), .dashboard-total-card:nth-of-type(1), .ideas-summary-card:nth-of-type(1) { animation-delay: 0ms; }
+  .card:nth-of-type(2), .dashboard-kpi-card:nth-of-type(2), .dashboard-total-card:nth-of-type(2), .ideas-summary-card:nth-of-type(2) { animation-delay: 45ms; }
+  .card:nth-of-type(3), .dashboard-kpi-card:nth-of-type(3), .dashboard-total-card:nth-of-type(3), .ideas-summary-card:nth-of-type(3) { animation-delay: 90ms; }
+  .card:nth-of-type(4), .dashboard-kpi-card:nth-of-type(4), .dashboard-total-card:nth-of-type(4), .ideas-summary-card:nth-of-type(4) { animation-delay: 135ms; }
+  .card:nth-of-type(5) { animation-delay: 180ms; }
+  .card:nth-of-type(6) { animation-delay: 225ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .dashboard-kpi-card,
+    .dashboard-total-card,
+    .idea-workspace-card,
+    .ideas-summary-card {
+      animation: none;
+    }
+  }
+
+  /* ==================================================
+     Pipeline stepper — the "how far through the process"
+     visual on the Dashboard. Built from the same pipeline
+     data the old table used.
+     ================================================== */
+
+  .pipeline-stepper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 22px 6px 6px;
+  }
+
+  .pipeline-step {
+    display: flex;
+    min-width: 92px;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .pipeline-step-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    transition:
+      border-color var(--transition-normal),
+      background var(--transition-normal),
+      color var(--transition-normal),
+      transform var(--transition-normal);
+  }
+
+  .pipeline-step-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+  }
+
+  .pipeline-step[data-status="active"] .pipeline-step-icon {
+    border-color: var(--color-brand-600);
+    background: var(--color-brand-600);
+    color: var(--color-text-on-brand);
+    box-shadow: 0 0 0 5px var(--color-brand-50);
+  }
+
+  .pipeline-step[data-status="review_required"] .pipeline-step-icon {
+    border-color: var(--color-info-text);
+    background: var(--color-info-background);
+    color: var(--color-info-text);
+    animation: pipeline-pulse 1.8s ease-in-out infinite;
+  }
+
+  .pipeline-step[data-status="building"] .pipeline-step-icon {
+    border-color: var(--color-warning-text);
+    background: var(--color-warning-background);
+    color: var(--color-warning-text);
+  }
+
+  @keyframes pipeline-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--color-info-border); }
+    50% { box-shadow: 0 0 0 6px transparent; }
+  }
+
+  .pipeline-step-name {
+    color: var(--color-text-primary);
+    font-size: 12px;
+    font-weight: var(--font-weight-bold);
+  }
+
+  .pipeline-step-count {
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: var(--font-weight-extra-bold);
+  }
+
+  .pipeline-step[data-status="active"] .pipeline-step-count {
+    background: var(--color-brand-50);
+    color: var(--color-brand-700);
+  }
+
+  .pipeline-connector {
+    position: relative;
+    top: 20px;
+    height: 2px;
+    flex: 1 1 auto;
+    min-width: 16px;
+    margin: 0 -2px;
+    background: var(--color-border);
+    overflow: hidden;
+  }
+
+  .pipeline-connector-fill {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    background: var(--color-brand-500);
+    transition: width 900ms ease 120ms;
+  }
+
+  .pipeline-connector[data-filled="true"] .pipeline-connector-fill {
+    width: 100%;
+  }
+
+  @media (max-width: 900px) {
+    .pipeline-stepper {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+    }
+
+    .pipeline-step {
+      flex-direction: row;
+      min-width: 0;
+      justify-content: flex-start;
+      text-align: left;
+    }
+
+    .pipeline-connector {
+      top: 0;
+      width: 2px;
+      height: 20px;
+      margin: 0 0 0 20px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pipeline-step[data-status="review_required"] .pipeline-step-icon {
+      animation: none;
+    }
   }
 
   /* ==================================================

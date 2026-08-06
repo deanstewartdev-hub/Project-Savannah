@@ -36,6 +36,10 @@ const DashboardRepository = (() => {
       spreadsheet.getSheetByName("Approval Queue");
     const costsSheet = spreadsheet.getSheetByName("Costs");
     const logsSheet = spreadsheet.getSheetByName("Logs");
+    const renderJobsSheet =
+      spreadsheet.getSheetByName("Render Jobs");
+    const publishingJobsSheet =
+      spreadsheet.getSheetByName("Publishing Jobs");
 
     return {
       totals: {
@@ -44,7 +48,9 @@ const DashboardRepository = (() => {
         seoPacks: countDataRows_(seoSheet),
         approvalQueue: countDataRows_(approvalSheet),
         costRecords: countDataRows_(costsSheet),
-        logRecords: countDataRows_(logsSheet)
+        logRecords: countDataRows_(logsSheet),
+        renders: countDataRows_(renderJobsSheet),
+        published: countDataRows_(publishingJobsSheet)
       },
 
       today: {

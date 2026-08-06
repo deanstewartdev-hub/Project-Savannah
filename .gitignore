@@ -1,3 +1,4 @@
 node_modules/
 .env
 media-worker/tmp/
+media-worker/gcp-key.json

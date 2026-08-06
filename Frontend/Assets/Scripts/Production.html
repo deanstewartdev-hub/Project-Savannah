@@ -110,26 +110,40 @@
         const taskLabel = task ? (task.status === "READY" ? "Submit prepared render" :
           (task.status === "FAILED" ? "Retry scene preparation (" + prepared + "/4)" :
           "Resume scene preparation (" + prepared + "/4)")) : "Create Short";
-        const priorityControl = task && !busy ? '<label style="display:block;margin-top:8px">Queue priority' +
-          '<select class="input production-task-priority" data-task-id="' + escapeHtml(task.id) + '">' +
+        const priorityControl = task && !busy ? '<div class="form-group">' +
+          '<label class="form-label" for="priority-' + escapeHtml(task.id) + '">Queue priority</label>' +
+          '<select id="priority-' + escapeHtml(task.id) + '" class="form-control production-task-priority" data-task-id="' + escapeHtml(task.id) + '">' +
           [1, 2, 3, 4, 5].map(function (priority) {
             const label = priority === 5 ? '5 — Urgent' : (priority === 3 ? '3 — Normal' :
               (priority === 1 ? '1 — Low' : String(priority)));
             return '<option value="' + priority + '"' +
               (Number(task.priority || 3) === priority ? ' selected' : '') + '>' + label + '</option>';
-          }).join('') + '</select></label>' : '';
-        const controls = task && !busy ? priorityControl + '<div style="margin-top:8px">' +
-          (task.status === "PREPARING" ? '<button class="button button--secondary production-task-control" data-action="pause" data-task-id="' +
+          }).join('') + '</select></div>' : '';
+        const controls = task && !busy ? priorityControl + '<div class="list-card-actions">' +
+          (task.status === "PREPARING" ? '<button class="button button-secondary production-task-control" data-action="pause" data-task-id="' +
             escapeHtml(task.id) + '">Pause</button>' : '') +
           (["PAUSED", "FAILED", "READY"].indexOf(task.status) !== -1 ?
-            '<button class="button button--secondary production-task-control" data-action="cancel" data-task-id="' +
+            '<button class="button button-secondary production-task-control" data-action="cancel" data-task-id="' +
             escapeHtml(task.id) + '">Cancel</button>' : '') + '</div>' : '';
-        return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(item.script.title) + '</h3>' +
-          '<p>' + escapeHtml(item.script.hook) + '</p><p><span class="badge">SEO ready</span></p>' +
-          '<button class="button button--primary production-submit" data-script-id="' +
-          escapeHtml(item.script.id) + '"' + (busy ? ' disabled' : '') + '>' +
-          (busy ? 'Rendering...' : taskLabel) + '</button>' +
-          (task && task.errorMessage ? '<p>' + escapeHtml(task.errorMessage) + '</p>' : '') + controls + '</div>';
+        return '<div class="list-card">' +
+          '<div class="list-card-header">' +
+            '<div>' +
+              '<p class="list-card-subtitle">Ready for production</p>' +
+              '<h3 class="list-card-title">' + escapeHtml(item.script.title) + '</h3>' +
+            '</div>' +
+            '<span class="badge badge-success">SEO ready</span>' +
+          '</div>' +
+          '<div class="list-card-body">' +
+            '<p class="list-card-meta">' + escapeHtml(item.script.hook) + '</p>' +
+            '<div class="list-card-actions">' +
+              '<button class="button button-primary production-submit" data-script-id="' +
+              escapeHtml(item.script.id) + '"' + (busy ? ' disabled' : '') + '>' +
+              (busy ? 'Rendering...' : taskLabel) + '</button>' +
+            '</div>' +
+            (task && task.errorMessage ? '<p class="form-help">' + escapeHtml(task.errorMessage) + '</p>' : '') +
+            controls +
+          '</div>' +
+        '</div>';
       }).join("");
     }).withFailureHandler(function (error) { showError(readyList, { error: error }); }).productionListReady();
   }
@@ -155,6 +169,21 @@
     }).withFailureHandler(function (error) { showError(jobList, { error: error }); }).productionListJobs();
   }
 
+  function jobStatusBadgeClass(status) {
+    if (status === "SUCCEEDED") return "badge-success";
+    if (status === "FAILED" || status === "CANCELLED") return "badge-danger";
+    if (status === "RENDERING" || status === "QUEUED" || status === "PLANNED") return "badge-info";
+    return "";
+  }
+
+  function jobStatusLabel(status) {
+    const labels = {
+      QUEUED: "Queued", PLANNED: "Planned", RENDERING: "Rendering",
+      SUCCEEDED: "Succeeded", FAILED: "Failed", CANCELLED: "Cancelled"
+    };
+    return labels[status] || status;
+  }
+
   function renderJobCard(job) {
     const published = job.publishingJob && job.publishingJob.status === "PUBLISHED";
     const uncertainUpload = job.publishingJob && job.publishingJob.status === "RECONCILE";
@@ -163,8 +192,8 @@
     const seo = job.seoPack || {}, quality = job.quality || {}, review = job.review || {};
     const title = seo.titleOptions && seo.titleOptions[0] || "";
     const videoAction = job.status === "SUCCEEDED" && job.videoUrl ?
-      '<a class="button button--secondary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
-      (job.renderId ? '<button class="button button--secondary production-refresh-job" data-job-id="' +
+      '<a class="button button-secondary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
+      (job.renderId ? '<button class="button button-secondary production-refresh-job" data-job-id="' +
       escapeHtml(job.id) + '">Refresh status</button>' : '');
     const qualitySummary = job.status === "SUCCEEDED" ?
       '<p><strong>Quality:</strong> ' + (quality.passed ? 'Passed' : 'Blocked') + ' | ' +
@@ -173,42 +202,60 @@
       (quality.width && quality.height ? ' | ' + escapeHtml(quality.width) + 'x' + escapeHtml(quality.height) : '') + '</p>' +
       (!quality.passed && quality.issues ? '<p>' + escapeHtml(quality.issues.join(' ')) + '</p>' : '') : '';
     const reviewAction = job.status === "SUCCEEDED" && quality.passed && !review.approved && !published ?
-      '<button class="button button--primary production-approve-render" data-job-id="' +
+      '<button class="button button-primary production-approve-render" data-job-id="' +
       escapeHtml(job.id) + '">Approve finished video</button>' :
       (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
     const retryAction = !published && (job.status === "FAILED" ||
       (job.status === "SUCCEEDED" && (!quality.passed || !review.approved))) ?
-      '<button class="button button--secondary production-retry" data-job-id="' +
+      '<button class="button button-secondary production-retry" data-job-id="' +
       escapeHtml(job.id) + '">Re-render safely</button>' : '';
     const publishAction = job.status === "SUCCEEDED" ? (published ?
-      '<a class="button button--primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
+      '<a class="button button-primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
       '" target="_blank" rel="noopener">Open on YouTube</a>' +
       '<p><strong>YouTube:</strong> ' +
       escapeHtml(publishingDetails.processingStatus || publishingDetails.uploadStatus || 'uploaded') +
       ' | ' + escapeHtml(job.publishingJob.privacyStatus) + '</p>' +
       (publishingDetails.publishAt ? '<p>Scheduled: ' +
         escapeHtml(new Date(publishingDetails.publishAt).toLocaleString()) + '</p>' : '') +
-      '<button class="button button--secondary production-refresh-publication" data-job-id="' +
+      '<button class="button button-secondary production-refresh-publication" data-job-id="' +
       escapeHtml(job.id) + '">Refresh YouTube status</button>' : uncertainUpload ?
       '<p><strong>Upload needs reconciliation.</strong> Check YouTube Studio for this title before retrying.</p>' +
-      '<button class="button button--secondary production-abandon-publication" data-job-id="' +
+      '<button class="button button-secondary production-abandon-publication" data-job-id="' +
       escapeHtml(job.id) + '">Confirm no upload and allow retry</button>' : uploading ?
       '<p><strong>YouTube upload is in progress.</strong> Savannah is preventing a duplicate submission.</p>' :
-      (quality.passed && review.approved ? '<div class="production-publish-panel" style="margin-top:12px">' +
-      '<label>Video title<input class="input production-youtube-title" maxlength="100" value="' +
-      escapeHtml(title) + '"></label>' +
-      '<label>Visibility<select class="input production-youtube-privacy">' +
+      (quality.passed && review.approved ? '<div class="production-publish-panel form-grid" style="margin-top:12px">' +
+      '<div class="form-group"><label class="form-label">Video title</label>' +
+      '<input class="form-control production-youtube-title" maxlength="100" value="' +
+      escapeHtml(title) + '"></div>' +
+      '<div class="form-group"><label class="form-label">Visibility</label>' +
+      '<select class="form-control production-youtube-privacy">' +
       '<option value="private">Private</option><option value="unlisted">Unlisted</option>' +
-      '<option value="public">Public</option></select></label>' +
-      '<label>Schedule (optional)<input class="input production-youtube-schedule" type="datetime-local"></label>' +
-      '<button class="button button--primary production-publish" data-job-id="' +
-      escapeHtml(job.id) + '">Upload to YouTube</button></div>' : '')) : '';
-    return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(job.status) + '</h3>' +
-      '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + qualitySummary + videoAction +
-      reviewAction + retryAction + publishAction +
-      (job.publishingJob && job.publishingJob.status === "FAILED" ?
-        '<p>' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
-      (job.errorMessage ? '<p>' + escapeHtml(job.errorMessage) + '</p>' : '') + '</div>';
+      '<option value="public">Public</option></select></div>' +
+      '<div class="form-group"><label class="form-label">Schedule (optional)</label>' +
+      '<input class="form-control production-youtube-schedule" type="datetime-local"></div>' +
+      '<div class="list-card-actions"><button class="button button-primary production-publish" data-job-id="' +
+      escapeHtml(job.id) + '">Upload to YouTube</button></div></div>' : '')) : '';
+    const isActive = ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+    const progress = Math.max(0, Math.min(100, Number(job.progress) || 0));
+    return '<div class="list-card">' +
+      '<div class="list-card-header">' +
+        '<div>' +
+          '<p class="list-card-subtitle">Render job</p>' +
+          '<h3 class="list-card-title">' + escapeHtml(title || job.id) + '</h3>' +
+        '</div>' +
+        '<span class="badge ' + jobStatusBadgeClass(job.status) + '">' + escapeHtml(jobStatusLabel(job.status)) + '</span>' +
+      '</div>' +
+      '<div class="list-card-body">' +
+        '<div class="progress-bar" data-active="' + (isActive ? 'true' : 'false') + '">' +
+          '<div class="progress-bar-fill" style="width:' + progress + '%"></div>' +
+        '</div>' +
+        '<p class="list-card-meta">' + progress + '% complete</p>' +
+        qualitySummary + videoAction + reviewAction + retryAction + publishAction +
+        (job.publishingJob && job.publishingJob.status === "FAILED" ?
+          '<p class="form-help">' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
+        (job.errorMessage ? '<p class="form-help">' + escapeHtml(job.errorMessage) + '</p>' : '') +
+      '</div>' +
+    '</div>';
   }
 
   root.addEventListener("click", function (event) {
@@ -381,7 +428,7 @@
       slotSuggestions.innerHTML = slots.length ? '<p><strong>Next available local slots</strong> &mdash; ' +
         escapeHtml(selectedTemplate.label || "Selected cadence") + '</p><div class="production-slot-list">' +
         slots.map(function (slot) {
-          return '<button class="button button--secondary production-slot-use" type="button" data-publish-at="' +
+          return '<button class="button button-secondary production-slot-use" type="button" data-publish-at="' +
             escapeHtml(slot.publishAt) + '">' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</button>';
         }).join('') + '</div><p><small>Select a slot to fill the next approved Short.</small></p>' :
         '<p>No available daily slots were found in the next 14 days.</p>';
