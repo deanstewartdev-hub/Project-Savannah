@@ -8,7 +8,9 @@ async function searchPexelsVideo(query) {
   const url = new URL("https://api.pexels.com/videos/search");
   url.searchParams.set("query", query);
   url.searchParams.set("orientation", "portrait");
-  url.searchParams.set("size", "large");
+  // "medium" (Full HD) not "large" (4K) - the final output is 1080x1920, so a 4K source
+  // just costs extra decode/scale memory and CPU on the render worker for no visual gain.
+  url.searchParams.set("size", "medium");
   url.searchParams.set("per_page", "5");
 
   const response = await fetch(url, {
@@ -20,11 +22,15 @@ async function searchPexelsVideo(query) {
   const data = await response.json();
 
   for (const video of data.videos || []) {
+    // Prefer the smallest rendition that still meets our 1080px target width, so we're
+    // not decoding/scaling a needlessly large file for a 1080x1920 output. Falls back to
+    // the largest available if nothing clears 1080 (rare, but better than no clip).
     const portraitFiles = (video.video_files || [])
       .filter((f) => f.height > f.width && f.file_type === "video/mp4")
-      .sort((a, b) => b.width - a.width);
-    if (portraitFiles.length > 0) {
-      return { link: portraitFiles[0].link, sourceDurationSeconds: video.duration };
+      .sort((a, b) => a.width - b.width);
+    const chosen = portraitFiles.find((f) => f.width >= 1080) || portraitFiles[portraitFiles.length - 1];
+    if (chosen) {
+      return { link: chosen.link, sourceDurationSeconds: video.duration };
     }
   }
   return null;
