@@ -6,6 +6,19 @@ import { postCallback } from "../lib/callback.js";
 
 export const jobsRouter = Router();
 
+// This worker runs on a single memory-constrained instance, so two jobs' ffmpeg encodes
+// running concurrently is exactly the kind of pressure that gets a process SIGKILLed.
+// A simple promise chain serializes execution without needing an external queue.
+let queue = Promise.resolve();
+function runSerialized(task) {
+  const result = queue.then(task, task);
+  queue = result.then(
+    () => {},
+    () => {}
+  );
+  return result;
+}
+
 function requireAuth(req, res, next) {
   if (!config.jobSubmitSecret) {
     next();
@@ -54,7 +67,7 @@ jobsRouter.post("/jobs", requireAuth, (req, res) => {
   // Deliberately not awaited: the caller gets an immediate 202 and the result arrives via
   // callbackUrl once the pipeline finishes. Cloud Run requests are billed for wall-clock
   // time either way, so this is about keeping the HTTP contract simple, not performance.
-  runJob({ jobId, beats, musicTrackPath })
+  runSerialized(() => runJob({ jobId, beats, musicTrackPath }))
     .then((result) => postCallback(callbackUrl, result))
     .catch((error) => {
       console.error(`Job ${jobId} failed:`, error);

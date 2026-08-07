@@ -19,6 +19,10 @@ async function normalizeBeatClip(visual, durationSeconds, outPath) {
   const { width, height, fps } = config.video;
   const frames = Math.max(1, Math.round(durationSeconds * fps));
 
+  // -threads 1 / -preset veryfast: this runs on a memory-constrained single host, not a
+  // scaled render farm, so keeping each normalize pass's own footprint small matters more
+  // than shaving encode time - a fast multi-threaded encode that gets OOM-killed is slower
+  // than a slim single-threaded one that finishes.
   if (visual.type === "still") {
     const zoompan = `zoompan=z='min(zoom+0.0012,1.15)':d=${frames}:s=${width}x${height}:fps=${fps}`;
     await ffmpeg([
@@ -27,6 +31,9 @@ async function normalizeBeatClip(visual, durationSeconds, outPath) {
       "-t", String(durationSeconds),
       "-vf", `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},${zoompan},format=yuv420p`,
       "-r", String(fps),
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-threads", "1",
       outPath
     ]);
     return outPath;
@@ -39,6 +46,9 @@ async function normalizeBeatClip(visual, durationSeconds, outPath) {
     "-vf", `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=${fps},format=yuv420p`,
     "-an",
     "-r", String(fps),
+    "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-threads", "1",
     outPath
   ]);
   return outPath;
@@ -74,20 +84,20 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, musicP
   // of the nominal durations, which is what keeps the crossfaded video in sync with the
   // (untouched, un-crossfaded) narration track instead of drifting a little further out
   // of sync at every transition.
+  // Sequential, not Promise.all: running N ffmpeg encodes concurrently multiplies peak
+  // memory by N, which SIGKILLs the process on memory-constrained hosts (observed on
+  // Railway's trial tier) even though no single beat's encode is large on its own.
   const isLast = (index) => index === timedBeats.length - 1;
-  const normalizedClips = await Promise.all(
-    timedBeats.map((beat, index) => {
-      const nominalDuration = beat.end - beat.start;
-      const renderDuration = isLast(index)
-        ? nominalDuration
-        : nominalDuration + config.video.crossfadeSeconds;
-      const outPath = workDir.path(`beat-${index}-norm.mp4`);
-      return normalizeBeatClip(visuals[index], renderDuration, outPath).then(() => ({
-        path: outPath,
-        duration: renderDuration
-      }));
-    })
-  );
+  const normalizedClips = [];
+  for (const [index, beat] of timedBeats.entries()) {
+    const nominalDuration = beat.end - beat.start;
+    const renderDuration = isLast(index)
+      ? nominalDuration
+      : nominalDuration + config.video.crossfadeSeconds;
+    const outPath = workDir.path(`beat-${index}-norm.mp4`);
+    await normalizeBeatClip(visuals[index], renderDuration, outPath);
+    normalizedClips.push({ path: outPath, duration: renderDuration });
+  }
 
   const captionsPath = workDir.path("captions.ass");
   const allWords = timedBeats.flatMap((beat) => beat.words || []);
