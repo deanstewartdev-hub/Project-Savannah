@@ -4,7 +4,14 @@ function run(command, args) {
   return new Promise((resolve, reject) => {
     execFile(command, args, { maxBuffer: 1024 * 1024 * 64 }, (error, stdout, stderr) => {
       if (error) {
-        reject(new Error(`${command} failed: ${error.message}\n${stderr}`));
+        const detail = [
+          `exit code: ${error.code ?? "unknown"}`,
+          `signal: ${error.signal ?? "none"}`,
+          `args: ${args.join(" ")}`,
+          `stderr: ${stderr && stderr.trim() ? stderr.trim() : "(empty)"}`,
+          `stdout: ${stdout && stdout.trim() ? stdout.trim() : "(empty)"}`
+        ].join("\n");
+        reject(new Error(`${command} failed (${error.message})\n${detail}`));
         return;
       }
       resolve({ stdout, stderr });
