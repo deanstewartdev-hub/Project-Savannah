@@ -36,31 +36,46 @@ The current Analytics workspace uses the already-authorized YouTube Data API and
 
 Watch time, audience retention, subscriber gains by video, and revenue require enabling the YouTube Analytics API in the linked Google Cloud project and adding the appropriate read-only analytics scope. This was not enabled automatically because it changes Google service configuration and OAuth consent.
 
-## Cloud Run media worker setup (v1.4)
+## Media worker deployment (v1.4)
 
-Status: blocked on accounts and one deployment step. Not automatic because they involve
-spending decisions and external service configuration.
+Status: **deployed and verified working**, on Railway rather than Cloud Run (see below).
+Remaining item needs Dean's judgment/taste, not an account or spending decision.
 
 Per `SAVANNAH_AUDIT_AND_PLAN.md`, Creatomate is not being upgraded — its trial resolution
 clamp was a symptom, not the real problem. `Production/VideoProcessingProvider.js` and
-`media-worker/` are built and default to the new provider, but need:
+`media-worker/` are built, deployed, and have produced a real, quality-gate-passing video
+end to end (7 August 2026).
 
-1. **Google Cloud billing account enabled** on the project that owns this Apps Script
-   project, so `savannah-media-worker` can be deployed to Cloud Run and use Cloud Storage.
-2. **ElevenLabs Creator plan** ($22/month) for continuous narration, and an API key.
-3. **Pexels API key** (free) for stock footage search.
-4. Deploy `media-worker/` to Cloud Run (see `media-worker/README.md`), then run, in the
-   Apps Script editor:
-   ```javascript
-   Secrets.setMediaWorkerUrl("https://<cloud-run-url>");
-   Secrets.setMediaWorkerSharedSecret("<same value as the worker's JOB_SUBMIT_SECRET>");
-   ```
-   `Secrets.getVideoProvider()` already defaults to `"cloud-run"` once these are set.
-5. Curate 10–20 royalty-free music tracks from the YouTube Audio Library and upload them
-   to the `GCS_BUCKET`; point `DEFAULT_MUSIC_TRACK_PATH` at one.
+Completed:
+
+1. ~~Google Cloud billing account enabled~~ — done, but see "Cloud Run is currently
+   broken" below.
+2. ~~ElevenLabs Creator plan + API key~~ — done.
+3. ~~Pexels API key~~ — done.
+4. ~~Deploy `media-worker/`~~ — done, on **Railway** (see `media-worker/README.md` →
+   "Deploying to Railway"). `Secrets.getMediaWorkerUrl()` points at
+   `https://project-savannah-production.up.railway.app`; `Secrets.getVideoProvider()`
+   defaults to `"cloud-run"` (that name refers to the HTTP-job-submission integration
+   shape, not literally the Cloud Run host).
+5. Music track — **placeholder only.** A 60-second silent MP3 was uploaded to
+   `gs://savannah-media/music/default-bed.mp3` purely to unblock end-to-end testing (a
+   real render needs *something* there or the job fails outright). **This still needs
+   Dean:** curate 10–20 royalty-free tracks from the YouTube Audio Library, pick one as
+   the new default, upload to `GCS_BUCKET`, and point `DEFAULT_MUSIC_TRACK_PATH` at it.
+
+### Cloud Run is currently broken (Google-side, not ours to fix)
+
+Cloud Run deployment itself succeeds — container healthy, logs show `listening on port
+8080` — but external HTTPS traffic 404s. Traced via Cloud Logging to a failed
+`SetIamPolicy` call around the billing account's trial→paid upgrade. Escalated to Google
+Cloud Support: case **#74041894**, follow-up **#74051643**. No resolution as of 7 August
+2026, past their stated 24–48h window. This is why the worker currently runs on Railway
+instead — a temporary bridge, not a replacement decision. Moving back once support fixes
+the routing bug is a one-line `Secrets.setMediaWorkerUrl()` change.
 
 **Do not delete `Production/Creatomate_Service.js` or `CreatomateProviderAdapter`** until
-a Cloud Run render has been produced end to end and watched side by side against a
+a render has been produced end to end from a real production script (not just the
+hand-written test script used to verify the pipeline) and watched side by side against a
 Creatomate render — this is the explicit success condition for v1.4 in `ROADMAP.md`.
-`Secrets.setVideoProvider("creatomate")` switches back if the Cloud Run path needs to be
+`Secrets.setVideoProvider("creatomate")` switches back if the worker path needs to be
 paused without losing the ability to render at all.

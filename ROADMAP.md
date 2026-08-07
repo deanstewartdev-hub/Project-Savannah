@@ -55,9 +55,13 @@ Repository hygiene (no external dependencies):
 - [x] Split Phases 5–7 into FUTURE.md, restructure this file around releases
 - [x] Add CHANGELOG.md
 
-`savannah-media-worker` (Node 22 + FFmpeg on Cloud Run) — code complete in `media-worker/`,
-**not yet deployed or run against real API keys**; that needs Dean, see
-`APPROVALS_REQUIRED.md`:
+`savannah-media-worker` (Node 22 + FFmpeg) — **deployed and verified end to end** as of
+7 August 2026, currently running on **Railway** (`project-savannah-production.up.railway.app`)
+as a temporary bridge, not Cloud Run — Cloud Run's external HTTPS routing 404s due to a
+Google-side platform bug (case #74041894/#74051643 with Google Cloud Support, unresolved).
+See `CHANGELOG.md`'s 7 August entry for the three real bugs found and fixed via live
+testing (healthcheck-triggered restarts, concurrent-ffmpeg OOM, oversized Pexels sources)
+and `media-worker/README.md` → "Deploying to Railway" for the actual deploy steps:
 
 - [x] Job submission endpoint + GCS bucket for assets and outputs
 - [x] ElevenLabs narration as one continuous take (not four per-scene calls)
@@ -86,9 +90,14 @@ Apps Script adaptation:
       (`ProductionTaskRepository`'s prepare-scene flow is still wired to the Creatomate
       path only and untouched — Cloud Run submission bypasses it entirely already)
 
-**Still required before the v1.4 success condition is met:** Dean's accounts (GCP
-billing, ElevenLabs, Pexels), a Cloud Run deployment, and one verified end-to-end render
-compared side by side against Creatomate. See `APPROVALS_REQUIRED.md`.
+**Still required before the v1.4 success condition is met:** a real royalty-free music
+track (currently a silent placeholder — see `APPROVALS_REQUIRED.md`), running the same
+verified render against a real production script from the approval queue (the verified
+render so far used a hand-written two-line test script, not a real idea), and a side by
+side comparison against a Creatomate render before Creatomate is deleted. Moving back
+from Railway to Cloud Run once Google Support resolves the routing bug is v1.4-adjacent
+cleanup, not a blocker — the provider abstraction means it's a one-property change
+(`Secrets.setMediaWorkerUrl`).
 
 **Success condition:** a new idea travels from generation to a verified private YouTube
 upload with no manual database repair, and the finished video is one you'd show someone
