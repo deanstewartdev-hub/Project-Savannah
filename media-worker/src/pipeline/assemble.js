@@ -133,9 +133,13 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, musicP
   await ffmpeg([
     ...inputs,
     "-filter_complex", filterComplex,
+    "-filter_threads", "1",
+    "-filter_complex_threads", "1",
     "-map", `[${captionedLabel}]`,
     "-map", "[aout]",
     "-c:v", "libx264",
+    "-preset", "veryfast",
+    "-threads", "1",
     "-pix_fmt", "yuv420p",
     "-r", String(fps),
     "-c:a", "aac",
