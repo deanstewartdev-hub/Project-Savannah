@@ -90,13 +90,27 @@ Apps Script adaptation:
       (`ProductionTaskRepository`'s prepare-scene flow is still wired to the Creatomate
       path only and untouched — Cloud Run submission bypasses it entirely already)
 
-**Still required before the v1.4 success condition is met:** a real royalty-free music
-track (currently a silent placeholder — see `APPROVALS_REQUIRED.md`), running the same
-verified render against a real production script from the approval queue (the verified
-render so far used a hand-written two-line test script, not a real idea), and a side by
-side comparison against a Creatomate render before Creatomate is deleted. Moving back
-from Railway to Cloud Run once Google Support resolves the routing bug is v1.4-adjacent
-cleanup, not a blocker — the provider abstraction means it's a one-property change
+**Still required before the v1.4 success condition is met:**
+
+- **A full app-driven run has not yet been confirmed working, end to end.** A second real
+  bug was found and fixed after the note above was first written: both Apps Script
+  deployments had `Who has access: Only myself`, meaning the worker's callback could
+  never reach `doPost` regardless of which host renders the video. Fixed by deploying
+  Version 79 with `Who has access: Anyone`. But a script clicked through the app's own
+  Production page (not the direct API test used to verify the worker itself) has not yet
+  been observed completing and publishing to YouTube — see `CHANGELOG.md`'s "found and
+  fixed a second real bug" entry for the full debugging trail and exact repro steps.
+  **This is the current top-priority open item.**
+- A real royalty-free music track (currently a silent placeholder — see
+  `APPROVALS_REQUIRED.md`).
+- Running a verified render against a real production script from the approval queue
+  (all verified renders so far used either a hand-written two-line test script via the
+  direct API, or hit a pre-existing duplicate-render guard when attempted through the UI).
+- A side by side comparison against a Creatomate render before Creatomate is deleted.
+
+Moving back from Railway to Cloud Run once Google Support resolves the routing bug is
+v1.4-adjacent cleanup, not a blocker — the provider abstraction means it's a one-property
+change
 (`Secrets.setMediaWorkerUrl`).
 
 **Success condition:** a new idea travels from generation to a verified private YouTube

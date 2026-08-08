@@ -5,6 +5,68 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 7 August 2026 (later) — found and fixed a second real bug: both Apps Script deployments were unreachable by the callback
+
+**Status for whoever picks this up next (human or AI): the render pipeline is proven
+end-to-end via direct API testing, but a full run *through the app's own UI* — click
+"Create Short" or "Re-render safely" → render completes → publish to YouTube — has not
+yet been observed succeeding. This is the next thing to verify. See "Open item" below.**
+
+**The bug:** Apps Script web app deployments have a "Who has access" setting. Both the
+`@HEAD` test deployment and the pinned production deployment (v78) were set to **"Only
+myself"**. This means `handleMediaWorkerCallback_`/`doPost` can only be reached by a
+request carrying Dean's own Google session — an unauthenticated server-to-server POST
+(from Railway, or from Cloud Run once that's fixed) gets redirected to a generic Google
+Drive "Sorry, unable to open the file at this time" error page (HTTP 401) instead of ever
+reaching `doPost`. Confirmed directly in Railway's deploy logs: `postCallback` failures
+showing that literal Drive error page as the response body.
+
+**Why this matters:** without this fix, **no render job could ever complete from the
+app's perspective**, regardless of whether Cloud Run or Railway is doing the actual
+rendering — the worker would always finish the video successfully and then fail to tell
+Apps Script about it. Every prior "verified working" claim in this file refers to the
+worker pipeline itself (confirmed via direct `POST /jobs` calls with a manual dummy
+`callbackUrl`), not the full app-driven flow.
+
+**The fix:** created **Version 79** of the Apps Script deployment (same production URL,
+`AKfycbzfD4HhW82TJyrdl5wteB1L84uiQJqb_hANd106zLDOOpY4HKqclGv67noe-kpQn2vDDw`), running the
+current `sprint-3` code with **"Who has access" set to "Anyone"**. The shared-secret
+check already built into `handleMediaWorkerCallback_` (via the query-string secret
+embedded in `callbackUrl_()` in `VideoProcessingProvider.js`) is what actually gates the
+endpoint now — "Anyone" just means an unauthenticated request can *reach* the handler,
+not that it can do anything without the correct secret.
+
+**Open item — needs verification:** a script run through the app's own UI (Production
+page → "Create Short" or "Re-render safely") has not yet been confirmed to complete and
+publish to YouTube using the fixed deployment. Attempts so far were inconclusive:
+
+- Most "Ready for production" scripts already have a completed render from the
+  Creatomate era, which trips a pre-existing duplicate-render guard in
+  `ProductionController.js` (`"This script already has a completed render. Use an
+  explicit re-render action to replace it."`) before the job ever reaches the worker.
+  The actual bypass is `retry({jobId})` (the "Re-render safely" button on a FAILED job
+  card, which passes `forceRerender: true`) — this needs a script with an existing
+  FAILED render job, e.g. "Raveena's Bold Escape Unveiled" or "Wild Travel Laws You
+  Won't Believe!" (both failed under the old Creatomate provider with "Insufficient
+  credits", visible in Production → Render and publishing jobs).
+- A "Re-render safely" click was made on "Raveena's Bold Escape Unveiled" through the
+  fixed (v79, "Anyone" access) deployment. Apps Script Execution logs confirm
+  `productionStartPreparation`/`productionControlPreparation` ran. **But Railway's deploy
+  logs show zero new activity since 02:55:21 that session** (checked ~22 hours later) —
+  no new job ID, no new `postCallback` entry, nothing. This means the click either didn't
+  fully register, or the resubmission stalled somewhere between scene preparation and
+  actually calling `POST /jobs` on the worker. Root cause not yet found.
+
+**To continue debugging this:** reproduce by opening the production URL above, scrolling
+to a FAILED render job, clicking "Re-render safely", and watching **both** Apps Script's
+Executions log (filter by function name, look for `productionRetryRender` or similar —
+the exact RPC name wasn't confirmed) **and** Railway's Deploy Logs (filter for the job's
+UUID once `submitCore_` logs it, or watch for a new `POST /jobs` hitting
+`project-savannah-production.up.railway.app`) at the same time, end to end, without
+navigating away. If scene preparation is required (old scripts may not have cached scene
+assets compatible with the current pipeline), that alone takes several minutes per scene
+(ElevenLabs/Whisper/Pexels calls) — don't conclude it's stuck until well past that.
+
 ### 7 August 2026 — media worker deployed to Railway, first verified end-to-end render
 
 **Why Railway and not Cloud Run.** Cloud Run deployment succeeded (container healthy,
