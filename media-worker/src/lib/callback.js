@@ -10,8 +10,24 @@ export async function postCallback(callbackUrl, payload) {
     body: JSON.stringify(payload)
   });
 
+  const raw = await response.text().catch(() => "");
+
+  // Apps Script's ContentService has no way to set a custom HTTP status code, so doPost
+  // always answers 200 even when MediaWorkerCallbackService.handle() rejected the
+  // callback (unauthorized, job not found, etc.) - response.ok alone can never catch
+  // that. The body's own success field is the only real signal.
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`Callback to ${callbackUrl} failed (${response.status}): ${detail}`);
+    throw new Error(`Callback to ${callbackUrl} failed (${response.status}): ${raw}`);
+  }
+
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch (parseError) {
+    throw new Error(`Callback to ${callbackUrl} returned a non-JSON response: ${raw}`);
+  }
+  if (!body || body.success !== true) {
+    const detail = (body && body.error) || raw;
+    throw new Error(`Callback to ${callbackUrl} was not accepted: ${detail}`);
   }
 }

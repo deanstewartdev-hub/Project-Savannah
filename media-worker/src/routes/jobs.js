@@ -67,16 +67,28 @@ jobsRouter.post("/jobs", requireAuth, (req, res) => {
   // Deliberately not awaited: the caller gets an immediate 202 and the result arrives via
   // callbackUrl once the pipeline finishes. Cloud Run requests are billed for wall-clock
   // time either way, so this is about keeping the HTTP contract simple, not performance.
-  runSerialized(() => runJob({ jobId, beats, musicTrackPath }))
-    .then((result) => postCallback(callbackUrl, result))
-    .catch((error) => {
-      console.error(`Job ${jobId} failed:`, error);
-      return postCallback(callbackUrl, {
+  //
+  // Render outcome and callback delivery are two separate things that can each fail
+  // independently - a render that succeeds but whose callback delivery fails must NOT be
+  // reported to Apps Script as a failed render (there's nothing wrong with the video;
+  // Apps Script just doesn't know about it yet). Callback delivery failures are only
+  // logged here, not retried - this worker is a deliberately single-attempt v1.4 scaffold
+  // (see media-worker/README.md "What isn't here yet").
+  runSerialized(() => runJob({ jobId, beats, musicTrackPath })).then(
+    (result) => {
+      postCallback(callbackUrl, result).catch((callbackError) => {
+        console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);
+      });
+    },
+    (renderError) => {
+      console.error(`Job ${jobId} failed:`, renderError);
+      postCallback(callbackUrl, {
         jobId,
         status: "failed",
-        error: { message: error.message }
+        error: { message: renderError.message }
       }).catch((callbackError) => {
-        console.error(`Job ${jobId} failed and callback also failed:`, callbackError);
+        console.error(`Job ${jobId} failed, and delivering that failure's callback also failed:`, callbackError);
       });
-    });
+    }
+  );
 });
