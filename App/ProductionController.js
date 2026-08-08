@@ -31,7 +31,8 @@ const ProductionController = (() => {
           return bPriority - aPriority || String(a.script.title || "").localeCompare(String(b.script.title || ""));
         });
       return {
-        items: items
+        items: items,
+        provider: Secrets.getVideoProvider()
       };
     });
   }

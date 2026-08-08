@@ -18,6 +18,10 @@
   let automationEnabled = false;
   let activeRenderCount = 0;
   let pollTimer = null;
+  // Defaults optimistic (cloud-run is the current default provider - see
+  // Services_Secrets.js getVideoProvider()); corrected by loadReady()'s response as soon
+  // as it lands. Only matters for the brief window before the first list loads.
+  let currentProvider = "cloud-run";
 
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
@@ -89,9 +93,37 @@
     }
   }
 
+  // Cloud Run/Railway's submitRender POSTs beats and returns almost immediately - the
+  // actual rendering happens async on the worker, not synchronously inside this Apps
+  // Script call - so there's no risk of the 6-minute execution ceiling here, and no
+  // reason to route through the scene-by-scene preparation UI built for Creatomate
+  // (whose createRender() generates voiceover + visuals synchronously in one call and
+  // genuinely needs that chunking). productionSubmit/productionRetry already exist
+  // server-side and already dispatch through the same provider-agnostic submitCore_.
+  function submitDirect(rpcName, request, button, busyLabel, idleLabel) {
+    button.disabled = true;
+    button.textContent = busyLabel;
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) {
+        button.disabled = false;
+        button.textContent = idleLabel;
+        showError(jobList, response);
+        loadReady();
+        return;
+      }
+      loadReady(); loadJobs(); loadPublishingSchedule();
+    }).withFailureHandler(function (error) {
+      button.disabled = false;
+      button.textContent = idleLabel;
+      showError(jobList, { error: error });
+      loadReady();
+    })[rpcName](request);
+  }
+
   function loadReady() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(readyList, response);
+      currentProvider = response.data.provider || currentProvider;
       const items = response.data.items || [];
       readyCount.textContent = items.length;
       if (!items.length) {
@@ -274,7 +306,12 @@
     }
     const submit = event.target.closest(".production-submit");
     if (submit) {
-      runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
+      if (currentProvider === "cloud-run") {
+        submitDirect("productionSubmit", { scriptId: submit.dataset.scriptId },
+          submit, "Submitting...", "Create Short");
+      } else {
+        runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
+      }
       return;
     }
     const taskControl = event.target.closest(".production-task-control");
@@ -327,7 +364,12 @@
     }
     const retry = event.target.closest(".production-retry");
     if (retry) {
-      runPreparation({ jobId: retry.dataset.jobId }, retry, "Re-render safely");
+      if (currentProvider === "cloud-run") {
+        submitDirect("productionRetry", { jobId: retry.dataset.jobId },
+          retry, "Submitting...", "Re-render safely");
+      } else {
+        runPreparation({ jobId: retry.dataset.jobId }, retry, "Re-render safely");
+      }
       return;
     }
     const refreshPublication = event.target.closest(".production-refresh-publication");
