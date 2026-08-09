@@ -161,7 +161,7 @@ The system is restrained, not austere — it already contains two purely decorat
 
 ## Colors
 
-The reusable token palette is one Field Green accent scale, a neutral scale for structure and text, and four semantic status triads (background/text/border) for success, warning, danger, and info. A small number of purpose-specific implementation literals exist outside the reusable token palette, such as the cool ambient background color and danger-button hover treatment; these are existing exceptions, not additional reusable color families.
+The reusable token palette is one Field Green accent scale, a neutral scale for structure and text, four semantic status triads (background/text/border) for success, warning, danger, and info, and one categorical accent pair (background/text) used for non-status visual differentiation. A small number of purpose-specific implementation literals exist outside the reusable token palette, such as the cool ambient background color and danger-button hover treatment; these are existing exceptions, not additional reusable color families.
 
 ### Primary
 - **Field Green** (`#2f8b5b`, `--color-brand-500`): Savannah's brand, interaction, and active-process accent — not a semantic status color. It marks the application's own identity (the sidebar brand mark, `.sidebar-logo`, fills brand-600) and established app/page eyebrow and kicker treatments (brand-600 text); it drives interaction (primary buttons fill brand-600 at rest, brand-700 hover; the active navigation wash is brand-50/brand-700; focus rings are brand-200); and it signals active process (the default progress-bar fill is brand-500, its active-state shimmer is a brand-400/600/400 gradient, and the active pipeline-step icon fills brand-600 with a brand-50 ring). Full 10-step scale, dark → light: `#153b29` (900) · `#194830` (800) · `#1d593b` (700) · `#236f48` (600) · `#2f8b5b` (500) · `#4da978` (400) · `#82c69f` (300) · `#b3dfc5` (200) · `#d8efe1` (100) · `#eef8f2` (50). Success, warning, danger, and info each use their own dedicated triad below — none of them borrow from this scale, even when a process is complete or a status is good.
@@ -180,6 +180,9 @@ Every status carries a background/text/(often border) treatment drawn from these
 - **Warning**: `#fff8e8` / `#8a5a10` / `#ecd39d`
 - **Danger**: `#fff0f0` / `#a13737` / `#efc2c2`
 - **Info**: `#edf5ff` / `#225b9b` / `#c8ddf5`
+
+### Categorical Accent
+A single violet background/text pair (`--color-accent-violet-background` `#f3efff` / `--color-accent-violet-text` `#6542a6`) exists outside the status and Field Green palettes, for non-status categorical differentiation: the Dashboard's AI-cost KPI icon and the Ideas workspace's "Script ready" indicators (summary card icon and board column dot). It is not Field Green, and it is not success, warning, danger, or info — it carries no status meaning and must not be read as one. It is not intended to replace or extend the semantic status triads.
 
 ### Named Rules
 **The Controlled Accent Rule.** Field Green is Savannah's brand, interaction, and active-process accent. Use it for established brand marks, the visually dominant primary action, active navigation/focus treatments, and existing progress/active-process patterns. Do not substitute it for semantic success, warning, danger, or info.

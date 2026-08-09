@@ -675,7 +675,7 @@
     inset: 0;
     width: 0;
     background: var(--color-brand-500);
-    transition: width 900ms ease 120ms;
+    transition: width var(--transition-slow) 120ms;
   }
 
   .pipeline-connector[data-filled="true"] .pipeline-connector-fill {
@@ -988,8 +988,8 @@
   }
 
   .dashboard-kpi-icon-cost {
-    background: #f3efff;
-    color: #6542a6;
+    background: var(--color-accent-violet-background);
+    color: var(--color-accent-violet-text);
   }
 
   .dashboard-kpi-status {
@@ -1375,8 +1375,8 @@
   }
 
   .ideas-summary-icon-scripts {
-    background: #f3efff;
-    color: #6542a6;
+    background: var(--color-accent-violet-background);
+    color: var(--color-accent-violet-text);
   }
 
   .ideas-summary-card > div {
@@ -1568,7 +1568,7 @@
   }
 
   .ideas-column-indicator-script {
-    background: #6542a6;
+    background: var(--color-accent-violet-text);
   }
 
   .ideas-column-count {
