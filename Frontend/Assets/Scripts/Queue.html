@@ -99,6 +99,10 @@
     byId("queue-review-title").textContent = item.title || "Review script";
     byId("queue-review-notes").value = item.reviewNotes || "";
     byId("queue-decision-reason").value = item.decisionReason || "";
+    byId("queue-decision-reason").removeAttribute("aria-invalid");
+    const reasonError = byId("queue-decision-reason-error");
+    reasonError.textContent = "";
+    reasonError.hidden = true;
     const script = item.script;
     byId("queue-script-content").innerHTML = script
       ? "<h3>Hook</h3><p>" + escapeHtml(script.hook) +
@@ -121,9 +125,17 @@
 
   async function decide(decision) {
     if (state.busy || !state.selected) return;
-    const reason = byId("queue-decision-reason").value.trim();
+    const reasonField = byId("queue-decision-reason");
+    const reasonError = byId("queue-decision-reason-error");
+    reasonError.textContent = "";
+    reasonError.hidden = true;
+    reasonField.removeAttribute("aria-invalid");
+    const reason = reasonField.value.trim();
     if ((decision === "REJECT" || decision === "RETURN") && !reason) {
-      showMessage("Enter a decision reason before rejecting or returning the script.", "error");
+      reasonError.textContent = "Enter a decision reason before rejecting or returning the script.";
+      reasonError.hidden = false;
+      reasonField.setAttribute("aria-invalid", "true");
+      reasonField.focus();
       return;
     }
     state.busy = true;

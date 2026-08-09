@@ -79,7 +79,9 @@
         <div class="form-group">
           <label class="form-label" for="queue-decision-reason">Decision reason</label>
           <textarea id="queue-decision-reason" class="form-control" rows="3"
-            placeholder="Required when rejecting or returning for changes"></textarea>
+            placeholder="Required when rejecting or returning for changes"
+            aria-describedby="queue-decision-reason-error"></textarea>
+          <p id="queue-decision-reason-error" class="form-help" role="alert" hidden></p>
         </div>
         <div class="page-actions">
           <button class="button button-primary" type="button" data-queue-decision="APPROVE">Approve</button>
