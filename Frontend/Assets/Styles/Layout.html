@@ -73,6 +73,7 @@
 
   .page {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-5);
   }
 
@@ -762,6 +763,11 @@
         100% - 32px,
         var(--page-width)
       );
+    }
+
+    .application-main::before,
+    .application-main::after {
+      display: none;
     }
   }
 
