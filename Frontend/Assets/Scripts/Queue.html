@@ -92,7 +92,7 @@
     }
   }
 
-  function openReview(id) {
+  function openReview(id, triggerElement) {
     const item = state.approvals.find(function (entry) { return entry.id === id; });
     if (!item) return;
     state.selected = item;
@@ -108,11 +108,14 @@
     document.querySelectorAll("[data-queue-decision]").forEach(function (button) {
       button.hidden = item.status !== "PENDING_APPROVAL";
     });
-    byId("queue-review-modal").hidden = false;
+    SavannahApp.modal.open("queue-review-modal", {
+      trigger: triggerElement,
+      onRequestClose: closeReview
+    });
   }
 
   function closeReview() {
-    byId("queue-review-modal").hidden = true;
+    SavannahApp.modal.close("queue-review-modal");
     state.selected = null;
   }
 
@@ -151,7 +154,7 @@
   byId("queue-review-close").addEventListener("click", closeReview);
   byId("queue-table-body").addEventListener("click", function (event) {
     const button = event.target.closest("[data-review-id]");
-    if (button) openReview(button.getAttribute("data-review-id"));
+    if (button) openReview(button.getAttribute("data-review-id"), button);
   });
   document.querySelectorAll("[data-queue-decision]").forEach(function (button) {
     button.addEventListener("click", function () {

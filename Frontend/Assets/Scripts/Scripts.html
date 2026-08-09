@@ -199,6 +199,214 @@
     },
 
     /**
+     * Shared accessible dialog behaviour for the existing
+     * role="dialog" markup (Scripts detail, Queue review).
+     * Workspace-specific open/close functions own their own
+     * content and cleanup; this owns only the generic dialog
+     * chrome: initial focus, Tab containment, Escape,
+     * backdrop click, and focus restoration.
+     */
+    modal: {
+      _registry: {},
+      _activeModalId: null,
+      _keydownInstalled: false,
+      _backdropInstalled: {},
+
+      open: function (modalId, options) {
+        const modalElement =
+          document.getElementById(modalId);
+
+        if (!modalElement) {
+          return;
+        }
+
+        const settings = options || {};
+
+        if (!SavannahApp.modal._backdropInstalled[modalId]) {
+          modalElement.addEventListener("click", function (event) {
+            if (
+              event.target &&
+              event.target.classList &&
+              event.target.classList.contains("modal-backdrop")
+            ) {
+              const record = SavannahApp.modal._registry[modalId];
+
+              if (record && record.onRequestClose) {
+                record.onRequestClose();
+              }
+            }
+          });
+
+          SavannahApp.modal._backdropInstalled[modalId] = true;
+        }
+
+        if (!SavannahApp.modal._keydownInstalled) {
+          document.addEventListener(
+            "keydown",
+            SavannahApp.modal._handleKeydown,
+            true
+          );
+
+          SavannahApp.modal._keydownInstalled = true;
+        }
+
+        // Portal the existing modal node to <body> so it sits
+        // outside .application-frame. That lets .application-frame
+        // become inert (below) without also inerting the modal it
+        // would otherwise contain.
+        const originalParent = modalElement.parentNode;
+        const originalNextSibling = modalElement.nextSibling;
+
+        document.body.appendChild(modalElement);
+
+        const applicationFrame = document.querySelector(
+          ".application-frame"
+        );
+
+        if (applicationFrame) {
+          applicationFrame.inert = true;
+        }
+
+        SavannahApp.modal._registry[modalId] = {
+          trigger: settings.trigger || null,
+          onRequestClose: settings.onRequestClose || null,
+          focusRestored: false,
+          originalParent: originalParent,
+          originalNextSibling: originalNextSibling
+        };
+
+        SavannahApp.modal._activeModalId = modalId;
+
+        SavannahApp.dom.show(modalId);
+
+        document.body.classList.add("modal-open");
+
+        const closeButton = modalElement.querySelector(
+          ".modal-header button"
+        );
+
+        if (closeButton) {
+          closeButton.focus();
+        }
+      },
+
+      close: function (modalId) {
+        const record = SavannahApp.modal._registry[modalId];
+
+        SavannahApp.dom.hide(modalId);
+
+        if (SavannahApp.modal._activeModalId === modalId) {
+          SavannahApp.modal._activeModalId = null;
+        }
+
+        const applicationFrame = document.querySelector(
+          ".application-frame"
+        );
+
+        if (applicationFrame) {
+          applicationFrame.inert = false;
+        }
+
+        document.body.classList.remove("modal-open");
+
+        if (record) {
+          const modalElement = document.getElementById(modalId);
+
+          if (modalElement && record.originalParent) {
+            if (
+              record.originalNextSibling &&
+              record.originalNextSibling.parentNode ===
+                record.originalParent
+            ) {
+              record.originalParent.insertBefore(
+                modalElement,
+                record.originalNextSibling
+              );
+            } else {
+              record.originalParent.appendChild(modalElement);
+            }
+          }
+
+          if (!record.focusRestored) {
+            record.focusRestored = true;
+
+            if (record.trigger && document.contains(record.trigger)) {
+              record.trigger.focus();
+            }
+          }
+        }
+
+        delete SavannahApp.modal._registry[modalId];
+      },
+
+      _getFocusable: function (container) {
+        const selector =
+          'a[href], button:not([disabled]), ' +
+          'textarea:not([disabled]), ' +
+          'input:not([disabled]), ' +
+          'select:not([disabled]), ' +
+          '[tabindex]:not([tabindex="-1"])';
+
+        return Array.prototype.filter.call(
+          container.querySelectorAll(selector),
+          function (element) {
+            return element.offsetParent !== null;
+          }
+        );
+      },
+
+      _handleKeydown: function (event) {
+        const modalId = SavannahApp.modal._activeModalId;
+
+        if (!modalId) {
+          return;
+        }
+
+        const modalElement = document.getElementById(modalId);
+
+        if (!modalElement || modalElement.hidden) {
+          return;
+        }
+
+        if (event.key === "Escape") {
+          const record = SavannahApp.modal._registry[modalId];
+
+          if (record && record.onRequestClose) {
+            event.stopPropagation();
+            record.onRequestClose();
+          }
+
+          return;
+        }
+
+        if (event.key === "Tab") {
+          const dialog = modalElement.querySelector(".modal-dialog");
+
+          if (!dialog) {
+            return;
+          }
+
+          const focusable = SavannahApp.modal._getFocusable(dialog);
+
+          if (!focusable.length) {
+            return;
+          }
+
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+
+    /**
      * Application navigation behaviour.
      */
     navigation: {
@@ -2346,11 +2554,6 @@
             "scripts-detail-close"
           );
 
-        const modal =
-          SavannahApp.dom.getById(
-            "scripts-detail-modal"
-          );
-
         if (refreshButton) {
           refreshButton.addEventListener(
             "click",
@@ -2387,25 +2590,6 @@
             "click",
             SavannahApp.scripts
               .closeDetail
-          );
-        }
-
-        if (modal) {
-          modal.addEventListener(
-            "click",
-            function (event) {
-              if (
-                event.target &&
-                event.target.classList &&
-                event.target.classList
-                  .contains(
-                    "modal-backdrop"
-                  )
-              ) {
-                SavannahApp.scripts
-                  .closeDetail();
-              }
-            }
           );
         }
 
@@ -3222,7 +3406,8 @@
               function () {
                 SavannahApp.scripts
                   .openDetail(
-                    script.id
+                    script.id,
+                    viewButton
                   );
               }
             );
@@ -3354,14 +3539,19 @@
         );
       },
 
-      openDetail: function (scriptId) {
+      openDetail: function (scriptId, triggerElement) {
         SavannahApp.scripts
           .clearMessages();
 
         google.script.run
           .withSuccessHandler(
-            SavannahApp.scripts
-              .handleDetailSuccess
+            function (response) {
+              SavannahApp.scripts
+                .handleDetailSuccess(
+                  response,
+                  triggerElement
+                );
+            }
           )
           .withFailureHandler(
             SavannahApp.scripts
@@ -3373,7 +3563,8 @@
       },
 
       handleDetailSuccess: function (
-        response
+        response,
+        triggerElement
       ) {
         if (
           !response ||
@@ -3395,11 +3586,12 @@
 
         SavannahApp.scripts
           .renderDetail(
-            response.data.script
+            response.data.script,
+            triggerElement
           );
       },
 
-      renderDetail: function (script) {
+      renderDetail: function (script, triggerElement) {
         const container =
           SavannahApp.dom.getById(
             "scripts-detail-content"
@@ -3581,8 +3773,14 @@
           reviewActions
         );
 
-        SavannahApp.dom.show(
-          "scripts-detail-modal"
+        SavannahApp.modal.open(
+          "scripts-detail-modal",
+          {
+            trigger: triggerElement,
+            onRequestClose:
+              SavannahApp.scripts
+                .closeDetail
+          }
         );
       },
 
@@ -3860,7 +4058,7 @@
       },
 
       closeDetail: function () {
-        SavannahApp.dom.hide(
+        SavannahApp.modal.close(
           "scripts-detail-modal"
         );
       },
