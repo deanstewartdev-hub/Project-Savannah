@@ -94,7 +94,7 @@
   function insightTable(title, groups) {
     if (!groups || !groups.length) return '<div class="empty-state"><h3>No ' + escapeHtml(title.toLowerCase()) +
       ' data</h3><p>More published Shorts are needed.</p></div>';
-    return '<section><h3>' + escapeHtml(title) + '</h3><div class="table-wrap"><table class="table"><thead><tr>' +
+    return '<section><h3>' + escapeHtml(title) + '</h3><div class="table-container"><table class="table"><thead><tr>' +
       '<th>Group</th><th>Videos</th><th>Average views</th><th>Total views</th></tr></thead><tbody>' +
       groups.map(function (group) { return '<tr><td>' + escapeHtml(group.label) + '</td><td>' +
         formatNumber(group.videoCount) + '</td><td>' + formatNumber(group.averageViews) + '</td><td>' +
