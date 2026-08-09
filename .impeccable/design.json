@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-09T02:40:12Z",
+  "title": "Design System: Project Savannah",
+  "extensions": {
+    "colorMeta": {
+      "field-green-500": {
+        "role": "primary",
+        "displayName": "Field Green",
+        "canonical": "#2f8b5b",
+        "tonalRamp": ["#153b29", "#194830", "#1d593b", "#236f48", "#2f8b5b", "#4da978", "#82c69f", "#b3dfc5", "#d8efe1", "#eef8f2"]
+      },
+      "background": { "role": "neutral", "displayName": "Background", "canonical": "#f4f7f5" },
+      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#ffffff" },
+      "surface-muted": { "role": "neutral", "displayName": "Surface Muted", "canonical": "#f7f9f7" },
+      "border": { "role": "neutral", "displayName": "Border", "canonical": "#dce5de" },
+      "border-strong": { "role": "neutral", "displayName": "Border Strong", "canonical": "#c6d2c9" },
+      "text-primary": { "role": "neutral", "displayName": "Text Primary", "canonical": "#17231b" },
+      "text-secondary": { "role": "neutral", "displayName": "Text Secondary", "canonical": "#627067" },
+      "text-muted": { "role": "neutral", "displayName": "Text Muted", "canonical": "#879189" },
+      "text-on-brand": { "role": "neutral", "displayName": "Text on Brand", "canonical": "#ffffff" },
+      "info-background": { "role": "info", "displayName": "Info Background", "canonical": "#edf5ff" },
+      "info-text": { "role": "info", "displayName": "Info Text", "canonical": "#225b9b" },
+      "info-border": { "role": "info", "displayName": "Info Border", "canonical": "#c8ddf5" },
+      "success-background": { "role": "success", "displayName": "Success Background", "canonical": "#edf8f1" },
+      "success-text": { "role": "success", "displayName": "Success Text", "canonical": "#216e43" },
+      "success-border": { "role": "success", "displayName": "Success Border", "canonical": "#bfe1cc" },
+      "warning-background": { "role": "warning", "displayName": "Warning Background", "canonical": "#fff8e8" },
+      "warning-text": { "role": "warning", "displayName": "Warning Text", "canonical": "#8a5a10" },
+      "warning-border": { "role": "warning", "displayName": "Warning Border", "canonical": "#ecd39d" },
+      "danger-background": { "role": "danger", "displayName": "Danger Background", "canonical": "#fff0f0" },
+      "danger-text": { "role": "danger", "displayName": "Danger Text", "canonical": "#a13737" },
+      "danger-border": { "role": "danger", "displayName": "Danger Border", "canonical": "#efc2c2" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "App wordmark (.app-brand) only; not used for page content." },
+      "page-title": { "displayName": "Page Title", "purpose": "Each workspace's H1." },
+      "section-title": { "displayName": "Section Title", "purpose": "Groups cards or panels within a page." },
+      "card-title": { "displayName": "Card Title", "purpose": "A card's own heading." },
+      "body": { "displayName": "Body", "purpose": "Default paragraph and content copy." },
+      "small": { "displayName": "Small", "purpose": "Secondary copy, e.g. section descriptions." },
+      "label": { "displayName": "Label", "purpose": "Form field labels (.form-label)." },
+      "caption": { "displayName": "Caption", "purpose": "Badge text and meta lines; weight varies 700-800 by context." },
+      "eyebrow": { "displayName": "Eyebrow", "purpose": "Uppercase kicker label above a title, colored Field Green." }
+    },
+    "shadows": [
+      { "name": "shadow-small", "value": "0 1px 3px rgba(23, 35, 27, 0.06)", "purpose": "Default resting shadow for cards and badges." },
+      { "name": "shadow-medium", "value": "0 10px 30px rgba(23, 35, 27, 0.08)", "purpose": "Dropdowns, popovers, the notification panel." },
+      { "name": "shadow-large", "value": "0 20px 50px rgba(23, 35, 27, 0.12)", "purpose": "Off-canvas mobile sidebar once open; modals." }
+    ],
+    "motion": [
+      { "name": "transition-fast", "value": "150ms ease", "purpose": "Default state transitions: color, background, border, transform." },
+      { "name": "transition-normal", "value": "250ms ease", "purpose": "Larger surface movement, e.g. the mobile sidebar slide-in." },
+      { "name": "transition-slow", "value": "400ms ease", "purpose": "Defined in Variables.html; not currently consumed by any component." }
+    ],
+    "breakpoints": [
+      { "name": "dashboard-grid-collapse", "value": "1180px" },
+      { "name": "topbar-status-hide", "value": "1100px" },
+      { "name": "utility-grid-collapse", "value": "960px" },
+      { "name": "sidebar-offcanvas", "value": "900px" },
+      { "name": "mobile-shell", "value": "680px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The page's visually dominant primary action. ds-btn-primary is a documentation/live-panel preview alias only — Savannah's production markup uses .button.button-primary, not this class name.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Generate Ideas</button>",
+      "css": ".ds-btn-primary { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: var(--space-2); padding: 9px 15px; border: 1px solid transparent; border-radius: var(--radius-small); background: var(--color-brand-600); color: var(--color-text-on-brand); font-weight: var(--font-weight-bold); cursor: pointer; text-decoration: none; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast); } .ds-btn-primary:hover { background: var(--color-brand-700); transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 3px solid var(--color-brand-200); outline-offset: 2px; } .ds-btn-primary:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Any action that must not compete with the page's primary action. ds-btn-secondary is a documentation/live-panel preview alias only — Savannah's production markup uses .button.button-secondary, not this class name.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">View Queue</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: var(--space-2); padding: 9px 15px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-surface); color: var(--color-text-primary); font-weight: var(--font-weight-bold); cursor: pointer; text-decoration: none; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast); } .ds-btn-secondary:hover { border-color: var(--color-border-strong); background: var(--color-surface-muted); transform: translateY(-1px); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--color-brand-200); outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The default container for grouped content — header, body, footer. Entrance animates via fade-in-up (480ms). ds-card, ds-card-header, ds-card-body, ds-card-footer, and ds-card-title are documentation/live-panel preview aliases only — Savannah's production markup uses .card, .card-header, .card-body, .card-footer, and .card-title, not these class names.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><h3 class=\"ds-card-title\">Render queue</h3></div><div class=\"ds-card-body\"><p>4 jobs waiting for review.</p></div><div class=\"ds-card-footer\"><button class=\"ds-btn-secondary\" type=\"button\">View queue</button></div></div>",
+      "css": ".ds-card { border: 1px solid var(--color-border); border-radius: var(--radius-large); background: var(--color-surface); box-shadow: var(--shadow-small); } .ds-card-header { padding: 20px 22px 0; } .ds-card-body { padding: 20px 22px; } .ds-card-footer { padding: 0 22px 20px; } .ds-card-title { margin: 0; font-size: var(--font-size-card-title); font-weight: var(--font-weight-bold); }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text field with label, focus glow, and disabled state. ds-form-group, ds-form-label, and ds-input are documentation/live-panel preview aliases only — Savannah's production markup uses .form-group, .form-label, and .form-control, not these class names.",
+      "html": "<label class=\"ds-form-group\"><span class=\"ds-form-label\">Script title</span><input class=\"ds-input\" type=\"text\" placeholder=\"Untitled script\"></label>",
+      "css": ".ds-form-group { display: grid; gap: 7px; } .ds-form-label { font-size: var(--font-size-label); font-weight: var(--font-weight-extra-bold); } .ds-input { width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-small); outline: none; background: var(--color-surface); color: var(--color-text-primary); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); } .ds-input:focus { border-color: var(--color-brand-500); box-shadow: 0 0 0 3px var(--color-brand-100); } .ds-input:disabled { cursor: not-allowed; background: var(--color-surface-muted); color: var(--color-text-muted); }"
+    },
+    {
+      "name": "Badge (Success)",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Status indicator; the success variant of the shared badge pattern — drawn from the semantic success palette, not Field Green. ds-badge-success is a documentation/live-panel preview alias only — Savannah's production markup uses .badge.badge-success, not this class name.",
+      "html": "<span class=\"ds-badge-success\">Published</span>",
+      "css": ".ds-badge-success { display: inline-flex; align-items: center; width: fit-content; padding: 5px 9px; border: 1px solid var(--color-success-border); border-radius: var(--radius-pill); background: var(--color-success-background); color: var(--color-success-text); font-size: var(--font-size-caption); font-weight: var(--font-weight-extra-bold); }"
+    },
+    {
+      "name": "Sidebar Navigation Link",
+      "kind": "nav",
+      "refersTo": "sidebar-nav-link",
+      "description": "Primary workspace navigation, with icon slot, hover nudge, and active wash + inset border. ds-nav, ds-nav-link, ds-nav-link-active, ds-nav-icon, and ds-nav-label are documentation/live-panel preview aliases only — Savannah's production markup uses .sidebar-navigation-list, .sidebar-nav-link, .sidebar-nav-link-active, .sidebar-nav-icon, and .sidebar-nav-label, not these class names.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-link\" href=\"#\"><span class=\"ds-nav-icon\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\"><path d=\"M9 18h6\"></path><path d=\"M10 22h4\"></path><path d=\"M8.5 14.5A7 7 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z\"></path></svg></span><span class=\"ds-nav-label\">Ideas</span></a><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\" aria-current=\"page\"><span class=\"ds-nav-icon\" aria-hidden=\"true\"><svg viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"></rect></svg></span><span class=\"ds-nav-label\">Dashboard</span></a></nav>",
+      "css": ".ds-nav { display: grid; gap: 4px; } .ds-nav-link { display: flex; min-height: 42px; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 9px; color: var(--color-text-secondary); font-size: 13px; font-weight: var(--font-weight-bold); text-decoration: none; transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast); } .ds-nav-link:hover { background: var(--color-surface-muted); color: var(--color-text-primary); transform: translateX(2px); } .ds-nav-link:focus-visible { outline: 3px solid var(--color-brand-200); outline-offset: 2px; } .ds-nav-link-active, .ds-nav-link-active:hover { background: var(--color-brand-50); color: var(--color-brand-700); } .ds-nav-link-active { box-shadow: inset 3px 0 0 var(--color-brand-600); } .ds-nav-icon { display: grid; width: 20px; height: 20px; flex: 0 0 20px; place-items: center; } .ds-nav-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; } .ds-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }"
+    },
+    {
+      "name": "Progress Bar",
+      "kind": "custom",
+      "refersTo": "progress-bar",
+      "description": "Default and active-state render/production progress indicator. Field Green in both states — default fill and active shimmer — as an active-process signal, not a semantic status color. ds-progress, ds-progress-fill, and ds-progress-fill-active are documentation/live-panel preview aliases only — Savannah's production markup uses .progress-bar, .progress-bar-fill, and .progress-bar[data-active=\"true\"] .progress-bar-fill, not these class names.",
+      "html": "<div class=\"ds-progress\"><div class=\"ds-progress-fill\" style=\"width: 64%\"></div></div><div class=\"ds-progress\"><div class=\"ds-progress-fill ds-progress-fill-active\"></div></div>",
+      "css": ".ds-progress { height: 8px; border-radius: var(--radius-pill); background: var(--color-surface-muted); overflow: hidden; } .ds-progress-fill { height: 100%; border-radius: var(--radius-pill); background: var(--color-brand-500); transition: width 500ms ease; width: 100%; } .ds-progress-fill-active { background: linear-gradient(90deg, var(--color-brand-400), var(--color-brand-600), var(--color-brand-400)); background-size: 200% 100%; animation: ds-progress-bar-shimmer 1.6s linear infinite; } @keyframes ds-progress-bar-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } } @media (prefers-reduced-motion: reduce) { .ds-progress-fill-active { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Field Console",
+    "overview": "Project Savannah's application UI is an instrument panel for an unmanned production line, not a showcase. It exists so one operator can watch idea generation, script approval, SEO, rendering, and publishing happen automatically, and step in the moment something needs a human decision. The room is quiet by design: pale, neutral surfaces (#f4f7f5 background, white #ffffff cards) do the load-bearing work, and Field Green — the brand's mid-saturation forest accent — carries the interface's identity and active-process signal: the sidebar's own brand mark, established app/page eyebrow and kicker treatments, the page's dominant primary action, active navigation and focus states, and the progress bar and active-pipeline-step treatments that show work actually happening right now. It is never used to represent semantic status — success, warning, danger, and info each carry their own dedicated background/text/border palette, entirely separate from the brand scale.\n\nThe system is restrained, not austere — it already contains two purely decorative, ambient background blobs drifting slowly behind page content, and a functional gradient shimmer on the active progress bar; both are real, intentional, and part of the incumbent design. What the system rejects is gratuitous decoration that competes with workflow clarity: enterprise-dashboard clutter (cramped tables, tiny type, toolbars stacked three deep) and playful or toy-like affordances (bouncy motion, cartoon iconography, saturated multi-color chrome) are still out. New decorative or motion treatments are welcome only when they match the incumbent bar — subtle, purposeful, and consistent with what's already here — not as a license to add illustration or effects for their own sake.",
+    "keyCharacteristics": [
+      "Field Green carries Savannah's brand identity and active-process signal — the sidebar mark, established eyebrow/kicker treatments, the dominant primary action, active navigation/focus, and progress/active-pipeline treatments — never semantic status, which uses its own dedicated palettes.",
+      "The system already contains two purely decorative ambient background blobs and a functional progress-bar shimmer; these set the ceiling for how much new decoration this system tolerates — subtle, slow, and purposeful.",
+      "Flat, softly-bordered neutral surfaces; depth is a whisper, not a statement.",
+      "A single sans-serif type family carries every role, from an 11px eyebrow to a 36px display number.",
+      "Keep one visually dominant primary action per page or task context; other actions should remain secondary or destructive according to their role — secondary actions stay bordered rather than filled.",
+      "Status always carries a non-color cue (text, icon, or shape) at minimum — badges and alerts use the full triad, compact indicators may use less, but color alone is never enough."
+    ],
+    "rules": [
+      { "name": "The Controlled Accent Rule", "body": "Field Green is Savannah's brand, interaction, and active-process accent. Use it for established brand marks, the visually dominant primary action, active navigation/focus treatments, and existing progress/active-process patterns. Do not substitute it for semantic success, warning, danger, or info.", "section": "colors" },
+      { "name": "The Status Clarity Rule", "body": "Badges and alerts pair their background tint with matching text and border colors from the same semantic group — the full triad. Compact status indicators (a health score, a live dot, a pipeline-step icon) may use a semantic text/background or icon/dot treatment without the full triad, as already implemented — but no status, in any form, may rely on color alone; it must always carry accompanying text, iconography, shape, or another non-color cue.", "section": "colors" },
+      { "name": "The One Family Rule", "body": "Inter carries every role in the system. A second family is never introduced for \"personality\" — weight and size changes do that job.", "section": "typography" },
+      { "name": "The Whisper Rule", "body": "No shadow in the system is meant to be consciously noticed. If a shadow draws the eye before the content does, it's too strong for this world.", "section": "elevation" },
+      { "name": "The Restrained Decoration Rule", "body": "Do not introduce gratuitous decorative flourishes or visual effects that compete with workflow clarity. Preserve Savannah's existing restrained ambient background treatment and functional progress/active-state effects. New decorative treatments must remain subtle, purposeful, and consistent with the incumbent system.", "section": "elevation" },
+      { "name": "The Two-Register Motion Rule", "body": "Use the 150/250/400ms token scale for ordinary interactive state changes. Longer purpose-built animation is allowed only where already established for progress, entrance, ambient, or system-state communication, with prefers-reduced-motion behavior preserved.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep one visually dominant primary action per page or task context; other actions should remain secondary or destructive according to their role.",
+      "Do use Field Green for Savannah's brand marks, the primary action, active navigation/focus, and established progress/active-process patterns — never for semantic success, warning, danger, or info.",
+      "Do give every status indicator a non-color cue at minimum — text, icon, or shape. Badges and alerts use the full background/text/border triad; compact indicators (a health score, a live dot, a pipeline-step icon) may use a lighter treatment, as already implemented.",
+      "Do match focus treatment to control type: the 3px Field Green outline (brand-200, 2px offset) on buttons and navigation links; the brand-500 border + 3px brand-100 glow on inputs. These are the system's two focus treatments, not one universal style.",
+      "Do preserve Savannah's existing ambient background blobs and progress/active-state gradient effects — they're intentional and set the ceiling for how much decoration this system tolerates.",
+      "Do use the 150/250/400ms token scale for ordinary interactive state changes; longer purpose-built animation (card entrance, progress fill/shimmer, pipeline pulse, ambient drift) is allowed only where already established, with prefers-reduced-motion behavior preserved.",
+      "Do keep shadows ambient and never use them to fake stacking order that spacing and color already communicate.",
+      "Do treat light mode as the only supported theme right now. A [data-theme=\"dark\"] stub exists in Themes.html (color-scheme: dark only, explicitly commented \"deliberately not enabled yet\") — don't design or ship dark-specific screens or invent dark token values from that stub."
+    ],
+    "donts": [
+      "Don't use Field Green as a stand-in for semantic success (or any other status) — even in contexts where both could plausibly appear (e.g., a completed job), they come from different palettes and mean different things.",
+      "Don't introduce a second typeface. Inter carries every role via size and weight alone.",
+      "Don't introduce gratuitous decorative flourishes or visual effects that compete with workflow clarity. New decoration must remain as subtle and purposeful as the incumbent ambient blobs and progress shimmer — this is not a license to add illustration or effects for their own sake.",
+      "Don't use bounce, elastic, or cartoon-style motion, and don't invent animation durations outside the two established registers: the 150/250/400ms interaction tokens, or an existing longer purpose-built pattern (480ms card entrance, 500ms progress width, 1.6s shimmer, 1.8s pipeline pulse, 750ms spinner, 26s/32s ambient drift).",
+      "Don't stack more than one accent color's worth of emphasis on a screen. Status colors communicate state, not brand emphasis.",
+      "Don't design the empty Frontend/Components/UI/*.html primitives (Badge, Button, Card, EmptyState, Modal, Spinner, Table, Toast) as new components from scratch — they should become thin wrappers around the classes documented here, migrated one workspace at a time (see COMPONENT_LIBRARY.md)."
+    ]
+  }
+}
