@@ -114,25 +114,35 @@
       "Frontend/Assets/Scripts/Scripts"
     ); ?>
 
-    <?!= includeFrontend(
-      "Frontend/Assets/Scripts/Queue"
-    ); ?>
+    <? if (currentRoute.key === "queue") { ?>
+      <?!= includeFrontend(
+        "Frontend/Assets/Scripts/Queue"
+      ); ?>
+    <? } ?>
 
-    <?!= includeFrontend(
-      "Frontend/Assets/Scripts/Seo"
-    ); ?>
+    <? if (currentRoute.key === "seo") { ?>
+      <?!= includeFrontend(
+        "Frontend/Assets/Scripts/Seo"
+      ); ?>
+    <? } ?>
 
-    <?!= includeFrontend(
-      "Frontend/Assets/Scripts/Settings"
-    ); ?>
+    <? if (currentRoute.key === "settings") { ?>
+      <?!= includeFrontend(
+        "Frontend/Assets/Scripts/Settings"
+      ); ?>
+    <? } ?>
 
-    <?!= includeFrontend(
-      "Frontend/Assets/Scripts/Production"
-    ); ?>
+    <? if (currentRoute.key === "production") { ?>
+      <?!= includeFrontend(
+        "Frontend/Assets/Scripts/Production"
+      ); ?>
+    <? } ?>
 
-    <?!= includeFrontend(
-      "Frontend/Assets/Scripts/Analytics"
-    ); ?>
+    <? if (currentRoute.key === "analytics") { ?>
+      <?!= includeFrontend(
+        "Frontend/Assets/Scripts/Analytics"
+      ); ?>
+    <? } ?>
 
     <?!= includeFrontend(
       "Frontend/Assets/Scripts/Notifications"
