@@ -180,6 +180,80 @@
     }).withFailureHandler(function (error) { showError(readyList, { error: error }); }).productionListReady();
   }
 
+  function getPublishPanelsByJobId() {
+    const panels = {};
+    jobList.querySelectorAll(".production-publish-panel[data-job-id]").forEach(function (panel) {
+      panels[panel.getAttribute("data-job-id")] = panel;
+    });
+    return panels;
+  }
+
+  function capturePublishDrafts() {
+    const drafts = {};
+    const panels = getPublishPanelsByJobId();
+    Object.keys(panels).forEach(function (jobId) {
+      const panel = panels[jobId];
+      const titleField = panel.querySelector(".production-youtube-title");
+      const privacyField = panel.querySelector(".production-youtube-privacy");
+      const scheduleField = panel.querySelector(".production-youtube-schedule");
+      drafts[jobId] = {
+        title: titleField ? titleField.value : undefined,
+        privacy: privacyField ? privacyField.value : undefined,
+        schedule: scheduleField ? scheduleField.value : undefined
+      };
+    });
+    return drafts;
+  }
+
+  function captureFocusedPublishControl() {
+    const activeElement = document.activeElement;
+    if (!activeElement || !jobList.contains(activeElement)) return null;
+    const panel = activeElement.closest(".production-publish-panel[data-job-id]");
+    if (!panel) return null;
+    let control = null;
+    if (activeElement.classList.contains("production-youtube-title")) control = "title";
+    else if (activeElement.classList.contains("production-youtube-privacy")) control = "privacy";
+    else if (activeElement.classList.contains("production-youtube-schedule")) control = "schedule";
+    if (!control) return null;
+    const focusState = { jobId: panel.getAttribute("data-job-id"), control: control };
+    if (control === "title" &&
+        typeof activeElement.selectionStart === "number" &&
+        typeof activeElement.selectionEnd === "number") {
+      focusState.selectionStart = activeElement.selectionStart;
+      focusState.selectionEnd = activeElement.selectionEnd;
+    }
+    return focusState;
+  }
+
+  function restorePublishDrafts(drafts, focusState) {
+    const panels = getPublishPanelsByJobId();
+    Object.keys(drafts).forEach(function (jobId) {
+      const panel = panels[jobId];
+      if (!panel) return;
+      const draft = drafts[jobId];
+      const titleField = panel.querySelector(".production-youtube-title");
+      const privacyField = panel.querySelector(".production-youtube-privacy");
+      const scheduleField = panel.querySelector(".production-youtube-schedule");
+      if (titleField && draft.title !== undefined) titleField.value = draft.title;
+      if (privacyField && draft.privacy !== undefined) privacyField.value = draft.privacy;
+      if (scheduleField && draft.schedule !== undefined) scheduleField.value = draft.schedule;
+    });
+    if (!focusState) return;
+    const panel = panels[focusState.jobId];
+    if (!panel) return;
+    const selector = focusState.control === "title" ? ".production-youtube-title" :
+      focusState.control === "privacy" ? ".production-youtube-privacy" : ".production-youtube-schedule";
+    const field = panel.querySelector(selector);
+    if (!field || typeof field.focus !== "function") return;
+    try { field.focus({ preventScroll: true }); } catch (e) { field.focus(); }
+    if (focusState.control === "title" &&
+        typeof focusState.selectionStart === "number" &&
+        typeof focusState.selectionEnd === "number" &&
+        typeof field.setSelectionRange === "function") {
+      try { field.setSelectionRange(focusState.selectionStart, focusState.selectionEnd); } catch (e) {}
+    }
+  }
+
   function loadJobs() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(jobList, response);
@@ -193,11 +267,14 @@
       publishedCount.textContent = jobs.filter(function (job) {
         return job.publishingJob && job.publishingJob.status === "PUBLISHED";
       }).length;
+      const publishDrafts = capturePublishDrafts();
+      const publishFocus = captureFocusedPublishControl();
       if (!jobs.length) {
         jobList.innerHTML = '<div class="empty-state"><h3>No renders yet</h3><p>Create the first Short above.</p></div>';
         return;
       }
       jobList.innerHTML = jobs.map(renderJobCard).join("");
+      restorePublishDrafts(publishDrafts, publishFocus);
     }).withFailureHandler(function (error) { showError(jobList, { error: error }); }).productionListJobs();
   }
 
@@ -255,7 +332,8 @@
       '<button class="button button-secondary production-abandon-publication" data-job-id="' +
       escapeHtml(job.id) + '">Confirm no upload and allow retry</button>' : uploading ?
       '<p><strong>YouTube upload is in progress.</strong> Savannah is preventing a duplicate submission.</p>' :
-      (quality.passed && review.approved ? '<div class="production-publish-panel form-grid" style="margin-top:12px">' +
+      (quality.passed && review.approved ? '<div class="production-publish-panel form-grid" data-job-id="' +
+      escapeHtml(job.id) + '" style="margin-top:12px">' +
       '<div class="form-group"><label class="form-label">Video title</label>' +
       '<input class="form-control production-youtube-title" maxlength="100" value="' +
       escapeHtml(title) + '"></div>' +
