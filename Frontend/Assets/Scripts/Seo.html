@@ -27,11 +27,17 @@
         return;
       }
       eligibleList.innerHTML = scripts.map(function (script) {
-        return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(script.title) + '</h3>' +
-          '<p>' + escapeHtml(script.hook) + '</p><p><span class="badge">' +
-          (script.hasSeoPack ? 'SEO ready' : 'Approved') + '</span></p>' +
-          '<button class="button button--primary seo-generate" data-script-id="' + escapeHtml(script.id) + '"' +
-          (script.hasSeoPack ? ' disabled' : '') + '>' + (script.hasSeoPack ? 'SEO generated' : 'Generate SEO pack') + '</button></div>';
+        return '<div class="list-card">' +
+          '<div class="list-card-header">' +
+            '<div><h3 class="list-card-title">' + escapeHtml(script.title) + '</h3>' +
+            '<p class="list-card-subtitle">' + escapeHtml(script.hook) + '</p></div>' +
+            '<span class="badge ' + (script.hasSeoPack ? 'badge-success' : '') + '">' +
+            (script.hasSeoPack ? 'SEO ready' : 'Approved') + '</span>' +
+          '</div>' +
+          '<div class="list-card-body"><div class="list-card-actions">' +
+          '<button class="button button-primary seo-generate" data-script-id="' + escapeHtml(script.id) + '"' +
+          (script.hasSeoPack ? ' disabled' : '') + '>' + (script.hasSeoPack ? 'SEO generated' : 'Generate SEO pack') +
+          '</button></div></div></div>';
       }).join("");
     }).withFailureHandler(function (error) { showError(eligibleList, { error: error }); }).seoListEligibleScripts();
   }
@@ -45,7 +51,7 @@
         return;
       }
       packList.innerHTML = packs.map(function (pack) {
-        return '<details class="card" style="margin-bottom:12px"><summary><strong>' +
+        return '<details class="list-card"><summary><strong>' +
           escapeHtml(pack.titleOptions[0]) + '</strong></summary><h4>Title options</h4><ol>' +
           pack.titleOptions.map(function (v) { return '<li>' + escapeHtml(v) + '</li>'; }).join("") +
           '</ol><h4>Description</h4><p>' + escapeHtml(pack.description) + '</p><h4>Tags</h4><p>' +

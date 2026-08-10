@@ -36,17 +36,46 @@ The current Analytics workspace uses the already-authorized YouTube Data API and
 
 Watch time, audience retention, subscriber gains by video, and revenue require enabling the YouTube Analytics API in the linked Google Cloud project and adding the appropriate read-only analytics scope. This was not enabled automatically because it changes Google service configuration and OAuth consent.
 
-## Full-HD replacement upload
+## Media worker deployment (v1.4)
 
-Status: blocked by Creatomate plan decision.
+Status: **deployed and verified working**, on Railway rather than Cloud Run (see below).
+Remaining item needs Dean's judgment/taste, not an account or spending decision.
 
-The Creatomate dashboard reports:
+Per `SAVANNAH_AUDIT_AND_PLAN.md`, Creatomate is not being upgraded — its trial resolution
+clamp was a symptom, not the real problem. `Production/VideoProcessingProvider.js` and
+`media-worker/` are built, deployed, and have produced a real, quality-gate-passing video
+end to end (7 August 2026).
 
-- free trials are limited to low-resolution renders;
-- 49 of 50 trial credits have been used.
+Completed:
 
-The MP4 stream was independently verified at 270×480 even when the API requested a larger render scale. A paid Creatomate plan is required to unlock the template's native high-quality export. This is a spending decision and was not made automatically.
+1. ~~Google Cloud billing account enabled~~ — done, but see "Cloud Run is currently
+   broken" below.
+2. ~~ElevenLabs Creator plan + API key~~ — done.
+3. ~~Pexels API key~~ — done.
+4. ~~Deploy `media-worker/`~~ — done, on **Railway** (see `media-worker/README.md` →
+   "Deploying to Railway"). `Secrets.getMediaWorkerUrl()` points at
+   `https://project-savannah-production.up.railway.app`; `Secrets.getVideoProvider()`
+   defaults to `"cloud-run"` (that name refers to the HTTP-job-submission integration
+   shape, not literally the Cloud Run host).
+5. Music track — **placeholder only.** A 60-second silent MP3 was uploaded to
+   `gs://savannah-media/music/default-bed.mp3` purely to unblock end-to-end testing (a
+   real render needs *something* there or the job fails outright). **This still needs
+   Dean:** curate 10–20 royalty-free tracks from the YouTube Audio Library, pick one as
+   the new default, upload to `GCS_BUCKET`, and point `DEFAULT_MUSIC_TRACK_PATH` at it.
 
-After upgrading, create one replacement at native 1× scale. Do not approve or upload it until Savannah reports at least 1080×1920 and the video has been watched for scene timing, narration continuity, subtitles, and visual relevance.
+### Cloud Run is currently broken (Google-side, not ours to fix)
 
-When it passes, upload it as **private** first. Public visibility remains a separate explicit decision.
+Cloud Run deployment itself succeeds — container healthy, logs show `listening on port
+8080` — but external HTTPS traffic 404s. Traced via Cloud Logging to a failed
+`SetIamPolicy` call around the billing account's trial→paid upgrade. Escalated to Google
+Cloud Support: case **#74041894**, follow-up **#74051643**. No resolution as of 7 August
+2026, past their stated 24–48h window. This is why the worker currently runs on Railway
+instead — a temporary bridge, not a replacement decision. Moving back once support fixes
+the routing bug is a one-line `Secrets.setMediaWorkerUrl()` change.
+
+**Do not delete `Production/Creatomate_Service.js` or `CreatomateProviderAdapter`** until
+a render has been produced end to end from a real production script (not just the
+hand-written test script used to verify the pipeline) and watched side by side against a
+Creatomate render — this is the explicit success condition for v1.4 in `ROADMAP.md`.
+`Secrets.setVideoProvider("creatomate")` switches back if the worker path needs to be
+paused without losing the ability to render at all.

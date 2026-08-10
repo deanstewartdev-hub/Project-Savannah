@@ -1,5 +1,12 @@
 /****************************************************
- * Project Savannah v1.3 - rendered media gate.
+ * Project Savannah v1.4 - rendered media gate.
+ *
+ * Two evaluation paths. Cloud Run jobs carry a `providerResponse.probe` written by
+ * MediaWorkerCallback_Service.js from savannah-media-worker's ffprobe/silencedetect/
+ * blackdetect/loudnorm results on the *finished file* — see section 2.4 of
+ * SAVANNAH_AUDIT_AND_PLAN.md for why that distinction matters. Creatomate jobs (kept
+ * only until Cloud Run is verified, see APPROVALS_REQUIRED.md) still evaluate the
+ * request payload, exactly as before.
  ****************************************************/
 const RenderQualityService = (() => {
   const MINIMUM_DURATION_SECONDS = 30;
@@ -11,9 +18,89 @@ const RenderQualityService = (() => {
   const MAXIMUM_CAPTION_WORDS = 5;
   const MINIMUM_NARRATION_WORDS_PER_SECOND = 1.1;
   const MAXIMUM_NARRATION_WORDS_PER_SECOND = 3.5;
+  const TARGET_LUFS = -14;
+  const LOUDNESS_TOLERANCE_LU = 1.5;
 
   function evaluate(job) {
     if (!job) throw error_("A render job is required.");
+    const probe = job.providerResponse && job.providerResponse.probe;
+    return probe ? evaluateProbe_(job, probe) : evaluateCreatomatePayload_(job);
+  }
+
+  function evaluateProbe_(job, probe) {
+    const issues = [];
+    const duration = Number(probe.durationSeconds || 0);
+    const width = Number(probe.width || 0);
+    const height = Number(probe.height || 0);
+    const loudness = probe.loudness || {};
+    const checks = {
+      renderSucceeded: job.status === "SUCCEEDED",
+      videoUrlPresent: !!String(job.videoUrl || "").trim(),
+      durationInRange: true,
+      vertical: true,
+      fullHdVertical: true,
+      silenceClean: true,
+      blackFrameClean: true,
+      loudnessOnTarget: true,
+      noClipping: true
+    };
+
+    if (job.status !== "SUCCEEDED") issues.push("Render has not succeeded.");
+    if (!job.videoUrl) issues.push("Rendered video URL is missing.");
+    if (!duration || duration < MINIMUM_DURATION_SECONDS || duration > MAXIMUM_DURATION_SECONDS) {
+      checks.durationInRange = false;
+      issues.push(
+        "Finished duration is " + duration + " seconds; Shorts must be between " +
+        MINIMUM_DURATION_SECONDS + " and " + MAXIMUM_DURATION_SECONDS + " seconds."
+      );
+    }
+    if (width && height && height <= width) {
+      checks.vertical = false;
+      issues.push("Finished video is not vertical.");
+    }
+    if (!probe.passesResolutionGate) {
+      checks.fullHdVertical = false;
+      issues.push(
+        "Finished video does not meet the " + MINIMUM_WIDTH + "x" + MINIMUM_HEIGHT + " resolution gate."
+      );
+    }
+    if (!probe.passesSilenceGate) {
+      checks.silenceClean = false;
+      issues.push("Silence longer than 1.5 seconds was detected in the narration.");
+    }
+    if (!probe.passesBlackFrameGate) {
+      checks.blackFrameClean = false;
+      issues.push("Black or frozen frames were detected in the finished video.");
+    }
+    if (
+      typeof loudness.integratedLufs === "number" &&
+      Math.abs(loudness.integratedLufs - TARGET_LUFS) > LOUDNESS_TOLERANCE_LU
+    ) {
+      checks.loudnessOnTarget = false;
+      issues.push(
+        "Integrated loudness is " + loudness.integratedLufs + " LUFS; target is " +
+        TARGET_LUFS + " ± " + LOUDNESS_TOLERANCE_LU + " LU."
+      );
+    }
+    if (probe.clippingDetected) {
+      checks.noClipping = false;
+      issues.push("Audio clipping risk detected (true peak above -0.5 dBTP).");
+    }
+
+    return {
+      passed: issues.length === 0,
+      expectedDurationSeconds: duration,
+      actualDurationSeconds: duration,
+      width: width,
+      height: height,
+      durationRatio: 1,
+      checks: checks,
+      issues: issues,
+      modelVersion: "render-quality-v1.4-probed-media"
+    };
+  }
+
+  function evaluateCreatomatePayload_(job) {
     const response = job.providerResponse || {};
     const payload = job.requestPayload || {};
     const expected = Number(

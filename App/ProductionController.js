@@ -5,8 +5,8 @@ const ProductionController = (() => {
   const VERSION = "production-controller-v1.1-recovery-errors";
 
   function testConnection() {
-    return run_("Creatomate connection verified.", function () {
-      return CreatomateService.testConnection();
+    return run_("Render provider connection verified.", function () {
+      return VideoProcessingProvider.get().testConnection();
     });
   }
 
@@ -31,13 +31,14 @@ const ProductionController = (() => {
           return bPriority - aPriority || String(a.script.title || "").localeCompare(String(b.script.title || ""));
         });
       return {
-        items: items
+        items: items,
+        provider: Secrets.getVideoProvider()
       };
     });
   }
 
   function submit(request) {
-    return run_("Short submitted to Creatomate.", function () {
+    return run_("Short submitted for rendering.", function () {
       return submitCore_(request || {});
     });
   }
@@ -63,15 +64,16 @@ const ProductionController = (() => {
       if (completed && !(request && request.forceRerender === true)) {
         throw error_("This script already has a completed render. Use an explicit re-render action to replace it.");
       }
+      const provider = VideoProcessingProvider.get();
       let job = RenderJobRepository.save(RenderJobModel.create({
         scriptId: script.id,
         seoPackId: seoPack.id,
-        templateId: Secrets.getCreatomateTemplateId(),
+        templateId: resolveTemplateId_(),
         status: "QUEUED",
         requestPayload: { preparationStatus: "assets-ready" }
       }));
       try {
-        const result = CreatomateService.createRender(script, seoPack);
+        const result = provider.submitRender(script, seoPack);
         const render = result.render;
         job = RenderJobRepository.update(RenderJobModel.update(job, {
           renderId: render.id,
@@ -188,7 +190,7 @@ const ProductionController = (() => {
   }
 
   function submitPrepared(request) {
-    return run_("Prepared Short submitted to Creatomate.", function () {
+    return run_("Prepared Short submitted for rendering.", function () {
       let task = ProductionTaskRepository.getById(String(request && request.taskId || "").trim());
       if (!task) throw error_("Production preparation task was not found.");
       if (task.status !== "READY" || task.preparedScenes.length !== 4) {
@@ -215,7 +217,7 @@ const ProductionController = (() => {
       const jobId = String(request && request.jobId || "").trim();
       const job = RenderJobRepository.getById(jobId);
       if (!job) throw error_("Render job was not found.");
-      const render = CreatomateService.getRender(job.renderId);
+      const render = VideoProcessingProvider.forJob(job).getRender(job);
       const updated = RenderJobModel.update(job, {
         status: mapStatus_(render.status),
         progress: render.progress || (String(render.status).toLowerCase() === "succeeded" ? 100 : job.progress),
@@ -238,7 +240,7 @@ const ProductionController = (() => {
         jobs: active.map(function (job) {
           if (!job.renderId) return job;
           try {
-            const render = CreatomateService.getRender(job.renderId);
+            const render = VideoProcessingProvider.forJob(job).getRender(job);
             return RenderJobRepository.update(RenderJobModel.update(job, {
             status: mapStatus_(render.status),
             progress: render.progress ||
@@ -338,9 +340,16 @@ const ProductionController = (() => {
     });
   }
 
-  function getPublishingSchedule() {
+  function getPublishingSchedule(request) {
     return run_("Publishing schedule loaded.", function () {
-      return { schedule: PublishingScheduleService.upcoming(PublishingJobRepository.getAll()) };
+      const jobs = PublishingJobRepository.getAll(), source = request || {};
+      return {
+        schedule: PublishingScheduleService.upcoming(jobs),
+        suggestions: PublishingScheduleService.suggestSlots(jobs, {
+          timezoneOffsetMinutes: source.timezoneOffsetMinutes,
+          template: source.template, limit: 6, daysAhead: 21
+        })
+      };
     });
   }
 
@@ -374,7 +383,8 @@ const ProductionController = (() => {
       const scheduleCheck = PublishingScheduleService.assertAvailable(
         source.publishAt,
         PublishingJobRepository.getAll(),
-        renderJobId
+        renderJobId,
+        { timezoneOffsetMinutes: source.timezoneOffsetMinutes, maxPerDay: 2 }
       );
       if (scheduleCheck.scheduled) source.publishAt = scheduleCheck.publishAt;
       const seoPack = SeoRepository.getById(renderJob.seoPackId);
@@ -451,6 +461,14 @@ const ProductionController = (() => {
     });
   }
 
+  function resolveTemplateId_() {
+    // RenderJobModel requires a non-empty templateId regardless of provider. Cloud Run
+    // has no template concept, so it gets a constant label instead of touching that
+    // model's validation rules for a field that only ever mattered for Creatomate.
+    return VideoProcessingProvider.get() === CreatomateProviderAdapter
+      ? Secrets.getCreatomateTemplateId()
+      : "cloud-run-worker";
+  }
   function mapStatus_(status) {
     const value = String(status || "").toLowerCase();
     if (value === "succeeded") return "SUCCEEDED";
@@ -507,7 +525,7 @@ const ProductionController = (() => {
         ProductionErrorService.normalise(caught, message)
       );
       const safe = normalised.message;
-      try { LoggingService.failure(requestId, "PRODUCTION", message, caught); } catch (ignored) {}
+      try { LoggingService.failure(requestId, "PRODUCTION", "Failed while running: " + message, caught); } catch (ignored) {}
       Logger.log(JSON.stringify({ requestId: requestId, controller: "ProductionController", error: safe }));
       return { success: false, statusCode: normalised.statusCode, requestId: requestId, message: "Production request failed.",
         data: null, error: normalised,
@@ -554,7 +572,7 @@ function productionApproveRender(request) { return ProductionController.approveR
 function productionListJobs() { return ProductionController.listJobs(); }
 function productionGetYouTubeConnection() { return ProductionController.getYouTubeConnection(); }
 function productionGetAutomationStatus() { return ProductionController.getAutomationStatus(); }
-function productionGetPublishingSchedule() { return ProductionController.getPublishingSchedule(); }
+function productionGetPublishingSchedule(request) { return ProductionController.getPublishingSchedule(request); }
 function productionSetAutomation(request) { return ProductionController.setAutomation(request); }
 function productionPublish(request) { return ProductionController.publish(request); }
 function productionRefreshPublication(request) { return ProductionController.refreshPublication(request); }

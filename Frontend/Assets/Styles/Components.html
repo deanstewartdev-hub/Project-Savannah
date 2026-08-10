@@ -51,11 +51,164 @@
   }
 
   /* ==================================================
+     Empty states — used throughout the app (Production,
+     Analytics, SEO, notifications) whenever a list has
+     nothing to show yet.
+     ================================================== */
+
+  .empty-state {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 40px 24px;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-large);
+    background: var(--color-surface-muted);
+    text-align: center;
+  }
+
+  .empty-state h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    font-weight: var(--font-weight-bold);
+  }
+
+  .empty-state p {
+    max-width: 420px;
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .empty-state p:last-child {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+  }
+
+  /* ==================================================
+     Job / list cards — Production render jobs, ready-for-
+     production items, and anywhere else that lists records
+     as individual cards with a status + progress readout.
+     ================================================== */
+
+  .list-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-small);
+  }
+
+  .list-card + .list-card {
+    margin-top: 12px;
+  }
+
+  .list-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .list-card-title {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    font-weight: var(--font-weight-bold);
+  }
+
+  .list-card-subtitle {
+    margin: 4px 0 0;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+  }
+
+  .list-card-body {
+    display: grid;
+    gap: 8px;
+  }
+
+  .list-card-meta {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+  }
+
+  .list-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .progress-bar {
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-muted);
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--color-brand-500);
+    transition: width 500ms ease;
+  }
+
+  .progress-bar[data-active="true"] .progress-bar-fill {
+    background: linear-gradient(
+      90deg,
+      var(--color-brand-400),
+      var(--color-brand-600),
+      var(--color-brand-400)
+    );
+    background-size: 200% 100%;
+    animation: progress-bar-shimmer 1.6s linear infinite;
+  }
+
+  @keyframes progress-bar-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .progress-bar[data-active="true"] .progress-bar-fill {
+      animation: none;
+    }
+  }
+
+  /* ==================================================
      KPI cards
      ================================================== */
 
   .kpi-card {
     padding: 20px;
+  }
+
+  /* ==================================================
+     Generic stat-card grid — used by any workspace that shows
+     a row of plain metric cards (Scripts, Queue, Production,
+     Analytics, SEO) rather than the richer dashboard KPI treatment.
+     ================================================== */
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  @media (max-width: 1180px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 680px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   /* ==================================================
@@ -192,8 +345,12 @@
   }
 
   .form-help {
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     font-size: var(--font-size-caption);
+  }
+
+  #queue-decision-reason-error {
+    color: var(--color-danger-text);
   }
 
   .form-control {
@@ -225,6 +382,12 @@
     cursor: not-allowed;
     background: var(--color-surface-muted);
     color: var(--color-text-muted);
+  }
+
+  input[type="color"].form-control {
+    width: 64px;
+    min-height: 42px;
+    padding: 4px;
   }
 
   /* ==================================================
@@ -295,6 +458,256 @@
 
   .table tbody tr:last-child td {
     border-bottom: 0;
+  }
+
+  /* ==================================================
+     Modal dialogs — Scripts detail review, Queue approval
+     review. Shared chrome for the existing role="dialog"
+     markup; open/close/focus behaviour lives in
+     SavannahApp.modal.
+     ================================================== */
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-index-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 35, 27, 0.42);
+  }
+
+  .modal-dialog {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(560px, calc(100vw - 32px));
+    max-height: min(calc(100vh - 64px), 720px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: var(--radius-large);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-large);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 20px 22px 0;
+  }
+
+  .modal-body {
+    padding: 20px 22px;
+  }
+
+  .modal-title {
+    margin: 0;
+    font-size: var(--font-size-card-title);
+    font-weight: var(--font-weight-bold);
+  }
+
+  body.modal-open .application-main {
+    overflow: hidden;
+  }
+
+  @media (max-width: 900px) {
+    body.modal-open {
+      overflow: hidden;
+    }
+  }
+
+  /* ==================================================
+     Entrance animation — cards fade/slide in as they render,
+     with a small stagger across the first several siblings.
+     ================================================== */
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .card,
+  .dashboard-kpi-card,
+  .dashboard-total-card,
+  .idea-workspace-card,
+  .ideas-summary-card {
+    animation: fade-in-up 480ms ease both;
+  }
+
+  .card:nth-of-type(1), .dashboard-kpi-card:nth-of-type(1), .dashboard-total-card:nth-of-type(1), .ideas-summary-card:nth-of-type(1) { animation-delay: 0ms; }
+  .card:nth-of-type(2), .dashboard-kpi-card:nth-of-type(2), .dashboard-total-card:nth-of-type(2), .ideas-summary-card:nth-of-type(2) { animation-delay: 45ms; }
+  .card:nth-of-type(3), .dashboard-kpi-card:nth-of-type(3), .dashboard-total-card:nth-of-type(3), .ideas-summary-card:nth-of-type(3) { animation-delay: 90ms; }
+  .card:nth-of-type(4), .dashboard-kpi-card:nth-of-type(4), .dashboard-total-card:nth-of-type(4), .ideas-summary-card:nth-of-type(4) { animation-delay: 135ms; }
+  .card:nth-of-type(5) { animation-delay: 180ms; }
+  .card:nth-of-type(6) { animation-delay: 225ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .dashboard-kpi-card,
+    .dashboard-total-card,
+    .idea-workspace-card,
+    .ideas-summary-card {
+      animation: none;
+    }
+  }
+
+  /* ==================================================
+     Pipeline stepper — the "how far through the process"
+     visual on the Dashboard. Built from the same pipeline
+     data the old table used.
+     ================================================== */
+
+  .pipeline-stepper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    padding: 22px 6px 6px;
+  }
+
+  .pipeline-step {
+    display: flex;
+    min-width: 92px;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .pipeline-step-icon {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    transition:
+      border-color var(--transition-normal),
+      background var(--transition-normal),
+      color var(--transition-normal),
+      transform var(--transition-normal);
+  }
+
+  .pipeline-step-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+  }
+
+  .pipeline-step[data-status="active"] .pipeline-step-icon {
+    border-color: var(--color-brand-600);
+    background: var(--color-brand-600);
+    color: var(--color-text-on-brand);
+    box-shadow: 0 0 0 5px var(--color-brand-50);
+  }
+
+  .pipeline-step[data-status="review_required"] .pipeline-step-icon {
+    border-color: var(--color-info-text);
+    background: var(--color-info-background);
+    color: var(--color-info-text);
+    animation: pipeline-pulse 1.8s ease-in-out infinite;
+  }
+
+  .pipeline-step[data-status="building"] .pipeline-step-icon {
+    border-color: var(--color-warning-text);
+    background: var(--color-warning-background);
+    color: var(--color-warning-text);
+  }
+
+  @keyframes pipeline-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--color-info-border); }
+    50% { box-shadow: 0 0 0 6px transparent; }
+  }
+
+  .pipeline-step-name {
+    color: var(--color-text-primary);
+    font-size: 12px;
+    font-weight: var(--font-weight-bold);
+  }
+
+  .pipeline-step-count {
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: var(--font-weight-extra-bold);
+  }
+
+  .pipeline-step[data-status="active"] .pipeline-step-count {
+    background: var(--color-brand-50);
+    color: var(--color-brand-700);
+  }
+
+  .pipeline-connector {
+    position: relative;
+    top: 20px;
+    height: 2px;
+    flex: 1 1 auto;
+    min-width: 16px;
+    margin: 0 -2px;
+    background: var(--color-border);
+    overflow: hidden;
+  }
+
+  .pipeline-connector-fill {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    background: var(--color-brand-500);
+    transition: width var(--transition-slow) 120ms;
+  }
+
+  .pipeline-connector[data-filled="true"] .pipeline-connector-fill {
+    width: 100%;
+  }
+
+  @media (max-width: 900px) {
+    .pipeline-stepper {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+    }
+
+    .pipeline-step {
+      flex-direction: row;
+      min-width: 0;
+      justify-content: flex-start;
+      text-align: left;
+    }
+
+    .pipeline-connector {
+      top: 0;
+      width: 2px;
+      height: 20px;
+      margin: 0 0 0 20px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pipeline-step[data-status="review_required"] .pipeline-step-icon {
+      animation: none;
+    }
   }
 
   /* ==================================================
@@ -575,8 +988,8 @@
   }
 
   .dashboard-kpi-icon-cost {
-    background: #f3efff;
-    color: #6542a6;
+    background: var(--color-accent-violet-background);
+    color: var(--color-accent-violet-text);
   }
 
   .dashboard-kpi-status {
@@ -584,7 +997,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
     background: var(--color-surface);
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     font-size: 10px;
     font-weight: var(--font-weight-extra-bold);
     letter-spacing: 0.06em;
@@ -728,7 +1141,7 @@
     padding: 16px;
     border: 1px dashed var(--color-border-strong);
     border-radius: var(--radius-medium);
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     font-size: 13px;
     text-align: center;
   }
@@ -767,7 +1180,7 @@
   }
 
   .dashboard-total-meta {
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     font-size: 11px;
   }
 
@@ -962,8 +1375,8 @@
   }
 
   .ideas-summary-icon-scripts {
-    background: #f3efff;
-    color: #6542a6;
+    background: var(--color-accent-violet-background);
+    color: var(--color-accent-violet-text);
   }
 
   .ideas-summary-card > div {
@@ -1155,7 +1568,7 @@
   }
 
   .ideas-column-indicator-script {
-    background: #6542a6;
+    background: var(--color-accent-violet-text);
   }
 
   .ideas-column-count {
@@ -1174,7 +1587,7 @@
 
   .ideas-board-column-description {
     margin: 8px 0 14px;
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     font-size: 11px;
     line-height: 1.5;
   }
@@ -1288,7 +1701,7 @@
   }
 
   .idea-workspace-card-date {
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     font-size: 10px;
   }
 
@@ -1339,7 +1752,7 @@
     padding: 28px 14px;
     border: 1px dashed var(--color-border-strong);
     border-radius: var(--radius-medium);
-    color: var(--color-text-muted);
+    color: var(--color-text-secondary);
     font-size: 12px;
     text-align: center;
   }
@@ -1532,7 +1945,7 @@
   }
   .analytics-chart__area { fill: var(--color-brand-50); }
   .analytics-chart__point { fill: var(--color-surface); stroke: var(--color-brand-700); stroke-width: 3; }
-  .analytics-chart__label { fill: var(--color-text-muted); font-size: 12px; }
+  .analytics-chart__label { fill: var(--color-text-secondary); font-size: 12px; }
 
   .analytics-health-score {
     display: inline-grid;
@@ -1597,7 +2010,7 @@
   .analytics-report dl div { display: flex; justify-content: space-between; gap: 10px; }
   .analytics-report dt { color: var(--color-text-secondary); }
   .analytics-report dd { margin: 0; font-weight: 700; }
-  .analytics-report small { color: var(--color-text-muted); }
+  .analytics-report small { color: var(--color-text-secondary); }
 
   .page-header__actions {
     display: flex;
@@ -1640,5 +2053,84 @@
     .page-header__actions .button { flex: 1; }
     .analytics-insight-highlights,
     .analytics-insight-tables { grid-template-columns: 1fr; }
+  }
+  .production-slot-suggestions {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .production-slot-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  @media (max-width: 680px) {
+    .production-slot-list .button { width: 100%; }
+  }
+  #savannah-notifications-button { position: relative; }
+
+  .notification-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border: 2px solid var(--color-surface);
+    border-radius: 999px;
+    background: var(--color-danger-text);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  .notification-panel {
+    position: fixed;
+    z-index: 80;
+    top: 72px;
+    right: 22px;
+    width: min(430px, calc(100vw - 32px));
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+    padding: 18px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-large);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-large);
+  }
+
+  .notification-panel__header,
+  .notification-item > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .notification-panel__header { margin-bottom: 14px; }
+  .notification-panel__header p { margin: 3px 0 0; color: var(--color-text-secondary); font-size: 12px; }
+
+  .notification-item {
+    display: grid;
+    gap: 7px;
+    padding: 13px 14px;
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-warning-text);
+    border-radius: var(--radius-medium);
+  }
+
+  .notification-item + .notification-item { margin-top: 10px; }
+  .notification-item[data-severity="error"] { border-left-color: var(--color-danger-text); }
+  .notification-item[data-unread="true"] { background: var(--color-info-background); }
+  .notification-item p { margin: 0; color: var(--color-text-secondary); }
+  .notification-item small { color: var(--color-text-secondary); }
+
+  @media (max-width: 680px) {
+    .notification-panel { top: 64px; right: 12px; width: calc(100vw - 24px); }
+    .notification-panel__header { align-items: flex-start; }
   }
 </style>

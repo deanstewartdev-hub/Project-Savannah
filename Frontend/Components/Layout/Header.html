@@ -23,9 +23,9 @@
         Project Savannah
       </p>
 
-      <h1 class="topbar-page-title">
+      <p class="topbar-page-title">
         <?= currentRoute.title ?>
-      </h1>
+      </p>
     </div>
   </div>
 
@@ -71,10 +71,13 @@
     </div>
 
     <button
+      id="savannah-notifications-button"
       class="topbar-icon-button"
       type="button"
       aria-label="Notifications"
       title="Notifications"
+      aria-controls="savannah-notifications-panel"
+      aria-expanded="false"
     >
       <svg
         viewBox="0 0 24 24"
@@ -86,7 +89,16 @@
 
         <path d="M10 21h4"></path>
       </svg>
+      <span id="savannah-notifications-count" class="notification-count" hidden>0</span>
     </button>
+
+    <aside id="savannah-notifications-panel" class="notification-panel" aria-label="Savannah notifications" hidden>
+      <div class="notification-panel__header">
+        <div><strong>Notifications</strong><p>Recent workflow failures and warnings</p></div>
+        <button id="savannah-notifications-read" class="button button--secondary" type="button">Mark all read</button>
+      </div>
+      <div id="savannah-notifications-list"><p>Loading notifications&hellip;</p></div>
+    </aside>
 
     <button
       class="topbar-profile"

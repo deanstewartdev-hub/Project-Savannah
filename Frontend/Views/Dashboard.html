@@ -21,9 +21,9 @@
           Production overview
         </p>
 
-        <h2 class="page-title">
+        <h1 class="page-title">
           Welcome back, Dean
-        </h2>
+        </h1>
 
         <p class="page-description">
           Monitor today’s production, review pipeline
@@ -376,32 +376,11 @@
       </div>
 
       <div class="dashboard-panel-body">
-        <div class="table-container dashboard-table-container">
-          <table class="table dashboard-table">
-            <thead>
-              <tr>
-                <th scope="col">
-                  Stage
-                </th>
-
-                <th scope="col">
-                  Status
-                </th>
-
-                <th scope="col">
-                  Records
-                </th>
-              </tr>
-            </thead>
-
-            <tbody id="dashboard-pipeline-body">
-              <tr>
-                <td colspan="3">
-                  Loading pipeline…
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div
+          id="dashboard-pipeline-stepper"
+          class="pipeline-stepper"
+        >
+          <p class="form-help">Loading pipeline…</p>
         </div>
       </div>
     </section>

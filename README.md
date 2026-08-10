@@ -2,27 +2,27 @@
 
 Project Savannah is an AI-assisted YouTube Shorts production platform. It turns an approved idea into a validated script, SEO metadata, narrated scene plan, rendered vertical video, final human review, and a private or scheduled YouTube upload.
 
-GitHub branch `sprint-2` is the source of truth. Google Apps Script is deployed from this repository with clasp.
+GitHub branch `sprint-3` is the source of truth. Google Apps Script is deployed from this repository with clasp.
 
 ## Current state
 
 | Item | Value |
 | --- | --- |
 | Application | Project Savannah v1.3 |
-| Active branch | `sprint-2` |
+| Active branch | `sprint-3` |
 | Runtime | Google Apps Script V8 |
 | Persistence | Google Sheets and Google Drive |
 | AI | OpenAI through the provider service layer |
-| Rendering | Creatomate |
+| Rendering | Creatomate (being replaced by a self-hosted Cloud Run FFmpeg worker, see below) |
 | Publishing | YouTube Data API |
 | Channel | Savannah Atlas |
-| Live deployment | Apps Script version 61 |
+| Live deployment | Apps Script version 78 |
 | Deployment ID | `AKfycbzfD4HhW82TJyrdl5wteB1L84uiQJqb_hANd106zLDOOpY4HKqclGv67noe-kpQn2vDDw` |
-| Last verified | 2 August 2026 |
+| Last verified | 3 August 2026 |
 
-Current external blocker: Creatomate's free trial clamps output to 270×480 and has used 49 of 50 credits. The automated gate correctly blocks those renders. Upgrade the renderer before producing the first publishable 1080×1920 replacement.
+Current direction: Creatomate is not being upgraded. Its trial clamp to 270×480 is a symptom, not the real problem — the output shape (four static images, hard cuts, no motion) is what actually limits watch time, and Creatomate's fixed four-slot template is what keeps that shape locked in. v1.4 replaces it entirely with a self-hosted FFmpeg worker on Cloud Run. See [ROADMAP.md](ROADMAP.md) for the release plan and [FUTURE.md](FUTURE.md) for parked longer-term phases.
 
-The full roadmap and live phase percentages are maintained in [ROADMAP.md](ROADMAP.md). Items that require Dean's authorization are maintained in [APPROVALS_REQUIRED.md](APPROVALS_REQUIRED.md).
+The full roadmap and release plan are maintained in [ROADMAP.md](ROADMAP.md). Items that require Dean's authorization are maintained in [APPROVALS_REQUIRED.md](APPROVALS_REQUIRED.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Operational workflow
 
@@ -107,6 +107,15 @@ Frontend/Views/Analytics.html
 Frontend/Assets/Scripts/Analytics.html
 ```
 
+Monitoring-specific files:
+
+```text
+App/NotificationController.js
+Services/Services_Logging.js
+Services/Services_Notifications.js
+Frontend/Assets/Scripts/Notifications.html
+```
+
 ## Google Sheets
 
 Savannah currently uses these worksheets:
@@ -140,7 +149,7 @@ Requirements:
 ```powershell
 git clone https://github.com/deanstewartdev-hub/Project-Savannah.git
 cd Project-Savannah
-git switch sprint-2
+git switch sprint-3
 npx --yes @google/clasp@latest status
 ```
 
@@ -154,7 +163,7 @@ npx --yes @google/clasp@latest version "Description"
 npx --yes @google/clasp@latest deploy --deploymentId <deployment-id> --versionNumber <version>
 git add <reviewed-files>
 git commit -m "Description"
-git push origin sprint-2
+git push origin sprint-3
 ```
 
 Do not run `clasp pull` unless the Apps Script copy is intentionally becoming canonical; it can overwrite newer local work.
@@ -202,4 +211,4 @@ A change is complete only when:
 - paid or external actions are verified separately;
 - `git diff --check` passes;
 - the roadmap and approval list are current;
-- the commit is pushed to `sprint-2`.
+- the commit is pushed to `sprint-3`.

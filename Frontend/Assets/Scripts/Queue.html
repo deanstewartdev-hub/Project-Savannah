@@ -92,13 +92,17 @@
     }
   }
 
-  function openReview(id) {
+  function openReview(id, triggerElement) {
     const item = state.approvals.find(function (entry) { return entry.id === id; });
     if (!item) return;
     state.selected = item;
     byId("queue-review-title").textContent = item.title || "Review script";
     byId("queue-review-notes").value = item.reviewNotes || "";
     byId("queue-decision-reason").value = item.decisionReason || "";
+    byId("queue-decision-reason").removeAttribute("aria-invalid");
+    const reasonError = byId("queue-decision-reason-error");
+    reasonError.textContent = "";
+    reasonError.hidden = true;
     const script = item.script;
     byId("queue-script-content").innerHTML = script
       ? "<h3>Hook</h3><p>" + escapeHtml(script.hook) +
@@ -108,19 +112,30 @@
     document.querySelectorAll("[data-queue-decision]").forEach(function (button) {
       button.hidden = item.status !== "PENDING_APPROVAL";
     });
-    byId("queue-review-modal").hidden = false;
+    SavannahApp.modal.open("queue-review-modal", {
+      trigger: triggerElement,
+      onRequestClose: closeReview
+    });
   }
 
   function closeReview() {
-    byId("queue-review-modal").hidden = true;
+    SavannahApp.modal.close("queue-review-modal");
     state.selected = null;
   }
 
   async function decide(decision) {
     if (state.busy || !state.selected) return;
-    const reason = byId("queue-decision-reason").value.trim();
+    const reasonField = byId("queue-decision-reason");
+    const reasonError = byId("queue-decision-reason-error");
+    reasonError.textContent = "";
+    reasonError.hidden = true;
+    reasonField.removeAttribute("aria-invalid");
+    const reason = reasonField.value.trim();
     if ((decision === "REJECT" || decision === "RETURN") && !reason) {
-      showMessage("Enter a decision reason before rejecting or returning the script.", "error");
+      reasonError.textContent = "Enter a decision reason before rejecting or returning the script.";
+      reasonError.hidden = false;
+      reasonField.setAttribute("aria-invalid", "true");
+      reasonField.focus();
       return;
     }
     state.busy = true;
@@ -151,7 +166,7 @@
   byId("queue-review-close").addEventListener("click", closeReview);
   byId("queue-table-body").addEventListener("click", function (event) {
     const button = event.target.closest("[data-review-id]");
-    if (button) openReview(button.getAttribute("data-review-id"));
+    if (button) openReview(button.getAttribute("data-review-id"), button);
   });
   document.querySelectorAll("[data-queue-decision]").forEach(function (button) {
     button.addEventListener("click", function () {

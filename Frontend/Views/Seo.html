@@ -1,25 +1,45 @@
-<section class="page-section" id="seo-workspace">
-  <div class="page-header">
+<section class="page" data-page="seo" id="seo-workspace">
+  <header class="page-header">
     <div>
-      <p class="eyebrow">Production metadata</p>
-      <h1>SEO Workspace</h1>
-      <p>Turn approved scripts into complete YouTube Shorts metadata packs.</p>
+      <p class="page-eyebrow">Production metadata</p>
+      <h1 class="page-title">SEO Workspace</h1>
+      <p class="page-description">Turn approved scripts into complete YouTube Shorts metadata packs.</p>
     </div>
-    <button class="button button--secondary" id="seo-refresh" type="button">Refresh</button>
-  </div>
+    <div>
+      <button class="button button-secondary" id="seo-refresh" type="button">Refresh</button>
+    </div>
+  </header>
 
-  <div class="dashboard-grid dashboard-grid--metrics">
-    <article class="card"><span>Approved scripts</span><strong id="seo-approved-count">0</strong></article>
-    <article class="card"><span>SEO packs</span><strong id="seo-pack-count">0</strong></article>
-  </div>
+  <section class="dashboard-grid" aria-label="SEO metrics">
+    <article class="card"><div class="card-body">
+      <p class="card-label">Approved scripts</p><p class="card-value" id="seo-approved-count">0</p>
+    </div></article>
+    <article class="card"><div class="card-body">
+      <p class="card-label">SEO packs</p><p class="card-value" id="seo-pack-count">0</p>
+    </div></article>
+  </section>
 
-  <article class="card">
-    <div class="card__header"><div><h2>Ready for SEO</h2><p>Only human-approved scripts appear here.</p></div></div>
-    <div id="seo-eligible-list"><p>Loading approved scripts…</p></div>
-  </article>
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Ready for SEO</h2>
+        <p class="card-description">Only human-approved scripts appear here.</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="seo-eligible-list"><p class="form-help">Loading approved scripts…</p></div>
+    </div>
+  </section>
 
-  <article class="card">
-    <div class="card__header"><div><h2>Generated packs</h2><p>Titles, description, tags, hashtags, keywords, thumbnail copy and pinned comment.</p></div></div>
-    <div id="seo-pack-list"><p>Loading SEO packs…</p></div>
-  </article>
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <h2 class="card-title">Generated packs</h2>
+        <p class="card-description">Titles, description, tags, hashtags, keywords, thumbnail copy and pinned comment.</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="seo-pack-list"><p class="form-help">Loading SEO packs…</p></div>
+    </div>
+  </section>
 </section>

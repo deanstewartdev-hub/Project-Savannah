@@ -94,14 +94,17 @@ function resolveAppRoute(requestedRoute) {
  * @return {Object[]} Navigation definitions.
  */
 function getAppNavigation() {
+  // Ordered to match the actual production pipeline: idea -> script -> human
+  // review -> SEO metadata -> render/publish -> performance. Dashboard (overview)
+  // and Settings (configuration) sit outside that flow, so they stay first/last.
   return [
     APP_ROUTE_CONFIG.dashboard,
     APP_ROUTE_CONFIG.ideas,
     APP_ROUTE_CONFIG.scripts,
+    APP_ROUTE_CONFIG.queue,
     APP_ROUTE_CONFIG.seo,
     APP_ROUTE_CONFIG.production,
     APP_ROUTE_CONFIG.analytics,
-    APP_ROUTE_CONFIG.queue,
     APP_ROUTE_CONFIG.settings
   ];
 }

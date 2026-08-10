@@ -67,6 +67,88 @@
             : String(value);
       },
 
+      /**
+       * Animates a numeric KPI from its currently displayed value
+       * up (or down) to the target, for a bit of life on refresh.
+       * Falls back to an instant set for reduced-motion users.
+       *
+       * @param {string} elementId
+       * @param {number} targetValue
+       * @param {number=} durationMs
+       */
+      animateCount: function (
+        elementId,
+        targetValue,
+        durationMs
+      ) {
+        const element =
+          document.getElementById(
+            elementId
+          );
+
+        if (!element) {
+          return;
+        }
+
+        const target =
+          Number(targetValue) || 0;
+
+        const prefersReducedMotion =
+          window.matchMedia &&
+          window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+          ).matches;
+
+        const startValue =
+          Number(element.textContent) || 0;
+
+        if (
+          prefersReducedMotion ||
+          startValue === target
+        ) {
+          element.textContent =
+            String(target);
+
+          return;
+        }
+
+        const duration = durationMs || 700;
+        const startTime =
+          performance.now();
+
+        function step(now) {
+          const elapsed =
+            now - startTime;
+
+          const progress = Math.min(
+            elapsed / duration,
+            1
+          );
+
+          const eased =
+            1 - Math.pow(1 - progress, 3);
+
+          const currentValue =
+            Math.round(
+              startValue +
+                (target - startValue) *
+                  eased
+            );
+
+          element.textContent =
+            String(currentValue);
+
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            element.textContent =
+              String(target);
+          }
+        }
+
+        requestAnimationFrame(step);
+      },
+
       show: function (elementId) {
         const element =
           document.getElementById(
@@ -112,6 +194,214 @@
         if (element) {
           element.disabled =
             Boolean(disabled);
+        }
+      }
+    },
+
+    /**
+     * Shared accessible dialog behaviour for the existing
+     * role="dialog" markup (Scripts detail, Queue review).
+     * Workspace-specific open/close functions own their own
+     * content and cleanup; this owns only the generic dialog
+     * chrome: initial focus, Tab containment, Escape,
+     * backdrop click, and focus restoration.
+     */
+    modal: {
+      _registry: {},
+      _activeModalId: null,
+      _keydownInstalled: false,
+      _backdropInstalled: {},
+
+      open: function (modalId, options) {
+        const modalElement =
+          document.getElementById(modalId);
+
+        if (!modalElement) {
+          return;
+        }
+
+        const settings = options || {};
+
+        if (!SavannahApp.modal._backdropInstalled[modalId]) {
+          modalElement.addEventListener("click", function (event) {
+            if (
+              event.target &&
+              event.target.classList &&
+              event.target.classList.contains("modal-backdrop")
+            ) {
+              const record = SavannahApp.modal._registry[modalId];
+
+              if (record && record.onRequestClose) {
+                record.onRequestClose();
+              }
+            }
+          });
+
+          SavannahApp.modal._backdropInstalled[modalId] = true;
+        }
+
+        if (!SavannahApp.modal._keydownInstalled) {
+          document.addEventListener(
+            "keydown",
+            SavannahApp.modal._handleKeydown,
+            true
+          );
+
+          SavannahApp.modal._keydownInstalled = true;
+        }
+
+        // Portal the existing modal node to <body> so it sits
+        // outside .application-frame. That lets .application-frame
+        // become inert (below) without also inerting the modal it
+        // would otherwise contain.
+        const originalParent = modalElement.parentNode;
+        const originalNextSibling = modalElement.nextSibling;
+
+        document.body.appendChild(modalElement);
+
+        const applicationFrame = document.querySelector(
+          ".application-frame"
+        );
+
+        if (applicationFrame) {
+          applicationFrame.inert = true;
+        }
+
+        SavannahApp.modal._registry[modalId] = {
+          trigger: settings.trigger || null,
+          onRequestClose: settings.onRequestClose || null,
+          focusRestored: false,
+          originalParent: originalParent,
+          originalNextSibling: originalNextSibling
+        };
+
+        SavannahApp.modal._activeModalId = modalId;
+
+        SavannahApp.dom.show(modalId);
+
+        document.body.classList.add("modal-open");
+
+        const closeButton = modalElement.querySelector(
+          ".modal-header button"
+        );
+
+        if (closeButton) {
+          closeButton.focus();
+        }
+      },
+
+      close: function (modalId) {
+        const record = SavannahApp.modal._registry[modalId];
+
+        SavannahApp.dom.hide(modalId);
+
+        if (SavannahApp.modal._activeModalId === modalId) {
+          SavannahApp.modal._activeModalId = null;
+        }
+
+        const applicationFrame = document.querySelector(
+          ".application-frame"
+        );
+
+        if (applicationFrame) {
+          applicationFrame.inert = false;
+        }
+
+        document.body.classList.remove("modal-open");
+
+        if (record) {
+          const modalElement = document.getElementById(modalId);
+
+          if (modalElement && record.originalParent) {
+            if (
+              record.originalNextSibling &&
+              record.originalNextSibling.parentNode ===
+                record.originalParent
+            ) {
+              record.originalParent.insertBefore(
+                modalElement,
+                record.originalNextSibling
+              );
+            } else {
+              record.originalParent.appendChild(modalElement);
+            }
+          }
+
+          if (!record.focusRestored) {
+            record.focusRestored = true;
+
+            if (record.trigger && document.contains(record.trigger)) {
+              record.trigger.focus();
+            }
+          }
+        }
+
+        delete SavannahApp.modal._registry[modalId];
+      },
+
+      _getFocusable: function (container) {
+        const selector =
+          'a[href], button:not([disabled]), ' +
+          'textarea:not([disabled]), ' +
+          'input:not([disabled]), ' +
+          'select:not([disabled]), ' +
+          '[tabindex]:not([tabindex="-1"])';
+
+        return Array.prototype.filter.call(
+          container.querySelectorAll(selector),
+          function (element) {
+            return element.offsetParent !== null;
+          }
+        );
+      },
+
+      _handleKeydown: function (event) {
+        const modalId = SavannahApp.modal._activeModalId;
+
+        if (!modalId) {
+          return;
+        }
+
+        const modalElement = document.getElementById(modalId);
+
+        if (!modalElement || modalElement.hidden) {
+          return;
+        }
+
+        if (event.key === "Escape") {
+          const record = SavannahApp.modal._registry[modalId];
+
+          if (record && record.onRequestClose) {
+            event.stopPropagation();
+            record.onRequestClose();
+          }
+
+          return;
+        }
+
+        if (event.key === "Tab") {
+          const dialog = modalElement.querySelector(".modal-dialog");
+
+          if (!dialog) {
+            return;
+          }
+
+          const focusable = SavannahApp.modal._getFocusable(dialog);
+
+          if (!focusable.length) {
+            return;
+          }
+
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
         }
       }
     },
@@ -402,7 +692,7 @@
         const totalCost =
           safeKpis.totalCost || {};
 
-        SavannahApp.dom.setText(
+        SavannahApp.dom.animateCount(
           "dashboard-ideas-today",
           ideas.value || 0
         );
@@ -419,7 +709,7 @@
             "%"
         );
 
-        SavannahApp.dom.setText(
+        SavannahApp.dom.animateCount(
           "dashboard-scripts-today",
           scripts.value || 0
         );
@@ -436,7 +726,7 @@
             "%"
         );
 
-        SavannahApp.dom.setText(
+        SavannahApp.dom.animateCount(
           "dashboard-approval-count",
           approval.value || 0
         );
@@ -451,22 +741,22 @@
       renderTotals: function (totals) {
         const safeTotals = totals || {};
 
-        SavannahApp.dom.setText(
+        SavannahApp.dom.animateCount(
           "dashboard-total-ideas",
           safeTotals.ideas || 0
         );
 
-        SavannahApp.dom.setText(
+        SavannahApp.dom.animateCount(
           "dashboard-total-scripts",
           safeTotals.scripts || 0
         );
 
-        SavannahApp.dom.setText(
+        SavannahApp.dom.animateCount(
           "dashboard-total-seo",
           safeTotals.seoPacks || 0
         );
 
-        SavannahApp.dom.setText(
+        SavannahApp.dom.animateCount(
           "dashboard-total-logs",
           safeTotals.logs || 0
         );
@@ -475,92 +765,130 @@
       renderPipeline: function (
         pipeline
       ) {
-        const tableBody =
+        const stepper =
           SavannahApp.dom.getById(
-            "dashboard-pipeline-body"
+            "dashboard-pipeline-stepper"
           );
 
-        if (!tableBody) {
+        if (!stepper) {
           return;
         }
 
-        tableBody.innerHTML = "";
+        stepper.innerHTML = "";
 
         if (
           !Array.isArray(pipeline) ||
           pipeline.length === 0
         ) {
-          const emptyRow =
-            document.createElement("tr");
+          const emptyMessage =
+            document.createElement("p");
 
-          const emptyCell =
-            document.createElement("td");
+          emptyMessage.className = "form-help";
 
-          emptyCell.colSpan = 3;
-
-          emptyCell.textContent =
+          emptyMessage.textContent =
             "No pipeline data available.";
 
-          emptyRow.appendChild(
-            emptyCell
-          );
-
-          tableBody.appendChild(
-            emptyRow
-          );
+          stepper.appendChild(emptyMessage);
 
           return;
         }
 
         pipeline.forEach(
-          function (stage) {
-            const row =
-              document.createElement("tr");
+          function (stage, index) {
+            const step =
+              document.createElement("div");
 
-            const nameCell =
-              document.createElement("td");
+            step.className = "pipeline-step";
 
-            const statusCell =
-              document.createElement("td");
-
-            const recordsCell =
-              document.createElement("td");
-
-            const statusBadge =
-              document.createElement(
-                "span"
-              );
-
-            nameCell.textContent =
-              stage.name || "Unknown";
-
-            statusBadge.className =
-              "badge " +
-              (
-                stage.badgeClass || ""
-              );
-
-            statusBadge.textContent =
-              stage.statusLabel ||
-              "Unknown";
-
-            statusCell.appendChild(
-              statusBadge
+            step.setAttribute(
+              "data-status",
+              stage.status || "planned"
             );
 
-            recordsCell.textContent =
-              Number(
-                stage.recordCount
-              ) || 0;
+            const icon =
+              document.createElement("div");
 
-            row.appendChild(nameCell);
-            row.appendChild(statusCell);
-            row.appendChild(
-              recordsCell
-            );
+            icon.className = "pipeline-step-icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.innerHTML =
+              SavannahApp.dashboard.pipelineIcon_(
+                stage.name
+              );
 
-            tableBody.appendChild(row);
+            const name =
+              document.createElement("span");
+
+            name.className = "pipeline-step-name";
+            name.textContent = stage.name || "Unknown";
+
+            const count =
+              document.createElement("span");
+
+            count.className = "pipeline-step-count";
+            count.textContent =
+              (Number(stage.recordCount) || 0) +
+              " " +
+              (stage.statusLabel || "");
+
+            step.appendChild(icon);
+            step.appendChild(name);
+            step.appendChild(count);
+            stepper.appendChild(step);
+
+            if (index < pipeline.length - 1) {
+              const connector =
+                document.createElement("div");
+
+              connector.className =
+                "pipeline-connector";
+
+              connector.setAttribute(
+                "data-filled",
+                stage.status === "active"
+                  ? "true"
+                  : "false"
+              );
+
+              const fill =
+                document.createElement("div");
+
+              fill.className =
+                "pipeline-connector-fill";
+
+              connector.appendChild(fill);
+              stepper.appendChild(connector);
+            }
           }
+        );
+      },
+
+      /**
+       * Returns an inline SVG icon for a pipeline stage name.
+       * Falls back to a plain dot for unrecognised stages.
+       *
+       * @param {string} stageName
+       * @return {string} Raw SVG markup.
+       * @private
+       */
+      pipelineIcon_: function (stageName) {
+        const icons = {
+          Ideas:
+            '<svg viewBox="0 0 24 24"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M8.5 14.5A7 7 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"></path></svg>',
+          Scripts:
+            '<svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"></path><path d="M14 3v4h4"></path><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>',
+          Approval:
+            '<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>',
+          SEO:
+            '<svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path><path d="M7 10h6"></path><path d="M10 7v6"></path></svg>',
+          Production:
+            '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m10 9 5 3-5 3Z"></path></svg>',
+          Published:
+            '<svg viewBox="0 0 24 24"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>'
+        };
+
+        return (
+          icons[stageName] ||
+          '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle></svg>'
         );
       },
 
@@ -2226,11 +2554,6 @@
             "scripts-detail-close"
           );
 
-        const modal =
-          SavannahApp.dom.getById(
-            "scripts-detail-modal"
-          );
-
         if (refreshButton) {
           refreshButton.addEventListener(
             "click",
@@ -2267,25 +2590,6 @@
             "click",
             SavannahApp.scripts
               .closeDetail
-          );
-        }
-
-        if (modal) {
-          modal.addEventListener(
-            "click",
-            function (event) {
-              if (
-                event.target &&
-                event.target.classList &&
-                event.target.classList
-                  .contains(
-                    "modal-backdrop"
-                  )
-              ) {
-                SavannahApp.scripts
-                  .closeDetail();
-              }
-            }
           );
         }
 
@@ -3102,7 +3406,8 @@
               function () {
                 SavannahApp.scripts
                   .openDetail(
-                    script.id
+                    script.id,
+                    viewButton
                   );
               }
             );
@@ -3234,14 +3539,19 @@
         );
       },
 
-      openDetail: function (scriptId) {
+      openDetail: function (scriptId, triggerElement) {
         SavannahApp.scripts
           .clearMessages();
 
         google.script.run
           .withSuccessHandler(
-            SavannahApp.scripts
-              .handleDetailSuccess
+            function (response) {
+              SavannahApp.scripts
+                .handleDetailSuccess(
+                  response,
+                  triggerElement
+                );
+            }
           )
           .withFailureHandler(
             SavannahApp.scripts
@@ -3253,7 +3563,8 @@
       },
 
       handleDetailSuccess: function (
-        response
+        response,
+        triggerElement
       ) {
         if (
           !response ||
@@ -3275,11 +3586,12 @@
 
         SavannahApp.scripts
           .renderDetail(
-            response.data.script
+            response.data.script,
+            triggerElement
           );
       },
 
-      renderDetail: function (script) {
+      renderDetail: function (script, triggerElement) {
         const container =
           SavannahApp.dom.getById(
             "scripts-detail-content"
@@ -3461,8 +3773,14 @@
           reviewActions
         );
 
-        SavannahApp.dom.show(
-          "scripts-detail-modal"
+        SavannahApp.modal.open(
+          "scripts-detail-modal",
+          {
+            trigger: triggerElement,
+            onRequestClose:
+              SavannahApp.scripts
+                .closeDetail
+          }
         );
       },
 
@@ -3740,7 +4058,7 @@
       },
 
       closeDetail: function () {
-        SavannahApp.dom.hide(
+        SavannahApp.modal.close(
           "scripts-detail-modal"
         );
       },

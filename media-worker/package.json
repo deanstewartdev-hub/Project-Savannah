@@ -1,0 +1,21 @@
+{
+  "name": "savannah-media-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloud Run media assembly worker for Project Savannah: continuous narration, word-level alignment, stock/AI visuals, FFmpeg assembly, and quality probing.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.12.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^4.56.0",
+    "uuid": "^9.0.1"
+  }
+}

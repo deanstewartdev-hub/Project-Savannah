@@ -13,9 +13,15 @@
   const automationStatus = document.getElementById("production-automation-status");
   const automationToggle = document.getElementById("production-automation-toggle");
   const scheduleStatus = document.getElementById("production-schedule-status");
+  const slotSuggestions = document.getElementById("production-slot-suggestions");
+  const scheduleTemplate = document.getElementById("production-schedule-template");
   let automationEnabled = false;
   let activeRenderCount = 0;
   let pollTimer = null;
+  // Defaults optimistic (cloud-run is the current default provider - see
+  // Services_Secrets.js getVideoProvider()); corrected by loadReady()'s response as soon
+  // as it lands. Only matters for the brief window before the first list loads.
+  let currentProvider = "cloud-run";
 
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
@@ -87,9 +93,37 @@
     }
   }
 
+  // Cloud Run/Railway's submitRender POSTs beats and returns almost immediately - the
+  // actual rendering happens async on the worker, not synchronously inside this Apps
+  // Script call - so there's no risk of the 6-minute execution ceiling here, and no
+  // reason to route through the scene-by-scene preparation UI built for Creatomate
+  // (whose createRender() generates voiceover + visuals synchronously in one call and
+  // genuinely needs that chunking). productionSubmit/productionRetry already exist
+  // server-side and already dispatch through the same provider-agnostic submitCore_.
+  function submitDirect(rpcName, request, button, busyLabel, idleLabel) {
+    button.disabled = true;
+    button.textContent = busyLabel;
+    google.script.run.withSuccessHandler(function (response) {
+      if (!response || !response.success) {
+        button.disabled = false;
+        button.textContent = idleLabel;
+        showError(jobList, response);
+        loadReady();
+        return;
+      }
+      loadReady(); loadJobs(); loadPublishingSchedule();
+    }).withFailureHandler(function (error) {
+      button.disabled = false;
+      button.textContent = idleLabel;
+      showError(jobList, { error: error });
+      loadReady();
+    })[rpcName](request);
+  }
+
   function loadReady() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(readyList, response);
+      currentProvider = response.data.provider || currentProvider;
       const items = response.data.items || [];
       readyCount.textContent = items.length;
       if (!items.length) {
@@ -108,28 +142,116 @@
         const taskLabel = task ? (task.status === "READY" ? "Submit prepared render" :
           (task.status === "FAILED" ? "Retry scene preparation (" + prepared + "/4)" :
           "Resume scene preparation (" + prepared + "/4)")) : "Create Short";
-        const priorityControl = task && !busy ? '<label style="display:block;margin-top:8px">Queue priority' +
-          '<select class="input production-task-priority" data-task-id="' + escapeHtml(task.id) + '">' +
+        const priorityControl = task && !busy ? '<div class="form-group">' +
+          '<label class="form-label" for="priority-' + escapeHtml(task.id) + '">Queue priority</label>' +
+          '<select id="priority-' + escapeHtml(task.id) + '" class="form-control production-task-priority" data-task-id="' + escapeHtml(task.id) + '">' +
           [1, 2, 3, 4, 5].map(function (priority) {
             const label = priority === 5 ? '5 — Urgent' : (priority === 3 ? '3 — Normal' :
               (priority === 1 ? '1 — Low' : String(priority)));
             return '<option value="' + priority + '"' +
               (Number(task.priority || 3) === priority ? ' selected' : '') + '>' + label + '</option>';
-          }).join('') + '</select></label>' : '';
-        const controls = task && !busy ? priorityControl + '<div style="margin-top:8px">' +
-          (task.status === "PREPARING" ? '<button class="button button--secondary production-task-control" data-action="pause" data-task-id="' +
+          }).join('') + '</select></div>' : '';
+        const controls = task && !busy ? priorityControl + '<div class="list-card-actions">' +
+          (task.status === "PREPARING" ? '<button class="button button-secondary production-task-control" data-action="pause" data-task-id="' +
             escapeHtml(task.id) + '">Pause</button>' : '') +
           (["PAUSED", "FAILED", "READY"].indexOf(task.status) !== -1 ?
-            '<button class="button button--secondary production-task-control" data-action="cancel" data-task-id="' +
+            '<button class="button button-secondary production-task-control" data-action="cancel" data-task-id="' +
             escapeHtml(task.id) + '">Cancel</button>' : '') + '</div>' : '';
-        return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(item.script.title) + '</h3>' +
-          '<p>' + escapeHtml(item.script.hook) + '</p><p><span class="badge">SEO ready</span></p>' +
-          '<button class="button button--primary production-submit" data-script-id="' +
-          escapeHtml(item.script.id) + '"' + (busy ? ' disabled' : '') + '>' +
-          (busy ? 'Rendering...' : taskLabel) + '</button>' +
-          (task && task.errorMessage ? '<p>' + escapeHtml(task.errorMessage) + '</p>' : '') + controls + '</div>';
+        return '<div class="list-card">' +
+          '<div class="list-card-header">' +
+            '<div>' +
+              '<p class="list-card-subtitle">Ready for production</p>' +
+              '<h3 class="list-card-title">' + escapeHtml(item.script.title) + '</h3>' +
+            '</div>' +
+            '<span class="badge badge-success">SEO ready</span>' +
+          '</div>' +
+          '<div class="list-card-body">' +
+            '<p class="list-card-meta">' + escapeHtml(item.script.hook) + '</p>' +
+            '<div class="list-card-actions">' +
+              '<button class="button button-primary production-submit" data-script-id="' +
+              escapeHtml(item.script.id) + '"' + (busy ? ' disabled' : '') + '>' +
+              (busy ? 'Rendering...' : taskLabel) + '</button>' +
+            '</div>' +
+            (task && task.errorMessage ? '<p class="form-help">' + escapeHtml(task.errorMessage) + '</p>' : '') +
+            controls +
+          '</div>' +
+        '</div>';
       }).join("");
     }).withFailureHandler(function (error) { showError(readyList, { error: error }); }).productionListReady();
+  }
+
+  function getPublishPanelsByJobId() {
+    const panels = {};
+    jobList.querySelectorAll(".production-publish-panel[data-job-id]").forEach(function (panel) {
+      panels[panel.getAttribute("data-job-id")] = panel;
+    });
+    return panels;
+  }
+
+  function capturePublishDrafts() {
+    const drafts = {};
+    const panels = getPublishPanelsByJobId();
+    Object.keys(panels).forEach(function (jobId) {
+      const panel = panels[jobId];
+      const titleField = panel.querySelector(".production-youtube-title");
+      const privacyField = panel.querySelector(".production-youtube-privacy");
+      const scheduleField = panel.querySelector(".production-youtube-schedule");
+      drafts[jobId] = {
+        title: titleField ? titleField.value : undefined,
+        privacy: privacyField ? privacyField.value : undefined,
+        schedule: scheduleField ? scheduleField.value : undefined
+      };
+    });
+    return drafts;
+  }
+
+  function captureFocusedPublishControl() {
+    const activeElement = document.activeElement;
+    if (!activeElement || !jobList.contains(activeElement)) return null;
+    const panel = activeElement.closest(".production-publish-panel[data-job-id]");
+    if (!panel) return null;
+    let control = null;
+    if (activeElement.classList.contains("production-youtube-title")) control = "title";
+    else if (activeElement.classList.contains("production-youtube-privacy")) control = "privacy";
+    else if (activeElement.classList.contains("production-youtube-schedule")) control = "schedule";
+    if (!control) return null;
+    const focusState = { jobId: panel.getAttribute("data-job-id"), control: control };
+    if (control === "title" &&
+        typeof activeElement.selectionStart === "number" &&
+        typeof activeElement.selectionEnd === "number") {
+      focusState.selectionStart = activeElement.selectionStart;
+      focusState.selectionEnd = activeElement.selectionEnd;
+    }
+    return focusState;
+  }
+
+  function restorePublishDrafts(drafts, focusState) {
+    const panels = getPublishPanelsByJobId();
+    Object.keys(drafts).forEach(function (jobId) {
+      const panel = panels[jobId];
+      if (!panel) return;
+      const draft = drafts[jobId];
+      const titleField = panel.querySelector(".production-youtube-title");
+      const privacyField = panel.querySelector(".production-youtube-privacy");
+      const scheduleField = panel.querySelector(".production-youtube-schedule");
+      if (titleField && draft.title !== undefined) titleField.value = draft.title;
+      if (privacyField && draft.privacy !== undefined) privacyField.value = draft.privacy;
+      if (scheduleField && draft.schedule !== undefined) scheduleField.value = draft.schedule;
+    });
+    if (!focusState) return;
+    const panel = panels[focusState.jobId];
+    if (!panel) return;
+    const selector = focusState.control === "title" ? ".production-youtube-title" :
+      focusState.control === "privacy" ? ".production-youtube-privacy" : ".production-youtube-schedule";
+    const field = panel.querySelector(selector);
+    if (!field || typeof field.focus !== "function") return;
+    try { field.focus({ preventScroll: true }); } catch (e) { field.focus(); }
+    if (focusState.control === "title" &&
+        typeof focusState.selectionStart === "number" &&
+        typeof focusState.selectionEnd === "number" &&
+        typeof field.setSelectionRange === "function") {
+      try { field.setSelectionRange(focusState.selectionStart, focusState.selectionEnd); } catch (e) {}
+    }
   }
 
   function loadJobs() {
@@ -145,12 +267,30 @@
       publishedCount.textContent = jobs.filter(function (job) {
         return job.publishingJob && job.publishingJob.status === "PUBLISHED";
       }).length;
+      const publishDrafts = capturePublishDrafts();
+      const publishFocus = captureFocusedPublishControl();
       if (!jobs.length) {
         jobList.innerHTML = '<div class="empty-state"><h3>No renders yet</h3><p>Create the first Short above.</p></div>';
         return;
       }
       jobList.innerHTML = jobs.map(renderJobCard).join("");
+      restorePublishDrafts(publishDrafts, publishFocus);
     }).withFailureHandler(function (error) { showError(jobList, { error: error }); }).productionListJobs();
+  }
+
+  function jobStatusBadgeClass(status) {
+    if (status === "SUCCEEDED") return "badge-success";
+    if (status === "FAILED" || status === "CANCELLED") return "badge-danger";
+    if (status === "RENDERING" || status === "QUEUED" || status === "PLANNED") return "badge-info";
+    return "";
+  }
+
+  function jobStatusLabel(status) {
+    const labels = {
+      QUEUED: "Queued", PLANNED: "Planned", RENDERING: "Rendering",
+      SUCCEEDED: "Succeeded", FAILED: "Failed", CANCELLED: "Cancelled"
+    };
+    return labels[status] || status;
   }
 
   function renderJobCard(job) {
@@ -161,8 +301,8 @@
     const seo = job.seoPack || {}, quality = job.quality || {}, review = job.review || {};
     const title = seo.titleOptions && seo.titleOptions[0] || "";
     const videoAction = job.status === "SUCCEEDED" && job.videoUrl ?
-      '<a class="button button--secondary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
-      (job.renderId ? '<button class="button button--secondary production-refresh-job" data-job-id="' +
+      '<a class="button button-secondary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
+      (job.renderId ? '<button class="button button-secondary production-refresh-job" data-job-id="' +
       escapeHtml(job.id) + '">Refresh status</button>' : '');
     const qualitySummary = job.status === "SUCCEEDED" ?
       '<p><strong>Quality:</strong> ' + (quality.passed ? 'Passed' : 'Blocked') + ' | ' +
@@ -171,48 +311,85 @@
       (quality.width && quality.height ? ' | ' + escapeHtml(quality.width) + 'x' + escapeHtml(quality.height) : '') + '</p>' +
       (!quality.passed && quality.issues ? '<p>' + escapeHtml(quality.issues.join(' ')) + '</p>' : '') : '';
     const reviewAction = job.status === "SUCCEEDED" && quality.passed && !review.approved && !published ?
-      '<button class="button button--primary production-approve-render" data-job-id="' +
+      '<button class="button button-primary production-approve-render" data-job-id="' +
       escapeHtml(job.id) + '">Approve finished video</button>' :
       (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
     const retryAction = !published && (job.status === "FAILED" ||
       (job.status === "SUCCEEDED" && (!quality.passed || !review.approved))) ?
-      '<button class="button button--secondary production-retry" data-job-id="' +
+      '<button class="button button-secondary production-retry" data-job-id="' +
       escapeHtml(job.id) + '">Re-render safely</button>' : '';
     const publishAction = job.status === "SUCCEEDED" ? (published ?
-      '<a class="button button--primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
+      '<a class="button button-primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
       '" target="_blank" rel="noopener">Open on YouTube</a>' +
       '<p><strong>YouTube:</strong> ' +
       escapeHtml(publishingDetails.processingStatus || publishingDetails.uploadStatus || 'uploaded') +
       ' | ' + escapeHtml(job.publishingJob.privacyStatus) + '</p>' +
       (publishingDetails.publishAt ? '<p>Scheduled: ' +
         escapeHtml(new Date(publishingDetails.publishAt).toLocaleString()) + '</p>' : '') +
-      '<button class="button button--secondary production-refresh-publication" data-job-id="' +
+      '<button class="button button-secondary production-refresh-publication" data-job-id="' +
       escapeHtml(job.id) + '">Refresh YouTube status</button>' : uncertainUpload ?
       '<p><strong>Upload needs reconciliation.</strong> Check YouTube Studio for this title before retrying.</p>' +
-      '<button class="button button--secondary production-abandon-publication" data-job-id="' +
+      '<button class="button button-secondary production-abandon-publication" data-job-id="' +
       escapeHtml(job.id) + '">Confirm no upload and allow retry</button>' : uploading ?
       '<p><strong>YouTube upload is in progress.</strong> Savannah is preventing a duplicate submission.</p>' :
-      (quality.passed && review.approved ? '<div class="production-publish-panel" style="margin-top:12px">' +
-      '<label>Video title<input class="input production-youtube-title" maxlength="100" value="' +
-      escapeHtml(title) + '"></label>' +
-      '<label>Visibility<select class="input production-youtube-privacy">' +
+      (quality.passed && review.approved ? '<div class="production-publish-panel form-grid" data-job-id="' +
+      escapeHtml(job.id) + '" style="margin-top:12px">' +
+      '<div class="form-group"><label class="form-label">Video title</label>' +
+      '<input class="form-control production-youtube-title" maxlength="100" value="' +
+      escapeHtml(title) + '"></div>' +
+      '<div class="form-group"><label class="form-label">Visibility</label>' +
+      '<select class="form-control production-youtube-privacy">' +
       '<option value="private">Private</option><option value="unlisted">Unlisted</option>' +
-      '<option value="public">Public</option></select></label>' +
-      '<label>Schedule (optional)<input class="input production-youtube-schedule" type="datetime-local"></label>' +
-      '<button class="button button--primary production-publish" data-job-id="' +
-      escapeHtml(job.id) + '">Upload to YouTube</button></div>' : '')) : '';
-    return '<div class="card" style="margin-bottom:12px"><h3>' + escapeHtml(job.status) + '</h3>' +
-      '<p>Progress: ' + escapeHtml(job.progress) + '%</p>' + qualitySummary + videoAction +
-      reviewAction + retryAction + publishAction +
-      (job.publishingJob && job.publishingJob.status === "FAILED" ?
-        '<p>' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
-      (job.errorMessage ? '<p>' + escapeHtml(job.errorMessage) + '</p>' : '') + '</div>';
+      '<option value="public">Public</option></select></div>' +
+      '<div class="form-group"><label class="form-label">Schedule (optional)</label>' +
+      '<input class="form-control production-youtube-schedule" type="datetime-local"></div>' +
+      '<div class="list-card-actions"><button class="button button-primary production-publish" data-job-id="' +
+      escapeHtml(job.id) + '">Upload to YouTube</button></div></div>' : '')) : '';
+    const isActive = ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+    const progress = Math.max(0, Math.min(100, Number(job.progress) || 0));
+    return '<div class="list-card">' +
+      '<div class="list-card-header">' +
+        '<div>' +
+          '<p class="list-card-subtitle">Render job</p>' +
+          '<h3 class="list-card-title">' + escapeHtml(title || job.id) + '</h3>' +
+        '</div>' +
+        '<span class="badge ' + jobStatusBadgeClass(job.status) + '">' + escapeHtml(jobStatusLabel(job.status)) + '</span>' +
+      '</div>' +
+      '<div class="list-card-body">' +
+        '<div class="progress-bar" data-active="' + (isActive ? 'true' : 'false') + '">' +
+          '<div class="progress-bar-fill" style="width:' + progress + '%"></div>' +
+        '</div>' +
+        '<p class="list-card-meta">' + progress + '% complete</p>' +
+        qualitySummary + videoAction + reviewAction + retryAction + publishAction +
+        (job.publishingJob && job.publishingJob.status === "FAILED" ?
+          '<p class="form-help">' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
+        (job.errorMessage ? '<p class="form-help">' + escapeHtml(job.errorMessage) + '</p>' : '') +
+      '</div>' +
+    '</div>';
   }
 
   root.addEventListener("click", function (event) {
+    const useSlot = event.target.closest(".production-slot-use");
+    if (useSlot) {
+      const scheduleInput = root.querySelector(".production-youtube-schedule");
+      if (!scheduleInput) {
+        useSlot.textContent = "Approve a finished video first";
+        return;
+      }
+      const date = new Date(useSlot.dataset.publishAt);
+      scheduleInput.value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      scheduleInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      scheduleInput.focus();
+      return;
+    }
     const submit = event.target.closest(".production-submit");
     if (submit) {
-      runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
+      if (currentProvider === "cloud-run") {
+        submitDirect("productionSubmit", { scriptId: submit.dataset.scriptId },
+          submit, "Submitting...", "Create Short");
+      } else {
+        runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
+      }
       return;
     }
     const taskControl = event.target.closest(".production-task-control");
@@ -249,7 +426,8 @@
         loadJobs(); loadPublishingSchedule();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
         .productionPublish({ renderJobId: publish.dataset.jobId, title: title,
-          privacyStatus: privacyStatus, publishAt: publishAt });
+          privacyStatus: privacyStatus, publishAt: publishAt,
+          timezoneOffsetMinutes: new Date().getTimezoneOffset() });
       return;
     }
     const approveRender = event.target.closest(".production-approve-render");
@@ -264,7 +442,12 @@
     }
     const retry = event.target.closest(".production-retry");
     if (retry) {
-      runPreparation({ jobId: retry.dataset.jobId }, retry, "Re-render safely");
+      if (currentProvider === "cloud-run") {
+        submitDirect("productionRetry", { jobId: retry.dataset.jobId },
+          retry, "Submitting...", "Re-render safely");
+      } else {
+        runPreparation({ jobId: retry.dataset.jobId }, retry, "Re-render safely");
+      }
       return;
     }
     const refreshPublication = event.target.closest(".production-refresh-publication");
@@ -290,6 +473,11 @@
   });
 
   root.addEventListener("change", function (event) {
+    if (event.target === scheduleTemplate) {
+      slotSuggestions.innerHTML = '<p>Finding the next available slots&hellip;</p>';
+      loadPublishingSchedule();
+      return;
+    }
     const priorityControl = event.target.closest(".production-task-priority");
     if (!priorityControl) return;
     priorityControl.disabled = true;
@@ -346,18 +534,28 @@
   function loadPublishingSchedule() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(scheduleStatus, response);
-      const schedule = response.data.schedule || [];
+      const schedule = response.data.schedule || [], suggestions = response.data.suggestions || {};
       if (!schedule.length) {
         scheduleStatus.innerHTML = '<p>No Shorts are currently scheduled.</p>';
-        return;
+      } else {
+        scheduleStatus.innerHTML = schedule.slice(0, 5).map(function (slot) {
+          return '<p><strong>' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</strong> &mdash; ' +
+            escapeHtml(slot.title) + '</p>';
+        }).join('');
       }
-      scheduleStatus.innerHTML = schedule.slice(0, 5).map(function (slot) {
-        return '<p><strong>' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</strong> &mdash; ' +
-          escapeHtml(slot.title) + '</p>';
-      }).join('');
+      const slots = suggestions.slots || [];
+      const selectedTemplate = suggestions.template || {};
+      slotSuggestions.innerHTML = slots.length ? '<p><strong>Next available local slots</strong> &mdash; ' +
+        escapeHtml(selectedTemplate.label || "Selected cadence") + '</p><div class="production-slot-list">' +
+        slots.map(function (slot) {
+          return '<button class="button button-secondary production-slot-use" type="button" data-publish-at="' +
+            escapeHtml(slot.publishAt) + '">' + escapeHtml(new Date(slot.publishAt).toLocaleString()) + '</button>';
+        }).join('') + '</div><p><small>Select a slot to fill the next approved Short.</small></p>' :
+        '<p>No available daily slots were found in the next 14 days.</p>';
     }).withFailureHandler(function (error) {
       showError(scheduleStatus, { error: error });
-    }).productionGetPublishingSchedule();
+    }).productionGetPublishingSchedule({ timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+      template: scheduleTemplate.value });
   }
 
   function schedulePolling() {

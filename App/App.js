@@ -99,6 +99,35 @@ function doGet(event) {
 }
 
 /**
+ * Web app POST entrypoint. Only used today by savannah-media-worker's completion
+ * webhook (see media-worker/README.md and Production/VideoProcessingProvider.js).
+ * Routing only, same as doGet: the actual read/write happens in
+ * MediaWorkerCallbackService.
+ *
+ * @param {Object=} event Apps Script POST request event.
+ * @return {GoogleAppsScript.Content.TextOutput} JSON response.
+ */
+function doPost(event) {
+  const parameters =
+    event &&
+    event.parameter &&
+    typeof event.parameter === "object"
+      ? event.parameter
+      : {};
+
+  const route = normaliseAppRequestText_(parameters.route);
+
+  const result =
+    route === "media-worker-callback"
+      ? MediaWorkerCallbackService.handle(event)
+      : { success: false, error: "Unknown callback route." };
+
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
  * Creates the initial page context exposed to the
  * frontend.
  *

@@ -53,4 +53,30 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
   }
+
+  .skip-link {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .skip-link:focus {
+    top: var(--space-3);
+    left: var(--space-3);
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    z-index: var(--z-index-toast);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-small);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-large);
+  }
 </style>

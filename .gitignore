@@ -1,0 +1,6 @@
+node_modules/
+.env
+media-worker/tmp/
+media-worker/gcp-key.json
+media-worker/gcp-key-b64.txt
+media-worker/b64-chunk-*.txt

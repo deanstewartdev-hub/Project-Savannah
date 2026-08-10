@@ -160,6 +160,103 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Publishing schedule enforces the daily Short limit", function () {
+    const requested = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    requested.setUTCHours(18, 0, 0, 0);
+    const first = new Date(requested); first.setUTCHours(12);
+    const second = new Date(requested); second.setUTCHours(15);
+    let blocked = false;
+    try {
+      PublishingScheduleService.assertAvailable(requested.toISOString(), [
+        { id: "PUB-A", renderJobId: "RND-A", title: "First", providerResponse: { publishAt: first.toISOString() } },
+        { id: "PUB-B", renderJobId: "RND-B", title: "Second", providerResponse: { publishAt: second.toISOString() } }
+      ], "RND-C", { timezoneOffsetMinutes: 0, maxPerDay: 2 });
+    } catch (error) { blocked = error.name === "PublishingScheduleError"; }
+    if (!blocked) throw new Error("A third Short was accepted on the same local day.");
+  });
+
+  test("Publishing schedule suggestions skip a full local day", function () {
+    const result = PublishingScheduleService.suggestSlots([
+      { id: "PUB-A", renderJobId: "RND-A", title: "First", providerResponse: { publishAt: "2026-01-05T12:00:00.000Z" } },
+      { id: "PUB-B", renderJobId: "RND-B", title: "Second", providerResponse: { publishAt: "2026-01-05T18:00:00.000Z" } }
+    ], { now: "2026-01-05T10:00:00.000Z", timezoneOffsetMinutes: 0,
+      dailyTimes: ["12:00", "18:00"], maxPerDay: 2, limit: 2, daysAhead: 3 });
+    if (result.slots.length !== 2 || result.slots[0].localDate !== "2026-01-06" ||
+        result.slots[0].localTime !== "12:00" || result.slots[1].localTime !== "18:00") {
+      throw new Error("Publishing suggestions did not skip the full local day.");
+    }
+  });
+
+  test("Publishing schedule rejects invalid daily time rules", function () {
+    let rejected = false;
+    try {
+      PublishingScheduleService.suggestSlots([], { now: "2026-01-05T10:00:00.000Z", dailyTimes: ["25:00"] });
+    } catch (error) { rejected = error.name === "PublishingScheduleError"; }
+    if (!rejected) throw new Error("An invalid daily publishing time was accepted.");
+  });
+
+  test("Weekday cadence template skips the weekend", function () {
+    const result = PublishingScheduleService.suggestSlots([], {
+      now: "2026-01-09T19:00:00.000Z", timezoneOffsetMinutes: 0,
+      template: "weekdays", limit: 1, daysAhead: 7
+    });
+    if (result.slots.length !== 1 || result.slots[0].localDate !== "2026-01-12" ||
+        result.slots[0].localTime !== "18:00" || result.template.key !== "weekdays") {
+      throw new Error("The weekday cadence template did not skip Saturday and Sunday.");
+    }
+  });
+
+  test("Publishing schedule rejects an unknown cadence template", function () {
+    let rejected = false;
+    try {
+      PublishingScheduleService.suggestSlots([], { template: "unknown-pattern" });
+    } catch (error) { rejected = error.name === "PublishingScheduleError"; }
+    if (!rejected) throw new Error("An unknown cadence template was accepted.");
+  });
+
+  test("Notification feed contains only recent failures and warnings", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-1", "2026-08-03T09:00:00.000Z", "REQ-1", "PRODUCTION", "Failed", "Render failed", "stack"],
+      ["LOG-2", "2026-08-03T10:00:00.000Z", "REQ-2", "ANALYTICS", "Success", "Metrics loaded", ""],
+      ["LOG-3", "2026-07-01T10:00:00.000Z", "REQ-3", "PRODUCTION", "Warning", "Old warning", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", limit: 20 });
+    if (result.notifications.length !== 1 || result.notifications[0].id !== "LOG-1") {
+      throw new Error("Notification filtering included an unsupported log row.");
+    }
+  });
+
+  test("Notification feed redacts credentials and groups repeated failures", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-A", "2026-08-03T10:00:00.000Z", "REQ-A", "PRODUCTION", "Failed", "Provider used sk-secret_value_123", ""],
+      ["LOG-B", "2026-08-03T10:30:00.000Z", "REQ-B", "PRODUCTION", "Failed", "Provider used sk-secret_value_123", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", limit: 20 });
+    if (result.notifications.length !== 1 || result.notifications[0].occurrences !== 2 ||
+        result.notifications[0].message.indexOf("secret_value") !== -1) {
+      throw new Error("Notification grouping or credential redaction failed.");
+    }
+  });
+
+  test("Notification feed clarifies legacy production failure messages", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-LEGACY", "2026-08-03T10:00:00.000Z", "REQ-LEGACY", "PRODUCTION", "Failed", "Next scene asset prepared.", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", limit: 20 });
+    if (result.notifications.length !== 1 ||
+        result.notifications[0].message !== "Failed while running: Next scene asset prepared.") {
+      throw new Error("A legacy success-style failure message was not clarified.");
+    }
+  });
+
+  test("Notification unread count respects the user read timestamp", function () {
+    const result = NotificationService.buildFeed([
+      ["LOG-OLD", "2026-08-03T09:00:00.000Z", "REQ-OLD", "PRODUCTION", "Warning", "Earlier warning", ""],
+      ["LOG-NEW", "2026-08-03T11:00:00.000Z", "REQ-NEW", "PRODUCTION", "Failed", "New failure", ""]
+    ], { now: "2026-08-03T12:00:00.000Z", readAt: "2026-08-03T10:00:00.000Z", limit: 20 });
+    if (result.unreadCount !== 1 || result.notifications[0].id !== "LOG-NEW" || !result.notifications[0].unread ||
+        result.notifications[1].unread) {
+      throw new Error("Notification unread state is invalid.");
+    }
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };

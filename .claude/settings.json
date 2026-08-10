@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "permissions": {
+    "defaultMode": "plan",
+    "disableBypassPermissionsMode": "disable",
+    "disableAutoMode": "disable",
+
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git reset *)",
+      "Bash(git clean *)",
+      "Bash(git branch -D *)",
+      "Bash(git tag *)",
+      "Bash(git switch *)",
+      "Bash(git checkout *)",
+      "Bash(git worktree *)",
+
+      "PowerShell(git push *)",
+      "PowerShell(git merge *)",
+      "PowerShell(git rebase *)",
+      "PowerShell(git reset *)",
+      "PowerShell(git clean *)",
+      "PowerShell(git branch -D *)",
+      "PowerShell(git tag *)",
+      "PowerShell(git switch *)",
+      "PowerShell(git checkout *)",
+      "PowerShell(git worktree *)",
+
+      "Bash(npx *clasp* push *)",
+      "Bash(npx *clasp* deploy *)",
+      "Bash(npx *clasp* version *)",
+      "Bash(clasp push *)",
+      "Bash(clasp deploy *)",
+      "Bash(clasp version *)",
+
+      "PowerShell(npx *clasp* push *)",
+      "PowerShell(npx *clasp* deploy *)",
+      "PowerShell(npx *clasp* version *)",
+      "PowerShell(clasp push *)",
+      "PowerShell(clasp deploy *)",
+      "PowerShell(clasp version *)",
+
+      "Bash(gcloud *)",
+      "PowerShell(gcloud *)",
+
+      "Bash(gh api *)",
+      "PowerShell(gh api *)",
+
+      "Bash(npm install *)",
+      "PowerShell(npm install *)",
+      "PowerShell(npm.cmd install *)",
+
+      "Bash(winget install *)",
+      "PowerShell(winget install *)",
+
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(taskkill *)"
+    ],
+
+    "deny": [
+      "Bash(clasp pull *)",
+      "Bash(npx *clasp* pull *)",
+      "PowerShell(clasp pull *)",
+      "PowerShell(npx *clasp* pull *)",
+
+      "Read(/.env)",
+      "Edit(/.env)",
+
+      "Read(/media-worker/.env)",
+      "Edit(/media-worker/.env)",
+
+      "Read(/media-worker/gcp-key.json)",
+      "Edit(/media-worker/gcp-key.json)",
+
+      "Read(/media-worker/gcp-key-b64.txt)",
+      "Edit(/media-worker/gcp-key-b64.txt)",
+
+      "Read(/media-worker/b64-chunk-*.txt)",
+      "Edit(/media-worker/b64-chunk-*.txt)",
+
+      "Read(/.claude/settings.local.json)",
+      "Edit(/.claude/settings.local.json)"
+    ]
+  }
+}

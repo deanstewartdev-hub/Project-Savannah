@@ -86,6 +86,8 @@ const DashboardService = (() => {
         }
       },
 
+      // Ordered to match the real production flow: idea -> script -> human
+      // review -> SEO metadata -> render -> publish.
       pipeline: [
         createPipelineStage_(
           "Ideas",
@@ -102,6 +104,14 @@ const DashboardService = (() => {
         ),
 
         createPipelineStage_(
+          "Approval",
+          rawData.totals.approvalQueue > 0
+            ? "review_required"
+            : "planned",
+          rawData.totals.approvalQueue
+        ),
+
+        createPipelineStage_(
           "SEO",
           rawData.totals.seoPacks > 0
             ? "active"
@@ -110,11 +120,19 @@ const DashboardService = (() => {
         ),
 
         createPipelineStage_(
-          "Approval",
-          rawData.totals.approvalQueue > 0
-            ? "review_required"
+          "Production",
+          rawData.totals.renders > 0
+            ? "active"
             : "planned",
-          rawData.totals.approvalQueue
+          rawData.totals.renders
+        ),
+
+        createPipelineStage_(
+          "Published",
+          rawData.totals.published > 0
+            ? "active"
+            : "planned",
+          rawData.totals.published
         )
       ],
 
