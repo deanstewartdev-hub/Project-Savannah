@@ -69,7 +69,11 @@ const CreatomateProviderAdapter = (() => {
 
 const CloudRunFFmpegProvider = (() => {
   function testConnection() {
-    const response = UrlFetchApp.fetch(workerUrl_() + "/healthz", { muteHttpExceptions: true });
+    // /health, not /healthz: Cloud Run's platform layer intercepts the literal path
+    // /healthz before it reaches any container (confirmed empirically - every other path,
+    // including /readyz, routes through fine). /health works identically on both Railway
+    // and Cloud Run, so this is the one path that's actually safe to depend on.
+    const response = UrlFetchApp.fetch(workerUrl_() + "/health", { muteHttpExceptions: true });
     const status = response.getResponseCode();
     if (status !== 200) throw error_("Media worker health check failed (HTTP " + status + ").");
     return { connected: true, workerUrl: workerUrl_() };

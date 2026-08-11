@@ -18,7 +18,13 @@ app.use(express.json({ limit: "2mb" }));
 const jobsClient = new JobsClient();
 const jobResourceName = `projects/${dispatcherConfig.project}/locations/${dispatcherConfig.region}/jobs/${dispatcherConfig.renderJobName}`;
 
+// Cloud Run's fully-managed platform intercepts GET /healthz before it ever reaches this
+// container (confirmed via Cloud Logging: /jobs, /, and even /readyz all reach Express and
+// get logged; /healthz alone returns Google's generic 404 page with zero log entry). /health
+// is the real, externally-reachable path - /healthz is kept only for parity with Railway's
+// server.js and any caller that still targets it directly.
 app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
+app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
 app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), (req, res) => {
   const { beats, musicTrackPath, callbackUrl } = req.body || {};
