@@ -166,8 +166,15 @@ const CloudRunFFmpegProvider = (() => {
     // Apps Script doPost cannot read custom request headers, only the query string and
     // body, so the shared secret has to travel in the URL itself. handleMediaWorkerCallback_
     // in App/App.js re-checks it against Secrets.getMediaWorkerSharedSecret() on the way in.
-    const webAppUrl = ScriptApp.getService().getUrl();
-    if (!webAppUrl) throw error_("Deploy the web app before submitting Cloud Run render jobs.");
+    //
+    // Deliberately NOT ScriptApp.getService().getUrl(): that returns whichever URL the
+    // current execution happens to be running under, which is the /dev URL during
+    // testing - and /dev is always restricted to the script owner/editors regardless of
+    // the manifest's web app access setting, so a callback aimed at it can never succeed
+    // from the worker. The callback must always target the production /exec deployment,
+    // independent of where the render was submitted from.
+    const webAppUrl = Secrets.getMediaWorkerCallbackUrl();
+    if (!webAppUrl) throw error_("MEDIA_WORKER_CALLBACK_URL is not configured - set it to the production /exec URL before submitting Cloud Run render jobs.");
     return webAppUrl + "?route=media-worker-callback&secret=" + encodeURIComponent(sharedSecret_());
   }
   function workerUrl_() {
