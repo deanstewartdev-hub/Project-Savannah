@@ -167,6 +167,34 @@ externally-reachable path) alongside the legacy `/healthz` (kept for back-compat
 fine on Railway, silently unreachable on Cloud Run), and
 `VideoProcessingProvider.js#testConnection()` calls `/health` for exactly this reason.
 
+## Delivery-only recovery (`src/recover-delivery.js`)
+
+A supported operational tool, not migration scaffolding — kept deliberately, because
+"the render succeeded but delivery/callback failed" is a real, recurring failure class
+distinct from a render failure (see `../CHANGELOG.md`, 11 August 2026 night: this exact
+scenario happened on the first real render, caused by a missing signing permission).
+
+For a `jobId` whose `renders/<jobId>/final.mp4` and `probe-report.json` already exist in
+GCS (i.e. the render itself finished), this re-signs those existing artifacts and
+re-sends the callback — without ever calling OpenAI, ElevenLabs, Pexels, or FFmpeg, and
+without re-uploading anything. It refuses to run if the stored probe result didn't pass
+all three quality gates. Run as a one-off argument override, not part of the Job's
+standing config:
+
+```bash
+gcloud run jobs execute savannah-render-job --region=<REGION> \
+  --args="src/recover-delivery.js,<jobId>"
+```
+
+Requires a `CALLBACK_URL` env var (the full production callback URL, secret included) to
+already be present on the Job — supply it via a short-lived Secret Manager secret bound
+with `--update-secrets`/`--remove-secrets` for the duration of the recovery, not a
+command-line argument (which can end up in shell history and tool transcripts) and not a
+standing binding (remove it once the recovery is done). Never construct that value from
+a copy-pasted secret you've seen in a log — the shared secret should come from
+`Secrets.getMediaWorkerSharedSecret()` at the time of use, not a value memorized from an
+earlier failure's error message.
+
 ## Deploying to Railway
 
 This is the **currently active** deployment (see the note at the top of this file for
