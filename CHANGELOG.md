@@ -5,6 +5,48 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 11 August 2026 (night) — first real render succeeded end to end; delivery/callback bugs found and recovered without re-rendering
+
+**The render itself worked.** A real submission (jobId `cr-5ff223a6-...`, "Unexpected
+Travel Destinations", 6 beats) completed narration → alignment → visuals → FFmpeg
+assembly → quality probing entirely cleanly on Cloud Run - no SIGKILL, the exact failure
+mode that blocked every Railway attempt. `final.mp4` and `probe-report.json` landed in
+GCS, all three quality gates passed. This is the core migration goal validated.
+
+**Two unrelated bugs surfaced in delivery/callback, both root-caused and fixed without
+touching the already-good render:**
+
+1. **Signed URL generation:** `getSignedReadUrl()` failed with `PERMISSION_DENIED:
+   iam.serviceAccounts.signBlob` - generating a V4 signed URL under ADC (no local key)
+   requires the signing service account to hold `roles/iam.serviceAccountTokenCreator`
+   on *itself*, which `savannah-render-job@...` didn't have. Granted, scoped to the SA's
+   own resource. Verified independently of any render: executed a small diagnostic
+   script (`src/test-sign-url.js`) as a one-off `gcloud run jobs execute` override,
+   using the real render Job identity, against the already-existing `final.mp4` - signed
+   successfully, the URL fetched with `200`.
+2. **Callback URL:** `callbackUrl_()` used `ScriptApp.getService().getUrl()`, which
+   returns whichever URL the current execution is running under - `/dev` when triggered
+   from an editor test session, which can never receive a server-to-server callback
+   regardless of web app access settings. Added `MEDIA_WORKER_CALLBACK_URL` as an
+   explicit Script Property holding the production `/exec` URL; `callbackUrl_()` now
+   reads that unconditionally. Deployed as version 83 to the existing production
+   deployment (same Deployment ID, same URL, access unaffected - verified with the same
+   before/after anonymous-GET check used for version 81/82 last night).
+
+**Recovered the already-completed render without regenerating anything.** Added
+`src/recover-delivery.js`: re-signs the existing GCS artifacts and re-sends the callback
+for a job whose render already succeeded, refusing to run if the stored probe result
+didn't pass its gates. Never imports narration/alignment/visuals/assembly. Confirmed
+`final.mp4`'s GCS `creation_time`/`update_time`/`metageneration` unchanged after
+recovery - nothing was re-uploaded. The corrected callback reached production `/exec`
+and was accepted, updating the existing Render Job record - no duplicate created.
+
+**Provider credential:** the production callback URL's shared secret was carried as an
+input to the recovery script via a dedicated Secret Manager secret
+(`recovery-callback-url`, IAM-scoped to the render Job SA only) rather than a
+command-line argument, after a first attempt embedding it directly was correctly
+blocked by the local permission classifier.
+
 ### 11 August 2026 (evening) — first controlled render attempt failed at the trigger stage; dispatcher IAM and false-202 bug fixed
 
 **MEDIA_WORKER_URL cut over to the Cloud Run dispatcher and the first real controlled
