@@ -26,8 +26,8 @@ const jobResourceName = `projects/${dispatcherConfig.project}/locations/${dispat
 app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
-app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), (req, res) => {
-  const { beats, musicTrackPath, callbackUrl } = req.body || {};
+app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res) => {
+  const { beats, musicTrackPath, callbackUrl, dryRun } = req.body || {};
 
   const beatsError = validateBeats(beats);
   if (beatsError) {
@@ -40,35 +40,38 @@ app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), (req, res) => {
   }
 
   const jobId = req.body.jobId || uuid();
-  res.status(202).json({ jobId, status: "queued" });
 
-  // Deliberately not awaited past acceptance: uploadJson + runJob's initial call both
-  // resolve quickly (the request lands in GCS, the execution gets created), and we never
-  // await the execution's own completion - that happens on the Job's own time, entirely
-  // decoupled from this HTTP response, which is the whole point of the dispatcher/Job split.
-  uploadJson(`${dispatcherConfig.jobRequestPrefix}${jobId}.json`, {
-    jobId,
-    beats,
-    musicTrackPath,
-    callbackUrl,
-    submittedAt: new Date().toISOString()
-  })
-    .then(() =>
-      jobsClient.runJob({
-        name: jobResourceName,
-        overrides: {
-          containerOverrides: [{ env: [{ name: "JOB_ID", value: jobId }] }],
-          taskCount: 1
-        }
-      })
-    )
-    .catch((error) => {
-      // The 202 has already gone out, so there's nothing left to return to the caller -
-      // this is the one failure mode Apps Script can't learn about synchronously. Loud
-      // logging is the only recourse; a stuck job-requests/<jobId>.json with no matching
-      // execution is the visible symptom to watch for.
-      console.error(`Job ${jobId} failed to reach the render Job:`, error);
+  // A 202 must mean "the Cloud Run Admin API accepted creation of the Job execution",
+  // not just "the dispatcher received the request" - a fire-and-forget runJob() call
+  // that failed after the response was already sent (e.g. a missing IAM permission)
+  // is a failure mode the caller can never learn about. Awaiting runJob() here only
+  // waits for the execution to be *created* (the initial LRO call), never for the
+  // render itself to finish - that still happens entirely on the Job's own time.
+  const overrideEnv = [{ name: "JOB_ID", value: jobId }];
+  if (dryRun === true) {
+    overrideEnv.push({ name: "DRY_RUN", value: "true" });
+  }
+
+  try {
+    await uploadJson(`${dispatcherConfig.jobRequestPrefix}${jobId}.json`, {
+      jobId,
+      beats,
+      musicTrackPath,
+      callbackUrl,
+      submittedAt: new Date().toISOString()
     });
+    await jobsClient.runJob({
+      name: jobResourceName,
+      overrides: {
+        containerOverrides: [{ env: overrideEnv }],
+        taskCount: 1
+      }
+    });
+    res.status(202).json({ jobId, status: "queued" });
+  } catch (error) {
+    console.error(`Job ${jobId} failed to start:`, error);
+    res.status(502).json({ jobId, error: "Failed to start render job", message: error.message });
+  }
 });
 
 app.listen(dispatcherConfig.port, () => {
