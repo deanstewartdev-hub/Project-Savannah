@@ -5,6 +5,55 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 11 August 2026 — Cloud Run dispatcher + render Job migration (infra provisioned and smoke-tested, not yet the live path)
+
+**Why.** Two real renders were SIGKILLed on Railway (`cr-a8fc4832...`,
+`cr-52423380...`, both `signal: SIGKILL, stderr: (empty)` — the OOM-kill signature)
+despite every practical memory mitigation already in place (serialized job execution,
+sequential beat normalization, `-threads 1`, `-filter_threads 1`/
+`-filter_complex_threads 1`, `-preset veryfast`). Railway's plan hard-caps each replica
+at 2 vCPU/1GB — there was no more headroom to reclaim by tuning; the fix is
+infrastructure. Also verified (via a throwaway canary deploy) that the Google-side
+routing bug blocking Cloud Run since the 7 August billing incident only affects Cloud Run
+Services that existed *before* that incident — a brand-new Service is reachable
+externally, which unblocked moving back to Cloud Run at all.
+
+**What changed.** The single-Cloud-Run-service design is retired in favor of a
+lightweight, always-responsive dispatcher (`savannah-media-worker-dispatcher`, a Cloud
+Run Service) that validates + hands a job off, and a separate Cloud Run *Job*
+(`savannah-render-job`, 2 vCPU/2Gi) that does the actual rendering with real memory
+headroom, triggered via the Cloud Run Admin API and decoupled from any HTTP request
+lifecycle. See `media-worker/README.md` → "Architecture: dispatcher + render Job" for the
+full design. The render pipeline itself (`pipeline/runJob.js`, ffmpeg, narration,
+alignment, visuals) is unchanged — this is purely an infrastructure split.
+
+**Also found and fixed while wiring this up:**
+
+- Cloud Run's platform layer silently intercepts `GET /healthz` before it reaches any
+  container (confirmed via Cloud Logging: zero log entries for that exact path, while
+  `/`, `/jobs`, and even `/readyz` on the same revision all route through and log
+  normally). Worked around by adding `/health` as the real health-check path on both
+  `dispatcher.js` and `server.js`, and pointing
+  `VideoProcessingProvider.js#testConnection()` at it.
+- `dispatcher.js`'s first deploy crashed on boot (`Missing required environment variable:
+  OPENAI_API_KEY`) because `storage.js` imported the full `config.js`, whose
+  `required()` throws synchronously at import time — but the dispatcher process
+  intentionally has none of the render-only API keys. Fixed by decoupling `storage.js` to
+  read `GCS_BUCKET`/`GOOGLE_APPLICATION_CREDENTIALS_B64` directly from `process.env`.
+
+**Verified via infrastructure smoke tests (no paid API calls):** dispatcher `/health` →
+200, unauthenticated `/jobs` → 401, IAM confirmed on the bucket/secrets/Job resource for
+both service accounts, and a `DRY_RUN=true` Job execution against a synthetic
+`job-requests/<id>.json` proved the full trigger → GCS write → Admin API → ADC → GCS read
+→ clean exit path end to end.
+
+**Not done yet:** no real render has been triggered through this path — that's a
+separate, explicitly approval-gated next step. `MEDIA_WORKER_URL` still points at
+Railway; cutover requires one manual Script Property change (no safe automated path
+exists — see `APPROVALS_REQUIRED.md`). Railway itself is untouched and remains the
+rollback path until a real Cloud Run render is verified end-to-end and compared against
+the legacy result.
+
 ### 7 August 2026 (later) — found and fixed a second real bug: both Apps Script deployments were unreachable by the callback
 
 **Status for whoever picks this up next (human or AI): the render pipeline is proven

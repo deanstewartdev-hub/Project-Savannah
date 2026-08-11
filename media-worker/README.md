@@ -4,13 +4,16 @@ Node 22 + FFmpeg service that replaces Creatomate in Project Savannah's render p
 See `SAVANNAH_AUDIT_AND_PLAN.md` at the repo root and [ROADMAP.md](../ROADMAP.md) (v1.4)
 for why this exists.
 
-**Currently deployed on Railway, not Cloud Run** — Cloud Run's own deployment succeeds but
-external HTTPS traffic 404s due to a Google-side platform bug (billing account
-trial→paid upgrade broke a `SetIamPolicy` call; Google Cloud Support case #74041894,
-unresolved as of 7 August 2026). Railway is a temporary bridge; both deploy paths below
-are documented and the code is host-agnostic. See `../CHANGELOG.md`'s 7 August entry for
-the full story, including three real bugs found via live testing on Railway that would
-equally have hit Cloud Run once it's usable again.
+**Currently deployed on Railway; a Cloud Run dispatcher + render Job pair is provisioned
+and infra-smoke-tested but not yet the live path** (`MEDIA_WORKER_URL` still points at
+Railway). The Google-side routing bug that originally blocked Cloud Run (billing account
+trial→paid upgrade broke a `SetIamPolicy` call; Cloud Support case #74041894 →
+#74051643, unresolved as of 11 August 2026) only affects Cloud Run *Services* that
+existed before that billing change — a canary deploy and the new dispatcher service both
+confirmed a **brand-new** Cloud Run Service is reachable externally. See "Architecture:
+dispatcher + render Job" below for the current design, and `../CHANGELOG.md` for the
+full story, including three real bugs found via live testing on Railway that equally
+apply on Cloud Run.
 
 ## Pipeline
 
@@ -82,24 +85,70 @@ Raw JSON with embedded quotes and `\n`-escaped newlines is fragile to paste into
 env-var UIs; base64 sidesteps that entirely. `storage.js` checks for the base64 variant
 first and falls back to Cloud Run's ADC when neither is set.
 
-## Deploying to Cloud Run
+## Architecture: dispatcher + render Job (Cloud Run)
+
+A single Cloud Run *Service* running ffmpeg synchronously in the background after
+responding (the original design below `--no-cpu-throttling` line, now obsolete) has the
+same fragility Railway's healthcheck problem exposed: a platform that expects a request
+handler to finish quickly doesn't mix well with a multi-minute render running after the
+HTTP response is already sent. The Cloud Run path is now split into two resources instead:
+
+- **`savannah-media-worker-dispatcher`** (Cloud Run *Service*, always responsive, 1
+  vCPU/512Mi) — `src/dispatcher.js`. Auth + validates the request exactly like
+  `routes/jobs.js` always has, writes it to `gs://<GCS_BUCKET>/job-requests/<jobId>.json`,
+  triggers a `savannah-render-job` execution via the Cloud Run Admin API
+  (`JobsClient.runJob()`, accepted-not-awaited — the call returns once the execution is
+  scheduled, not once it finishes), and responds `202 { jobId, status: "queued" }`
+  immediately. Never imports `pipeline/*` or any provider SDK, so it never needs
+  `OPENAI_API_KEY`/`ELEVENLABS_API_KEY`/`PEXELS_API_KEY` just to boot.
+- **`savannah-render-job`** (Cloud Run *Job*, not public, 2 vCPU/2Gi, `taskCount=1`,
+  `parallelism=1`, `maxRetries=0`, 1200s timeout) — `src/job-runner.js`. Reads `JOB_ID`
+  from its environment, downloads and deletes its GCS request object, calls the
+  **unmodified** `runJob()`/`postCallback()` pipeline, exits 0/1. `maxRetries=0` is
+  deliberate for now — a transient failure re-running the whole pipeline would silently
+  duplicate OpenAI/ElevenLabs/Pexels API spend; revisit once there's real timing/failure
+  data to reason from.
+
+Both run from the same image (`Dockerfile` is unchanged — entrypoint selected at deploy
+time via `--command`/`--args`, not baked in), reuse the same Secret Manager secrets as
+Railway, and use attached service-account identities with no key files
+(`savannah-dispatcher@…` and `savannah-render-job@…`, least-privilege: bucket
+`storage.objectAdmin`, per-secret `secretAccessor`, and — dispatcher only —
+`run.invoker` scoped to just the `savannah-render-job` resource).
 
 ```bash
-gcloud builds submit --tag gcr.io/<PROJECT_ID>/savannah-media-worker
-gcloud run deploy savannah-media-worker \
-  --image gcr.io/<PROJECT_ID>/savannah-media-worker \
-  --region <REGION> \
-  --cpu 2 --memory 2Gi \
-  --timeout 900 \
-  --no-cpu-throttling \
-  --set-env-vars GCS_BUCKET=savannah-media,DEFAULT_MUSIC_TRACK_PATH=music/default-bed.mp3 \
-  --set-secrets OPENAI_API_KEY=openai-api-key:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,ELEVENLABS_VOICE_ID=elevenlabs-voice-id:latest,PEXELS_API_KEY=pexels-api-key:latest,JOB_SUBMIT_SECRET=job-submit-secret:latest
+gcloud builds submit --tag <REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/media-worker:<TAG> .
+
+gcloud run jobs deploy savannah-render-job \
+  --image <REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/media-worker:<TAG> \
+  --region <REGION> --command node --args src/job-runner.js \
+  --cpu 2 --memory 2Gi --tasks 1 --parallelism 1 --max-retries 0 --task-timeout 1200 \
+  --service-account savannah-render-job@<PROJECT_ID>.iam.gserviceaccount.com \
+  --set-env-vars "GCS_BUCKET=savannah-media" \
+  --set-secrets "OPENAI_API_KEY=openai-api-key:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,ELEVENLABS_VOICE_ID=elevenlabs-voice-id:latest,PEXELS_API_KEY=pexels-api-key:latest,JOB_SUBMIT_SECRET=job-submit-secret:latest"
+
+gcloud run deploy savannah-media-worker-dispatcher \
+  --image <REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/media-worker:<TAG> \
+  --region <REGION> --command node --args src/dispatcher.js \
+  --cpu 1 --memory 512Mi --allow-unauthenticated \
+  --service-account savannah-dispatcher@<PROJECT_ID>.iam.gserviceaccount.com \
+  --set-env-vars "GCS_BUCKET=savannah-media,CLOUD_RUN_PROJECT=<PROJECT_ID>,CLOUD_RUN_REGION=<REGION>,RENDER_JOB_NAME=savannah-render-job" \
+  --set-secrets "JOB_SUBMIT_SECRET=job-submit-secret:latest"
 ```
 
-`--no-cpu-throttling` is not optional: `/jobs` responds before the pipeline finishes, and
-the render work happens after the HTTP response is sent. Cloud Run only keeps CPU
-allocated to a background task like that when throttling is disabled — without this flag
-the instance can be frozen mid-render.
+`--allow-unauthenticated` on the dispatcher is safe: the app-level `Bearer
+JOB_SUBMIT_SECRET` check in `requireAuth()` still gates `/jobs` exactly as it always has.
+The render Job has no HTTP ingress at all — it can only be started via the Admin API by an
+identity holding `run.invoker` on that specific Job resource.
+
+**Known Cloud Run platform quirk:** `GET /healthz` is intercepted before it ever reaches
+the container — confirmed via Cloud Logging (zero log entries for `/healthz`, while `/`,
+`/jobs`, and even `/readyz` all route through and get logged normally on the same
+revision). Root cause not fully diagnosed and not worth chasing further; the fix is to
+not use that literal path. Both `dispatcher.js` and `server.js` serve `/health` (the real,
+externally-reachable path) alongside the legacy `/healthz` (kept for back-compat, works
+fine on Railway, silently unreachable on Cloud Run), and
+`VideoProcessingProvider.js#testConnection()` calls `/health` for exactly this reason.
 
 ## Deploying to Railway
 
