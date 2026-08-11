@@ -5,6 +5,56 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 11 August 2026 (evening) — first controlled render attempt failed at the trigger stage; dispatcher IAM and false-202 bug fixed
+
+**MEDIA_WORKER_URL cut over to the Cloud Run dispatcher and the first real controlled
+render was attempted** (via "Re-render safely" on a FAILED script). It never actually
+rendered anything - it failed before a single Cloud Run Job execution was created:
+
+1. Apps Script's `UrlFetchApp` POST reached the dispatcher, which validated the
+   request, wrote it to `gs://savannah-media/job-requests/<jobId>.json`, and responded
+   `202` **before** attempting to trigger the render Job.
+2. The dispatcher's subsequent (unawaited, fire-and-forget) call to
+   `JobsClient.runJob()` failed: `PERMISSION_DENIED: Permission
+   'run.jobs.runWithOverrides' denied on resource '.../jobs/savannah-render-job'`.
+   `roles/run.invoker` (granted in the original migration) does not include the
+   `runWithOverrides` permission needed when invoking with `containerOverrides` - a gap
+   the Phase 5 smoke tests never caught, because that test called
+   `gcloud run jobs execute` with owner credentials, not the dispatcher's own service
+   account making the same Admin API call `dispatcher.js` actually makes.
+3. Because the `202` had already gone out, Apps Script had no way to learn any of this
+   happened - it reported the submission as successful, leaving the Production UI
+   showing "Rendering" against a script that was never actually running anywhere.
+
+**Fixed both problems together, same evening, before any real render was reattempted:**
+
+- Granted `roles/run.jobsExecutorWithOverrides` to `savannah-dispatcher@...`, scoped to
+  the `savannah-render-job` resource only, alongside the existing `run.invoker` binding.
+- Restructured `dispatcher.js`'s `POST /jobs` handler to `await` `uploadJson()` and
+  `jobsClient.runJob()` (the initial LRO-creation call only, never
+  `operation.promise()`) **before** responding - a `202` now means "the Cloud Run Admin
+  API accepted creation of the Job execution," not merely "the dispatcher received the
+  request." A failed trigger now returns `502` with a safe error message instead of a
+  silently-logged, unreachable failure. This also removes a latent reliability gap: the
+  dispatcher runs under Cloud Run's default CPU throttling (confirmed - no
+  `cpu-throttling` override annotation present), and the old code did its real work
+  *after* the response was sent, i.e. outside the window CPU is guaranteed to be
+  allocated.
+- Added an optional `dryRun` field to the `/jobs` request body (sets `DRY_RUN=true` in
+  the Job's `containerOverrides`) so the dispatcher's own trigger path - not a manual
+  `gcloud run jobs execute` bypass - can be exercised end to end without paid API calls.
+
+**Verified the fix with a real authenticated request through the live dispatcher**
+(`dryRun: true`, the dispatcher's own service account, not owner credentials):
+`202`, `savannah-render-job-qdm79` created and completed cleanly (`exit(0)`), zero
+duplicate executions.
+
+**Left exactly as found, not touched:** the original failed job's GCS request file
+(`job-requests/cr-c68c66f5-....json`) is still orphaned in the bucket, and the
+Production UI's stale "Rendering 5%" cards (for the script that was actually submitted,
+and separately for one that shows no backend trace at all) have not been reconciled -
+that needs an intentional decision, not an automated edit, and is a separate follow-up.
+
 ### 11 August 2026 — Cloud Run dispatcher + render Job migration (infra provisioned and smoke-tested, not yet the live path)
 
 **Why.** Two real renders were SIGKILLed on Railway (`cr-a8fc4832...`,

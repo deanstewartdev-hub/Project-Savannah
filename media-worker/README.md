@@ -97,10 +97,19 @@ HTTP response is already sent. The Cloud Run path is now split into two resource
   vCPU/512Mi) — `src/dispatcher.js`. Auth + validates the request exactly like
   `routes/jobs.js` always has, writes it to `gs://<GCS_BUCKET>/job-requests/<jobId>.json`,
   triggers a `savannah-render-job` execution via the Cloud Run Admin API
-  (`JobsClient.runJob()`, accepted-not-awaited — the call returns once the execution is
-  scheduled, not once it finishes), and responds `202 { jobId, status: "queued" }`
-  immediately. Never imports `pipeline/*` or any provider SDK, so it never needs
-  `OPENAI_API_KEY`/`ELEVENLABS_API_KEY`/`PEXELS_API_KEY` just to boot.
+  (`JobsClient.runJob()`), and only *then* responds `202 { jobId, status: "queued" }` —
+  a `202` means the Admin API accepted creation of the Job execution, not merely that
+  the dispatcher received the request. The await is on the initial LRO-creation call
+  only, never `operation.promise()`, so this still returns as soon as the execution is
+  scheduled, not once the render finishes. A failed trigger returns `502` instead of a
+  silently-logged, unrecoverable failure (see "First controlled render" in
+  `../CHANGELOG.md`, 11 August 2026 evening — the first real attempt failed exactly this
+  way, silently, before this fix). Never imports `pipeline/*` or any provider SDK, so it
+  never needs `OPENAI_API_KEY`/`ELEVENLABS_API_KEY`/`PEXELS_API_KEY` just to boot. The
+  `/jobs` body also accepts an optional `dryRun: true`, forwarded as `DRY_RUN=true` in
+  the Job's `containerOverrides` — the way to smoke-test the dispatcher's *real* trigger
+  path (its own service account, the actual Admin API call) without paid API calls,
+  instead of bypassing it with `gcloud run jobs execute` under owner credentials.
 - **`savannah-render-job`** (Cloud Run *Job*, not public, 2 vCPU/2Gi, `taskCount=1`,
   `parallelism=1`, `maxRetries=0`, 1200s timeout) — `src/job-runner.js`. Reads `JOB_ID`
   from its environment, downloads and deletes its GCS request object, calls the
@@ -113,8 +122,16 @@ Both run from the same image (`Dockerfile` is unchanged — entrypoint selected 
 time via `--command`/`--args`, not baked in), reuse the same Secret Manager secrets as
 Railway, and use attached service-account identities with no key files
 (`savannah-dispatcher@…` and `savannah-render-job@…`, least-privilege: bucket
-`storage.objectAdmin`, per-secret `secretAccessor`, and — dispatcher only —
-`run.invoker` scoped to just the `savannah-render-job` resource).
+`storage.objectAdmin`, per-secret `secretAccessor`, and — dispatcher only, scoped to
+just the `savannah-render-job` resource — both `run.invoker` **and**
+`run.jobsExecutorWithOverrides`). The second role is easy to miss: `run.invoker` alone
+is not sufficient to call `JobsClient.runJob()` with `containerOverrides` — that
+specific call needs the `run.jobs.runWithOverrides` permission, which only
+`run.jobsExecutorWithOverrides` (or a broader role like `run.developer`/`run.admin`)
+grants. Missing it fails with `PERMISSION_DENIED` at the exact moment a render is
+triggered, not at deploy time, so it's easy to provision the dispatcher, pass every
+`/health`/auth smoke test, and still have every real submission fail invisibly — exactly
+what happened on the first controlled render (see `../CHANGELOG.md`).
 
 ```bash
 gcloud builds submit --tag <REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/media-worker:<TAG> .
