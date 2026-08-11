@@ -4,12 +4,15 @@ function run(command, args) {
   return new Promise((resolve, reject) => {
     execFile(command, args, { maxBuffer: 1024 * 1024 * 64 }, (error, stdout, stderr) => {
       if (error) {
+        // stderr/stdout come before args deliberately: a real ffmpeg filter_complex
+        // command line can run to thousands of characters, which pushes the actually
+        // diagnostic stderr/stdout out of easy view in a truncated log tail.
         const detail = [
           `exit code: ${error.code ?? "unknown"}`,
           `signal: ${error.signal ?? "none"}`,
-          `args: ${args.join(" ")}`,
           `stderr: ${stderr && stderr.trim() ? stderr.trim() : "(empty)"}`,
-          `stdout: ${stdout && stdout.trim() ? stdout.trim() : "(empty)"}`
+          `stdout: ${stdout && stdout.trim() ? stdout.trim() : "(empty)"}`,
+          `args: ${args.join(" ")}`
         ].join("\n");
         reject(new Error(`${command} failed (${error.message})\n${detail}`));
         return;

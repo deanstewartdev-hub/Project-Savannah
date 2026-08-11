@@ -9,9 +9,12 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "dispatcher": "node src/dispatcher.js",
+    "job-runner": "node src/job-runner.js"
   },
   "dependencies": {
+    "@google-cloud/run": "^4.0.0",
     "@google-cloud/storage": "^7.12.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

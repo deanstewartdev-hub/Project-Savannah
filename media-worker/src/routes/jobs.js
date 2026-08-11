@@ -3,6 +3,8 @@ import { v4 as uuid } from "uuid";
 import { config } from "../config.js";
 import { runJob } from "../pipeline/runJob.js";
 import { postCallback } from "../lib/callback.js";
+import { requireAuth } from "../lib/auth.js";
+import { validateBeats } from "../lib/validateBeats.js";
 
 export const jobsRouter = Router();
 
@@ -19,36 +21,7 @@ function runSerialized(task) {
   return result;
 }
 
-function requireAuth(req, res, next) {
-  if (!config.jobSubmitSecret) {
-    next();
-    return;
-  }
-  const header = req.get("authorization") || "";
-  const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length) : null;
-  if (token !== config.jobSubmitSecret) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  next();
-}
-
-function validateBeats(beats) {
-  if (!Array.isArray(beats) || beats.length === 0) {
-    return "beats must be a non-empty array";
-  }
-  for (const [index, beat] of beats.entries()) {
-    if (!beat || typeof beat.text !== "string" || beat.text.trim().length === 0) {
-      return `beats[${index}].text is required`;
-    }
-    if (typeof beat.visualQuery !== "string" || beat.visualQuery.trim().length === 0) {
-      return `beats[${index}].visualQuery is required`;
-    }
-  }
-  return null;
-}
-
-jobsRouter.post("/jobs", requireAuth, (req, res) => {
+jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
   const { beats, musicTrackPath, callbackUrl } = req.body || {};
 
   const beatsError = validateBeats(beats);

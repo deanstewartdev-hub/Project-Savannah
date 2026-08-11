@@ -24,3 +24,20 @@ export async function getSignedReadUrl(destination, expiresInMs = 7 * 24 * 60 * 
   });
   return url;
 }
+
+// Used by the dispatcher/job-runner split (Cloud Run) to hand a job request off to a Job
+// execution via GCS rather than a fragile inline argument - not used by the Railway/single-
+// process HTTP path, which still calls runJob() directly in-process.
+export async function uploadJson(destination, value) {
+  await bucket.file(destination).save(JSON.stringify(value), { contentType: "application/json" });
+  return destination;
+}
+
+export async function downloadJson(sourcePath) {
+  const [contents] = await bucket.file(sourcePath).download();
+  return JSON.parse(contents.toString("utf8"));
+}
+
+export async function deleteObject(destination) {
+  await bucket.file(destination).delete({ ignoreNotFound: true });
+}
