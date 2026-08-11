@@ -5,6 +5,31 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 11 August 2026 (late night) — post-migration security/cleanup pass
+
+**Migration status: functionally validated end to end** — a real render survived
+narration through FFmpeg assembly through quality probing with no SIGKILL (the original
+Railway blocker), and the recovered render's delivery/callback reached production
+`/exec` successfully. Railway is retained as the rollback path; `MEDIA_WORKER_URL`
+already points at Cloud Run.
+
+**Removed temporary recovery-only infrastructure** once confirmed unused by the normal
+pipeline: the `recovery-callback-url` Secret Manager secret (deleted) and the render
+Job's `CALLBACK_URL` secret binding (removed via `--remove-secrets`). Verified afterward
+that the Job's real configuration - `JOB_SUBMIT_SECRET` and the four provider secrets,
+`MEDIA_WORKER_CALLBACK_URL`'s Apps Script Script Property, the `signBlob`
+self-binding, and `run.jobsExecutorWithOverrides` on the dispatcher - is untouched.
+
+**Removed `src/test-sign-url.js`** (one-off diagnostic, its job is done - signing is
+proven). Kept and documented `src/recover-delivery.js` as a supported operational tool
+in `media-worker/README.md`: "render succeeded, delivery failed" is a real recurring
+failure class, not one-off migration scaffolding.
+
+**Known remaining item:** the media worker callback shared secret
+(`MEDIA_WORKER_SHARED_SECRET`) needs rotation - a copy of its value passed through a
+command transcript during the delivery recovery above. Not yet rotated as of this entry;
+see the next entry once it lands, or `APPROVALS_REQUIRED.md` if it's still pending.
+
 ### 11 August 2026 (night) — first real render succeeded end to end; delivery/callback bugs found and recovered without re-rendering
 
 **The render itself worked.** A real submission (jobId `cr-5ff223a6-...`, "Unexpected
