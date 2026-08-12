@@ -120,29 +120,74 @@
     })[rpcName](request);
   }
 
+  // A Ready-for-production item's action depends on the state of its existing render
+  // jobs, not just the latest one: an older SUCCEEDED job must still block a plain
+  // Create Short even if a newer job on the same script FAILED (or is a stale retry) -
+  // otherwise a script that's already been rendered successfully looks re-submittable,
+  // inviting accidental duplicate spend. Priority: any ACTIVE job wins outright: any
+  // SUCCEEDED job wins over any FAILED job; only with neither does FAILED apply; only
+  // with none of the three does the never-rendered / preparation-task path apply.
+  function classifyReadyJobs_(jobs) {
+    const sorted = jobs.slice().sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
+    const active = sorted.filter(function (j) {
+      return ["QUEUED", "PLANNED", "RENDERING"].indexOf(j.status) !== -1;
+    })[0] || null;
+    const succeeded = !active ? (sorted.filter(function (j) { return j.status === "SUCCEEDED"; })[0] || null) : null;
+    const failed = !active && !succeeded ? (sorted.filter(function (j) { return j.status === "FAILED"; })[0] || null) : null;
+    return { active: active, succeeded: succeeded, failed: failed };
+  }
+
   function loadReady() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(readyList, response);
       currentProvider = response.data.provider || currentProvider;
       const items = response.data.items || [];
-      readyCount.textContent = items.length;
+      const enriched = items.map(function (item) {
+        return { item: item, state: classifyReadyJobs_(item.existingJobs || []) };
+      });
+      // "Ready to render" means actionable render work right now: never-rendered scripts
+      // and failed-but-retryable ones. A script already covered by a successful render
+      // doesn't belong in that count just because it still appears in this collection,
+      // and a script currently rendering isn't "ready" - it's already in progress.
+      readyCount.textContent = enriched.filter(function (entry) {
+        return !entry.state.active && !entry.state.succeeded;
+      }).length;
       if (!items.length) {
         readyList.innerHTML = '<div class="empty-state"><h3>Nothing is ready yet</h3>' +
           '<p>Approve a script and generate its SEO pack first.</p></div>';
         return;
       }
-      readyList.innerHTML = items.map(function (item) {
-        const jobs = item.existingJobs || [];
-        const latest = jobs.length ? jobs.sort(function (a, b) {
-          return new Date(b.updatedAt) - new Date(a.updatedAt);
-        })[0] : null;
-        const busy = latest && ["QUEUED", "PLANNED", "RENDERING"].indexOf(latest.status) !== -1;
+      readyList.innerHTML = enriched.map(function (entry) {
+        const item = entry.item, state = entry.state;
         const task = item.preparationTask;
         const prepared = task && task.preparedScenes ? task.preparedScenes.length : 0;
-        const taskLabel = task ? (task.status === "READY" ? "Submit prepared render" :
-          (task.status === "FAILED" ? "Retry scene preparation (" + prepared + "/4)" :
-          "Resume scene preparation (" + prepared + "/4)")) : "Create Short";
-        const priorityControl = task && !busy ? '<div class="form-group">' +
+        // Once a real render job exists (active, succeeded, or failed) for this script,
+        // a leftover legacy preparation task is stale and shouldn't clutter the card -
+        // unless it's genuinely still running (PREPARING) and needs a Pause control.
+        const showTaskControls = task && ((state.active || state.succeeded || state.failed) ?
+          task.status === "PREPARING" : true);
+
+        let action;
+        if (state.active) {
+          action = '<button class="button button-primary production-submit" data-script-id="' +
+            escapeHtml(item.script.id) + '" disabled>Rendering...</button>';
+        } else if (state.succeeded) {
+          action = state.succeeded.videoUrl ?
+            '<a class="button button-secondary" href="' + escapeHtml(state.succeeded.videoUrl) +
+            '" target="_blank" rel="noopener">View video</a>' :
+            '<button class="button button-secondary" disabled>Rendered</button>';
+        } else if (state.failed) {
+          action = '<button class="button button-secondary production-ready-retry" data-job-id="' +
+            escapeHtml(state.failed.id) + '">Re-render safely</button>';
+        } else {
+          const taskLabel = task ? (task.status === "READY" ? "Submit prepared render" :
+            (task.status === "FAILED" ? "Retry scene preparation (" + prepared + "/4)" :
+            "Resume scene preparation (" + prepared + "/4)")) : "Create Short";
+          action = '<button class="button button-primary production-submit" data-script-id="' +
+            escapeHtml(item.script.id) + '">' + taskLabel + '</button>';
+        }
+
+        const priorityControl = showTaskControls ? '<div class="form-group">' +
           '<label class="form-label" for="priority-' + escapeHtml(task.id) + '">Queue priority</label>' +
           '<select id="priority-' + escapeHtml(task.id) + '" class="form-control production-task-priority" data-task-id="' + escapeHtml(task.id) + '">' +
           [1, 2, 3, 4, 5].map(function (priority) {
@@ -151,7 +196,7 @@
             return '<option value="' + priority + '"' +
               (Number(task.priority || 3) === priority ? ' selected' : '') + '>' + label + '</option>';
           }).join('') + '</select></div>' : '';
-        const controls = task && !busy ? priorityControl + '<div class="list-card-actions">' +
+        const controls = showTaskControls ? priorityControl + '<div class="list-card-actions">' +
           (task.status === "PREPARING" ? '<button class="button button-secondary production-task-control" data-action="pause" data-task-id="' +
             escapeHtml(task.id) + '">Pause</button>' : '') +
           (["PAUSED", "FAILED", "READY"].indexOf(task.status) !== -1 ?
@@ -167,12 +212,8 @@
           '</div>' +
           '<div class="list-card-body">' +
             '<p class="list-card-meta">' + escapeHtml(item.script.hook) + '</p>' +
-            '<div class="list-card-actions">' +
-              '<button class="button button-primary production-submit" data-script-id="' +
-              escapeHtml(item.script.id) + '"' + (busy ? ' disabled' : '') + '>' +
-              (busy ? 'Rendering...' : taskLabel) + '</button>' +
-            '</div>' +
-            (task && task.errorMessage ? '<p class="form-help">' + escapeHtml(task.errorMessage) + '</p>' : '') +
+            '<div class="list-card-actions">' + action + '</div>' +
+            (showTaskControls && task.errorMessage ? '<p class="form-help">' + escapeHtml(task.errorMessage) + '</p>' : '') +
             controls +
           '</div>' +
         '</div>';
@@ -389,6 +430,19 @@
           submit, "Submitting...", "Create Short");
       } else {
         runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
+      }
+      return;
+    }
+    // Distinct from .production-submit (new render for a script) and from the Render Job
+    // card's own .production-retry (same underlying retry, different card) - kept
+    // separate so this Ready-card action can never be confused with a fresh submission.
+    const readyRetry = event.target.closest(".production-ready-retry");
+    if (readyRetry) {
+      if (currentProvider === "cloud-run") {
+        submitDirect("productionRetry", { jobId: readyRetry.dataset.jobId },
+          readyRetry, "Submitting...", "Re-render safely");
+      } else {
+        runPreparation({ jobId: readyRetry.dataset.jobId }, readyRetry, "Re-render safely");
       }
       return;
     }
