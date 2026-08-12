@@ -11,7 +11,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "dispatcher": "node src/dispatcher.js",
-    "job-runner": "node src/job-runner.js"
+    "job-runner": "node src/job-runner.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@google-cloud/run": "^4.0.0",

@@ -5,7 +5,8 @@ import { JobsClient } from "@google-cloud/run";
 import { dispatcherConfig } from "./dispatcherConfig.js";
 import { requireAuth } from "./lib/auth.js";
 import { validateBeats } from "./lib/validateBeats.js";
-import { uploadJson } from "./lib/storage.js";
+import { uploadJson, downloadJson, objectExists } from "./lib/storage.js";
+import { buildStatusResponse } from "./lib/jobStatus.js";
 
 // This process never imports pipeline/* or any of the OpenAI/ElevenLabs/Pexels SDKs - it
 // only validates a request, hands it to a Cloud Run Job execution, and responds. The
@@ -60,18 +61,55 @@ app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res
       callbackUrl,
       submittedAt: new Date().toISOString()
     });
-    await jobsClient.runJob({
+    const [operation] = await jobsClient.runJob({
       name: jobResourceName,
       overrides: {
         containerOverrides: [{ env: overrideEnv }],
         taskCount: 1
       }
     });
-    res.status(202).json({ jobId, status: "queued" });
+    const executionName = (operation.metadata && operation.metadata.name) || null;
+    // operation.name/executionName are non-secret GCP resource identifiers, not
+    // request/callback content - safe to log. Persisting operationName is what lets a
+    // later status check correlate back to this exact execution instead of guessing
+    // from elapsed time.
+    console.log(`Job ${jobId} operation created: name=${operation.name} executionName=${executionName || "(not yet available)"}`);
+    res.status(202).json({ jobId, status: "queued", operationName: operation.name || null, executionName });
   } catch (error) {
     console.error(`Job ${jobId} failed to start:`, error);
     res.status(502).json({ jobId, error: "Failed to start render job", message: error.message });
   }
+});
+
+// Read-only: reports facts about a render's external state and GCS artifacts. Never
+// mutates Savannah state (it has none to mutate), never signs URLs, never calls back to
+// Apps Script, never triggers recovery - reconciliation decisions belong to Apps Script
+// (a later increment), this endpoint only supplies the evidence for that decision.
+app.post("/jobs/status", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res) => {
+  const { jobId, operationName } = req.body || {};
+
+  // Only gather artifact facts for a jobId shape that's already known-safe - avoids ever
+  // building a GCS path from unvalidated input, even though buildStatusResponse() would
+  // also reject a malformed jobId itself.
+  const validJobIdShape = typeof jobId === "string" && /^cr-[0-9a-f-]{36}$/i.test(jobId);
+  const [artifactExists, probeReport] = validJobIdShape
+    ? await Promise.all([
+        objectExists(`renders/${jobId}/final.mp4`),
+        downloadJson(`renders/${jobId}/probe-report.json`).catch(() => null)
+      ])
+    : [false, null];
+
+  const result = await buildStatusResponse({
+    jobId,
+    operationName,
+    project: dispatcherConfig.project,
+    region: dispatcherConfig.region,
+    jobName: dispatcherConfig.renderJobName,
+    artifactExists,
+    probeReport,
+    checkRunJobProgress: (name) => jobsClient.checkRunJobProgress(name)
+  });
+  res.status(result.status).json(result.body);
 });
 
 app.listen(dispatcherConfig.port, () => {
