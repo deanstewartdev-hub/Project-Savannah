@@ -149,7 +149,7 @@ const CloudRunFFmpegProvider = (() => {
       method: method,
       muteHttpExceptions: true,
       contentType: "application/json",
-      headers: { Authorization: "Bearer " + sharedSecret_() },
+      headers: { Authorization: "Bearer " + submitSecret_() },
       payload: JSON.stringify(payload)
     };
     const response = UrlFetchApp.fetch(workerUrl_() + path, options);
@@ -164,8 +164,8 @@ const CloudRunFFmpegProvider = (() => {
 
   function callbackUrl_() {
     // Apps Script doPost cannot read custom request headers, only the query string and
-    // body, so the shared secret has to travel in the URL itself. handleMediaWorkerCallback_
-    // in App/App.js re-checks it against Secrets.getMediaWorkerSharedSecret() on the way in.
+    // body, so the callback secret has to travel in the URL itself. MediaWorkerCallback_Service
+    // re-checks it against Secrets.getMediaWorkerSharedSecret() on the way in.
     //
     // Deliberately NOT ScriptApp.getService().getUrl(): that returns whichever URL the
     // current execution happens to be running under, which is the /dev URL during
@@ -175,14 +175,25 @@ const CloudRunFFmpegProvider = (() => {
     // independent of where the render was submitted from.
     const webAppUrl = Secrets.getMediaWorkerCallbackUrl();
     if (!webAppUrl) throw error_("MEDIA_WORKER_CALLBACK_URL is not configured - set it to the production /exec URL before submitting Cloud Run render jobs.");
-    return webAppUrl + "?route=media-worker-callback&secret=" + encodeURIComponent(sharedSecret_());
+    return webAppUrl + "?route=media-worker-callback&secret=" + encodeURIComponent(callbackSecret_());
   }
   function workerUrl_() {
     const value = Secrets.getMediaWorkerUrl();
     if (!value) throw error_("The media worker URL is not configured.");
     return value;
   }
-  function sharedSecret_() {
+  // Dispatcher Bearer auth (POST /jobs, POST /jobs/status) - a separate trust boundary from
+  // the callback secret below. Must match the dispatcher's own JOB_SUBMIT_SECRET. Deliberately
+  // no fallback to the callback secret if this is unset: the two credentials must stay
+  // independently rotatable.
+  function submitSecret_() {
+    const value = Secrets.getMediaWorkerJobSubmitSecret();
+    if (!value) throw error_("The media worker job submission secret is not configured.");
+    return value;
+  }
+  // Callback authentication only (the secret MediaWorkerCallback_Service validates on inbound
+  // requests) - never used for dispatcher Bearer auth.
+  function callbackSecret_() {
     const value = Secrets.getMediaWorkerSharedSecret();
     if (!value) throw error_("The media worker shared secret is not configured.");
     return value;

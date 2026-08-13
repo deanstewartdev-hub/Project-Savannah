@@ -121,6 +121,19 @@ const Secrets = {
     return PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
   },
 
+  // Separate trust boundary from MEDIA_WORKER_SHARED_SECRET (the callback secret): this one
+  // authenticates Apps Script -> dispatcher (/jobs, /jobs/status), matching the dispatcher's
+  // own JOB_SUBMIT_SECRET. See Production/VideoProcessingProvider.js.
+  setMediaWorkerJobSubmitSecret(secret) {
+    const value = String(secret || "").trim();
+    if (!value) throw new Error("The media worker job submission secret cannot be empty.");
+    PropertiesService.getScriptProperties().setProperty("MEDIA_WORKER_JOB_SUBMIT_SECRET", value);
+  },
+
+  getMediaWorkerJobSubmitSecret() {
+    return PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_JOB_SUBMIT_SECRET");
+  },
+
   // The production /exec base URL the media worker's callback must always target,
   // regardless of whether the render was submitted from a /dev test session or the
   // production deployment - ScriptApp.getService().getUrl() returns whichever URL the
