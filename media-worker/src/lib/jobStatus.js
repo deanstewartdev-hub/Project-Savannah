@@ -37,9 +37,18 @@ export function isValidOperationName(operationName, project, region) {
 // An Execution resource name looks like:
 //   projects/<p>/locations/<r>/jobs/<jobName>/executions/<executionId>
 // - this is the actual, post-lookup correlation to savannah-render-job specifically,
-// since the operation name itself (checked above) can't provide that guarantee.
+// since the operation name alone (checked above) only proves project/region, not which
+// Job triggered it - a caller who knows the shared bearer secret could otherwise supply
+// a valid operation from a different Cloud Run Job in the same project/region and read
+// its status through this endpoint.
+//
+// Reject-by-default: an operation this lookup can't attach an execution name to is
+// treated as unverifiable, not as "assume it's ours." Empirically (this session's own
+// dryRun submission), the execution name is already populated in the very first /jobs
+// response - before the task has even started running - so a legitimately-ours
+// operation should never actually hit this fallback in practice.
 export function executionBelongsToJob(executionName, jobName) {
-  if (!executionName) return true; // nothing to correlate yet - not a rejection
+  if (!executionName) return false;
   return executionName.indexOf(`/jobs/${jobName}/executions/`) !== -1;
 }
 
@@ -72,13 +81,6 @@ export function normalizeExecutionState(polled) {
   return { state: "UNKNOWN", failureDetail: null };
 }
 
-// Only a completed, quality-passing artifact on an execution that isn't still actively
-// in flight counts as "might need delivery reconciliation" - never during PENDING/RUNNING,
-// where a render legitimately hasn't finished yet.
-export function computeRecoveryRequired(state, artifactExists, probePassed) {
-  return Boolean(artifactExists && probePassed && state !== "PENDING" && state !== "RUNNING");
-}
-
 export function evaluateProbe(probeReport) {
   return Boolean(
     probeReport && probeReport.passesResolutionGate && probeReport.passesSilenceGate && probeReport.passesBlackFrameGate
@@ -91,6 +93,12 @@ export function evaluateProbe(probeReport) {
 // with the normalized status payload. dispatcher.js's route handler does nothing but
 // gather the real inputs and call this - all the actual decision logic lives here,
 // callable and testable with zero network access.
+//
+// Deliberately reports facts only - no recoveryRequired or similar inferred verdict.
+// The dispatcher has no visibility into whether Savannah's own row already received a
+// callback, so it cannot know whether a completed artifact actually needs reconciling;
+// that judgment (local Savannah row still active + valid existing artifact = delivery-
+// recovery candidate) belongs entirely to the Apps Script side that has that context.
 export async function buildStatusResponse({ jobId, operationName, project, region, jobName, artifactExists, probeReport, checkRunJobProgress, now }) {
   if (!isValidJobId(jobId)) {
     return { status: 400, body: { error: "jobId must match the Savannah Cloud Run render ID format (cr-<uuid>)" } };
@@ -99,6 +107,7 @@ export async function buildStatusResponse({ jobId, operationName, project, regio
     return { status: 400, body: { error: "operationName is not a valid operation for this project/region" } };
   }
 
+  const probeExists = probeReport !== null && probeReport !== undefined;
   const probePassed = evaluateProbe(probeReport);
   let state = "UNKNOWN";
   let executionName = null;
@@ -142,8 +151,8 @@ export async function buildStatusResponse({ jobId, operationName, project, regio
       operationName: operationName || null,
       executionName,
       artifactExists: Boolean(artifactExists),
+      probeExists,
       probePassed,
-      recoveryRequired: computeRecoveryRequired(state, artifactExists, probePassed),
       failureDetail,
       checkedAt: (now || new Date()).toISOString()
     }

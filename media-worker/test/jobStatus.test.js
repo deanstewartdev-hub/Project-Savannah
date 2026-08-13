@@ -128,29 +128,45 @@ test("buildStatusResponse: artifactExists true is passed through unchanged", asy
   assert.equal(result.body.artifactExists, true);
 });
 
-// 9. valid passing probe -> probePassed true
-test("buildStatusResponse: all three quality gates passing yields probePassed true", async () => {
+// 9. valid passing probe -> probePassed true, probeExists true
+test("buildStatusResponse: all three quality gates passing yields probePassed/probeExists true", async () => {
   const result = await buildStatusResponse({
     jobId: VALID_JOB_ID, operationName: null,
     project: PROJECT, region: REGION, jobName: JOB_NAME,
     artifactExists: true, probeReport: PASSING_PROBE,
     checkRunJobProgress: async () => ({})
   });
+  assert.equal(result.body.probeExists, true);
   assert.equal(result.body.probePassed, true);
 });
 
-test("buildStatusResponse: a failing gate yields probePassed false", async () => {
+test("buildStatusResponse: a failing gate yields probePassed false but probeExists true", async () => {
   const result = await buildStatusResponse({
     jobId: VALID_JOB_ID, operationName: null,
     project: PROJECT, region: REGION, jobName: JOB_NAME,
     artifactExists: true, probeReport: { ...PASSING_PROBE, passesSilenceGate: false },
     checkRunJobProgress: async () => ({})
   });
+  assert.equal(result.body.probeExists, true);
   assert.equal(result.body.probePassed, false);
 });
 
-// 10. terminal external result + valid artifact -> recoveryRequired true
-test("buildStatusResponse: FAILED execution with an existing passing artifact sets recoveryRequired", async () => {
+test("buildStatusResponse: no probe report yields probeExists false and probePassed false", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    checkRunJobProgress: async () => ({})
+  });
+  assert.equal(result.body.probeExists, false);
+  assert.equal(result.body.probePassed, false);
+});
+
+// 10. terminal external result + valid artifact -> facts only, no inferred verdict.
+// The dispatcher cannot know whether Savannah already received a callback, so it must
+// never decide "recovery required" itself - it only reports state + artifact facts and
+// leaves that judgment to Apps Script reconciliation, which has that context.
+test("buildStatusResponse: FAILED execution with an existing passing artifact reports facts only, no recoveryRequired field", async () => {
   const result = await buildStatusResponse({
     jobId: VALID_JOB_ID, operationName: VALID_OPERATION_NAME,
     project: PROJECT, region: REGION, jobName: JOB_NAME,
@@ -163,19 +179,25 @@ test("buildStatusResponse: FAILED execution with an existing passing artifact se
   });
   assert.equal(result.status, 200);
   assert.equal(result.body.state, "FAILED");
-  assert.equal(result.body.recoveryRequired, true);
+  assert.equal(result.body.artifactExists, true);
+  assert.equal(result.body.probeExists, true);
+  assert.equal(result.body.probePassed, true);
   assert.equal(result.body.failureDetail, "signBlob denied");
+  assert.equal("recoveryRequired" in result.body, false, "the endpoint must not decide recovery itself");
 });
 
-test("buildStatusResponse: PENDING/RUNNING never sets recoveryRequired even with an artifact present", async () => {
+test("buildStatusResponse: PENDING state is reported as a fact, still with no recoveryRequired field", async () => {
   const result = await buildStatusResponse({
     jobId: VALID_JOB_ID, operationName: VALID_OPERATION_NAME,
     project: PROJECT, region: REGION, jobName: JOB_NAME,
     artifactExists: true, probeReport: PASSING_PROBE,
-    checkRunJobProgress: async () => ({ done: false, metadata: {} })
+    checkRunJobProgress: async () => ({
+      done: false,
+      metadata: { name: `projects/${PROJECT}/locations/${REGION}/jobs/${JOB_NAME}/executions/savannah-render-job-abc12` }
+    })
   });
   assert.equal(result.body.state, "PENDING");
-  assert.equal(result.body.recoveryRequired, false);
+  assert.equal("recoveryRequired" in result.body, false);
 });
 
 // 11. transient provider error is NOT converted to FAILED
@@ -223,18 +245,39 @@ test("buildStatusResponse: an operationName from a foreign region is rejected wi
   assert.equal(result.status, 400);
 });
 
-// Extra: an Execution resource that resolves to a DIFFERENT Cloud Run Job than
-// savannah-render-job must be rejected, even with a project/region-valid operationName.
-test("buildStatusResponse: an Execution belonging to a different Job is rejected with 400", async () => {
+// The operation resource name alone only proves project/region, never which Job
+// triggered it - an authenticated caller (anyone holding the shared bearer secret)
+// could otherwise supply a real, valid operation belonging to a DIFFERENT Cloud Run Job
+// in the same project/region and read its status through this endpoint. This proves
+// that same-project/different-job case is caught by the post-lookup correlation against
+// the resulting Execution's own name (which DOES encode its Job), and that no state or
+// artifact details leak into the rejection response.
+test("buildStatusResponse: an Execution belonging to a different Job in the same project/region is rejected, no details leaked", async () => {
   const result = await buildStatusResponse({
     jobId: VALID_JOB_ID, operationName: VALID_OPERATION_NAME,
     project: PROJECT, region: REGION, jobName: JOB_NAME,
-    artifactExists: false, probeReport: null,
+    artifactExists: true, probeReport: PASSING_PROBE,
     checkRunJobProgress: async () => ({
       done: true,
       metadata: { name: `projects/${PROJECT}/locations/${REGION}/jobs/some-other-job/executions/some-other-job-xyz` },
       result: { succeededCount: 1 }
     })
+  });
+  assert.equal(result.status, 400);
+  assert.equal(result.body.state, undefined, "a rejected cross-job lookup must not report a state");
+  assert.equal(result.body.artifactExists, undefined, "a rejected cross-job lookup must not report artifact facts");
+});
+
+// Reject-by-default: if a resolved operation can't be attached to ANY execution name at
+// all, treat it the same as a failed correlation rather than assuming it's ours.
+// Empirically this session's own dryRun submission already had the execution name
+// populated immediately, so a legitimately-ours operation should never hit this path.
+test("buildStatusResponse: an operation that resolves with no execution name at all is rejected, not trusted", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, operationName: VALID_OPERATION_NAME,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    checkRunJobProgress: async () => ({ done: true, metadata: {}, result: { succeededCount: 1 } })
   });
   assert.equal(result.status, 400);
 });
