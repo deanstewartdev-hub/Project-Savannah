@@ -105,14 +105,23 @@ export function normalizeExecutionState(polled) {
 }
 
 // An Execution resource's `job` field is a direct, server-asserted reference to its owning
-// Job (projects/<p>/locations/<r>/jobs/<jobName>) - not something parsed out of a name
-// string. This is the post-lookup defense-in-depth check for the executionName-primary
-// path; in practice it should be unreachable-false, since isValidExecutionName() already
-// bakes the job name into the pre-lookup regex and rejects a foreign-job executionName
-// before any Cloud API call - kept anyway rather than assume-trusting a lookup result.
-export function executionMatchesJob(execution, project, region, jobName) {
+// Job - a direct, server-asserted reference, not something parsed out of the execution's
+// own name string. This is the post-lookup defense-in-depth check for the
+// executionName-primary path; in practice it should be unreachable-false, since
+// isValidExecutionName() already bakes the job name into the pre-lookup regex and rejects
+// a foreign-job executionName before any Cloud API call - kept anyway rather than
+// assume-trusting a lookup result.
+//
+// Mechanically confirmed live (direct Cloud Run v2 REST call against a real execution,
+// not assumed): `execution.job` is the BARE Job name ("savannah-render-job"), not a
+// projects/.../locations/.../jobs/<name> resource path - it carries no project or region
+// segment at all. Project/region correlation is therefore already fully guaranteed by the
+// pre-lookup regex in isValidExecutionName() (which requires an exact project+region+job
+// match before any API call happens); this check's only remaining job is confirming the
+// returned resource actually says it belongs to the expected Job name.
+export function executionMatchesJob(execution, jobName) {
   if (!execution || typeof execution.job !== "string") return false;
-  return execution.job === `projects/${project}/locations/${region}/jobs/${jobName}`;
+  return execution.job === jobName;
 }
 
 // Normalizes a real IExecution resource (from ExecutionsClient.getExecution()) into one of
@@ -204,7 +213,7 @@ export async function buildStatusResponse({ jobId, executionName, operationName,
   if (executionName) {
     try {
       const execution = await getExecution(executionName);
-      if (!executionMatchesJob(execution, project, region, jobName)) {
+      if (!executionMatchesJob(execution, jobName)) {
         return { status: 400, body: { error: "executionName does not correlate to savannah-render-job" } };
       }
       const normalized = normalizeExecutionResource(execution);

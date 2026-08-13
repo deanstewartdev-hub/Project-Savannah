@@ -297,9 +297,12 @@ test("buildStatusResponse: an operation that resolves with no execution name at 
 // encodes the exact Job it belongs to, over the Operation name (project/region only).
 // ==========================================================================
 
+// job: JOB_NAME (bare name, e.g. "savannah-render-job") - mechanically confirmed live via
+// a direct Cloud Run v2 REST call: execution.job carries no project/location segment at
+// all, just the bare Job name. Not a projects/.../locations/.../jobs/<name> path.
 function runningExecution(overrides) {
   return Object.assign({
-    name: VALID_EXECUTION_NAME, job: JOB_RESOURCE,
+    name: VALID_EXECUTION_NAME, job: JOB_NAME,
     startTime: "2026-08-12T23:55:45Z", completionTime: null,
     taskCount: 1, succeededCount: 0, failedCount: 0, conditions: []
   }, overrides);
@@ -473,20 +476,62 @@ test("buildStatusResponse: no executionName and no operationName still returns h
 
 // --- Recommended additional coverage ---
 
-test("executionMatchesJob: matches when execution.job equals the expected Job resource", () => {
-  assert.equal(executionMatchesJob({ job: JOB_RESOURCE }, PROJECT, REGION, JOB_NAME), true);
+// execution.job is the bare Job name (mechanically confirmed live, see runningExecution()
+// above) - project/region correlation is already fully guaranteed pre-lookup by
+// isValidExecutionName()'s regex, so this check only needs the bare name to match exactly.
+
+// 1/2. Real API returns the bare name either way (there's no project-ID-vs-number
+// question for this field at all, since it never carries a project segment) - one case
+// covers both: the exact configured job name is accepted.
+test("executionMatchesJob: matches when execution.job equals the configured Job name", () => {
+  assert.equal(executionMatchesJob({ job: JOB_NAME }, JOB_NAME), true);
 });
 
-test("executionMatchesJob: rejects when execution.job points at a different Job", () => {
-  assert.equal(
-    executionMatchesJob({ job: `projects/${PROJECT}/locations/${REGION}/jobs/some-other-job` }, PROJECT, REGION, JOB_NAME),
-    false
-  );
+// 3. There's no region segment on this field to test independently of the Job name -
+// project/region correlation lives entirely in the pre-lookup regex (unchanged, still
+// covered by the existing "foreign region rejected pre-lookup" test below).
+
+// 4. different Job -> rejected
+test("executionMatchesJob: rejects when execution.job names a different Job", () => {
+  assert.equal(executionMatchesJob({ job: "some-other-job" }, JOB_NAME), false);
 });
 
+// 5. missing execution.job -> rejected
 test("executionMatchesJob: rejects when execution.job is missing entirely", () => {
-  assert.equal(executionMatchesJob({}, PROJECT, REGION, JOB_NAME), false);
-  assert.equal(executionMatchesJob(null, PROJECT, REGION, JOB_NAME), false);
+  assert.equal(executionMatchesJob({}, JOB_NAME), false);
+  assert.equal(executionMatchesJob(null, JOB_NAME), false);
+});
+
+// 6. malformed execution.job -> rejected (a full resource-path-shaped string is not what
+// the real API returns for this field - proves the check is exact, not a loose "contains")
+test("executionMatchesJob: rejects a malformed (resource-path-shaped) execution.job", () => {
+  assert.equal(executionMatchesJob({ job: JOB_RESOURCE }, JOB_NAME), false);
+  assert.equal(executionMatchesJob({ job: 12345 }, JOB_NAME), false);
+});
+
+// End-to-end: a getExecution() result whose job field is the bare configured name is
+// accepted through the full buildStatusResponse flow, not just the unit-level check.
+test("buildStatusResponse: an execution with the bare configured Job name in .job is accepted", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async () => runningExecution({ job: JOB_NAME }),
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.state, "RUNNING");
+});
+
+test("buildStatusResponse: an execution whose .job names a different Job is rejected end-to-end", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async () => runningExecution({ job: "some-other-job" }),
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 400);
 });
 
 test("buildStatusResponse: malformed executionName is rejected even with a valid operationName also present", async () => {
