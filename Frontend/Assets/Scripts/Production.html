@@ -29,6 +29,25 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
+  // Increment 2B: the dispatcher/reconciliation layer (see Production/VideoProcessingProvider.js
+  // reconcileStatus_()) never changes job.status for this case - a Cloud Run execution that
+  // failed or succeeded with an existing artifact, but no delivered callback, is deliberately
+  // left in its current status so it can never fall into the ordinary FAILED/SUCCEEDED retry
+  // paths below. Read here, at render time, rather than trusted from job.status.
+  function reconciliationReason(job) {
+    return (job && job.providerResponse && job.providerResponse.reconciliation &&
+      job.providerResponse.reconciliation.reason) || "";
+  }
+  function isDeliveryRecoveryRequired(job) {
+    return reconciliationReason(job) === "DELIVERY_RECOVERY_REQUIRED";
+  }
+  // A genuinely delivered success always wins over any older reconciliation metadata still
+  // sitting in providerResponse - the local row is the source of truth for "did it deliver",
+  // not a possibly-stale flag from before the callback arrived.
+  function isDeliveredSuccess(job) {
+    return job && job.status === "SUCCEEDED" && !!job.videoUrl;
+  }
+
   function showError(target, response) {
     const error = response && response.error ? response.error : {};
     const detail = error.message || "The request could not be completed.";
@@ -129,12 +148,20 @@
   // with none of the three does the never-rendered / preparation-task path apply.
   function classifyReadyJobs_(jobs) {
     const sorted = jobs.slice().sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
+    // Delivered success always wins, even over a stale reconciliation flag (see
+    // isDeliveredSuccess). Recovery-required is checked next, ahead of "active": Increment 2A
+    // deliberately leaves job.status active for this case, so without this check it would fall
+    // straight into the active branch and show a plain "Rendering..." button.
+    const delivered = sorted.filter(isDeliveredSuccess)[0] || null;
+    if (delivered) return { active: null, succeeded: delivered, failed: null, recovery: null };
+    const recovery = sorted.filter(isDeliveryRecoveryRequired)[0] || null;
+    if (recovery) return { active: null, succeeded: null, failed: null, recovery: recovery };
     const active = sorted.filter(function (j) {
       return ["QUEUED", "PLANNED", "RENDERING"].indexOf(j.status) !== -1;
     })[0] || null;
     const succeeded = !active ? (sorted.filter(function (j) { return j.status === "SUCCEEDED"; })[0] || null) : null;
     const failed = !active && !succeeded ? (sorted.filter(function (j) { return j.status === "FAILED"; })[0] || null) : null;
-    return { active: active, succeeded: succeeded, failed: failed };
+    return { active: active, succeeded: succeeded, failed: failed, recovery: null };
   }
 
   function loadReady() {
@@ -150,7 +177,7 @@
       // doesn't belong in that count just because it still appears in this collection,
       // and a script currently rendering isn't "ready" - it's already in progress.
       readyCount.textContent = enriched.filter(function (entry) {
-        return !entry.state.active && !entry.state.succeeded;
+        return !entry.state.active && !entry.state.succeeded && !entry.state.recovery;
       }).length;
       if (!items.length) {
         readyList.innerHTML = '<div class="empty-state"><h3>Nothing is ready yet</h3>' +
@@ -161,14 +188,16 @@
         const item = entry.item, state = entry.state;
         const task = item.preparationTask;
         const prepared = task && task.preparedScenes ? task.preparedScenes.length : 0;
-        // Once a real render job exists (active, succeeded, or failed) for this script,
-        // a leftover legacy preparation task is stale and shouldn't clutter the card -
-        // unless it's genuinely still running (PREPARING) and needs a Pause control.
-        const showTaskControls = task && ((state.active || state.succeeded || state.failed) ?
+        // Once a real render job exists (active, succeeded, failed, or recovery-required) for
+        // this script, a leftover legacy preparation task is stale and shouldn't clutter the
+        // card - unless it's genuinely still running (PREPARING) and needs a Pause control.
+        const showTaskControls = task && ((state.active || state.succeeded || state.failed || state.recovery) ?
           task.status === "PREPARING" : true);
 
         let action;
-        if (state.active) {
+        if (state.recovery) {
+          action = '<button class="button button-secondary" disabled>Recovery required</button>';
+        } else if (state.active) {
           action = '<button class="button button-primary production-submit" data-script-id="' +
             escapeHtml(item.script.id) + '" disabled>Rendering...</button>';
         } else if (state.succeeded) {
@@ -299,8 +328,13 @@
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(jobList, response);
       const jobs = response.data.jobs || [];
+      // Delivery-recovery-required jobs are deliberately left in an active-looking status by
+      // reconcileStatus_ (see VideoProcessingProvider.js), so they must be excluded here
+      // explicitly - otherwise a stalled, artifact-bearing job would inflate this counter and
+      // read as "still rendering" when the expensive work already finished.
       activeCount.textContent = jobs.filter(function (job) {
-        return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+        return !isDeliveredSuccess(job) && !isDeliveryRecoveryRequired(job) &&
+          ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
       }).length;
       activeRenderCount = Number(activeCount.textContent || 0);
       schedulePolling();
@@ -341,6 +375,10 @@
     const publishingDetails = published && job.publishingJob.providerResponse || {};
     const seo = job.seoPack || {}, quality = job.quality || {}, review = job.review || {};
     const title = seo.titleOptions && seo.titleOptions[0] || "";
+    // A delivered success always wins over a stale reconciliation flag; only otherwise does
+    // an active-looking job (job.status is deliberately left unchanged for this case - see
+    // reconcileStatus_ in VideoProcessingProvider.js) get reclassified as recovery-required.
+    const recoveryRequired = !isDeliveredSuccess(job) && isDeliveryRecoveryRequired(job);
     const videoAction = job.status === "SUCCEEDED" && job.videoUrl ?
       '<a class="button button-secondary" href="' + escapeHtml(job.videoUrl) + '" target="_blank" rel="noopener">Open video</a>' :
       (job.renderId ? '<button class="button button-secondary production-refresh-job" data-job-id="' +
@@ -355,10 +393,18 @@
       '<button class="button button-primary production-approve-render" data-job-id="' +
       escapeHtml(job.id) + '">Approve finished video</button>' :
       (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
-    const retryAction = !published && (job.status === "FAILED" ||
+    const retryAction = !published && !recoveryRequired && (job.status === "FAILED" ||
       (job.status === "SUCCEEDED" && (!quality.passed || !review.approved))) ?
       '<button class="button button-secondary production-retry" data-job-id="' +
       escapeHtml(job.id) + '">Re-render safely</button>' : '';
+    // Not an ordinary "still rendering" note - the render already produced an artifact, only
+    // delivery didn't complete. job.errorMessage (rendered below, unchanged) carries the
+    // specific factual detail from reconcileStatus_ (e.g. which external state was observed);
+    // this is deliberately just the general explanation, never a raw provider payload dump.
+    const recoveryNotice = recoveryRequired ?
+      '<p><strong>Rendering appears to have completed, but delivery did not finish.</strong></p>' +
+      '<p>A video artifact may already exist for this job. Do not start another render - ' +
+      'this needs a manual delivery-recovery review first.</p>' : '';
     const publishAction = job.status === "SUCCEEDED" ? (published ?
       '<a class="button button-primary" href="' + escapeHtml(job.publishingJob.youtubeUrl) +
       '" target="_blank" rel="noopener">Open on YouTube</a>' +
@@ -386,7 +432,11 @@
       '<input class="form-control production-youtube-schedule" type="datetime-local"></div>' +
       '<div class="list-card-actions"><button class="button button-primary production-publish" data-job-id="' +
       escapeHtml(job.id) + '">Upload to YouTube</button></div></div>' : '')) : '';
-    const isActive = ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+    // Excludes recoveryRequired: the render isn't actually in progress, so it must not count
+    // toward "Active renders" (see loadJobs()) or show the animated progress-bar shimmer.
+    const isActive = !recoveryRequired && ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+    const badgeClass = recoveryRequired ? "badge-warning" : jobStatusBadgeClass(job.status);
+    const statusLabel = recoveryRequired ? "Delivery recovery required" : jobStatusLabel(job.status);
     const progress = Math.max(0, Math.min(100, Number(job.progress) || 0));
     return '<div class="list-card">' +
       '<div class="list-card-header">' +
@@ -394,14 +444,14 @@
           '<p class="list-card-subtitle">Render job</p>' +
           '<h3 class="list-card-title">' + escapeHtml(title || job.id) + '</h3>' +
         '</div>' +
-        '<span class="badge ' + jobStatusBadgeClass(job.status) + '">' + escapeHtml(jobStatusLabel(job.status)) + '</span>' +
+        '<span class="badge ' + badgeClass + '">' + escapeHtml(statusLabel) + '</span>' +
       '</div>' +
       '<div class="list-card-body">' +
         '<div class="progress-bar" data-active="' + (isActive ? 'true' : 'false') + '">' +
           '<div class="progress-bar-fill" style="width:' + progress + '%"></div>' +
         '</div>' +
         '<p class="list-card-meta">' + progress + '% complete</p>' +
-        qualitySummary + videoAction + reviewAction + retryAction + publishAction +
+        qualitySummary + videoAction + recoveryNotice + reviewAction + retryAction + publishAction +
         (job.publishingJob && job.publishingJob.status === "FAILED" ?
           '<p class="form-help">' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
         (job.errorMessage ? '<p class="form-help">' + escapeHtml(job.errorMessage) + '</p>' : '') +
