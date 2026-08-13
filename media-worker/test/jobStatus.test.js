@@ -1,14 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { requireAuth } from "../src/lib/auth.js";
-import { buildStatusResponse, isValidJobId } from "../src/lib/jobStatus.js";
+import { buildStatusResponse, isValidJobId, isValidExecutionName, executionMatchesJob } from "../src/lib/jobStatus.js";
 
 const PROJECT = "savannah-media-worker";
 const REGION = "europe-west2";
 const JOB_NAME = "savannah-render-job";
 const VALID_JOB_ID = "cr-c68c66f5-b646-4c1c-a88a-8748c5c0f1d9";
 const VALID_OPERATION_NAME = `projects/${PROJECT}/locations/${REGION}/operations/abc123`;
+const VALID_EXECUTION_NAME = `projects/${PROJECT}/locations/${REGION}/jobs/${JOB_NAME}/executions/savannah-render-job-mbngq`;
+const JOB_RESOURCE = `projects/${PROJECT}/locations/${REGION}/jobs/${JOB_NAME}`;
 const PASSING_PROBE = { passesResolutionGate: true, passesSilenceGate: true, passesBlackFrameGate: true };
+
+function throwingGetExecution() {
+  return async () => { throw new Error("should not be called"); };
+}
+function throwingCheckRunJobProgress() {
+  return async () => { throw new Error("should not be called"); };
+}
 
 function fakeReqRes(headers) {
   let statusCode = null;
@@ -280,4 +289,219 @@ test("buildStatusResponse: an operation that resolves with no execution name at 
     checkRunJobProgress: async () => ({ done: true, metadata: {}, result: { succeededCount: 1 } })
   });
   assert.equal(result.status, 400);
+});
+
+// ==========================================================================
+// executionName-primary path (ExecutionsClient.getExecution) - added when the
+// dispatcher was refactored to prefer the Execution resource, whose name format
+// encodes the exact Job it belongs to, over the Operation name (project/region only).
+// ==========================================================================
+
+function runningExecution(overrides) {
+  return Object.assign({
+    name: VALID_EXECUTION_NAME, job: JOB_RESOURCE,
+    startTime: "2026-08-12T23:55:45Z", completionTime: null,
+    taskCount: 1, succeededCount: 0, failedCount: 0, conditions: []
+  }, overrides);
+}
+
+// 1. valid Savannah executionName accepted
+test("buildStatusResponse: a valid executionName is accepted and queried", async () => {
+  let calledWith = null;
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async (name) => { calledWith = name; return runningExecution(); },
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.state, "RUNNING");
+  assert.equal(result.body.executionName, VALID_EXECUTION_NAME);
+  assert.equal(calledWith, VALID_EXECUTION_NAME);
+});
+
+// 2. foreign project rejected
+test("buildStatusResponse: an executionName from a foreign project is rejected with 400, no lookup", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID,
+    executionName: `projects/some-other-project/locations/${REGION}/jobs/${JOB_NAME}/executions/xyz`,
+    operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: throwingGetExecution(), checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 400);
+});
+
+// 3. foreign region rejected
+test("buildStatusResponse: an executionName from a foreign region is rejected with 400, no lookup", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID,
+    executionName: `projects/${PROJECT}/locations/us-central1/jobs/${JOB_NAME}/executions/xyz`,
+    operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: throwingGetExecution(), checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 400);
+});
+
+// 4. different Job in same project/region rejected
+test("buildStatusResponse: an executionName for a different Job is rejected with 400, no lookup", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID,
+    executionName: `projects/${PROJECT}/locations/${REGION}/jobs/some-other-job/executions/xyz`,
+    operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: throwingGetExecution(), checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 400);
+});
+
+// 5. malformed executionName rejected
+test("buildStatusResponse: a malformed executionName is rejected with 400", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: "not-an-execution-name", operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: throwingGetExecution(), checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 400);
+  assert.match(result.body.error, /executionName/);
+});
+
+// 6. Execution running -> RUNNING
+test("buildStatusResponse: an execution with startTime and no completionTime is RUNNING", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async () => runningExecution(),
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.body.state, "RUNNING");
+});
+
+// 7. Execution succeeded -> SUCCEEDED
+test("buildStatusResponse: succeededCount >= taskCount with a completionTime is SUCCEEDED", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async () => runningExecution({ completionTime: "2026-08-12T23:56:00Z", succeededCount: 1 }),
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.body.state, "SUCCEEDED");
+});
+
+// 8. Execution failed -> FAILED
+test("buildStatusResponse: failedCount > 0 with a Completed/CONDITION_FAILED condition is FAILED", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: true, probeReport: PASSING_PROBE,
+    getExecution: async () => runningExecution({
+      completionTime: "2026-08-12T23:56:00Z", failedCount: 1,
+      conditions: [{ type: "Completed", state: "CONDITION_FAILED", message: "signBlob denied" }]
+    }),
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.body.state, "FAILED");
+  assert.equal(result.body.failureDetail, "signBlob denied");
+  // Facts only - no inferred verdict, same standing rule as the operationName path.
+  assert.equal("recoveryRequired" in result.body, false);
+});
+
+// 9. getExecution 404 -> NOT_FOUND
+test("buildStatusResponse: getExecution throwing code 5 maps to NOT_FOUND", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async () => { const e = new Error("Execution not found"); e.code = 5; throw e; },
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.body.state, "NOT_FOUND");
+});
+
+// 10. transient getExecution error -> UNKNOWN, never FAILED
+test("buildStatusResponse: a non-NOT_FOUND getExecution error becomes UNKNOWN, never FAILED", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async () => { const e = new Error("UNAVAILABLE: connection reset"); e.code = 14; throw e; },
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.body.state, "UNKNOWN");
+  assert.notEqual(result.body.state, "FAILED");
+});
+
+// 11. executionName takes precedence when both identifiers supplied
+test("buildStatusResponse: executionName takes precedence over operationName when both are supplied", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: VALID_EXECUTION_NAME, operationName: VALID_OPERATION_NAME,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: async () => runningExecution({ completionTime: "2026-08-12T23:56:00Z", succeededCount: 1 }),
+    checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.state, "SUCCEEDED");
+});
+
+// 12. no identifiers -> historical UNKNOWN + GCS facts, unchanged
+test("buildStatusResponse: no executionName and no operationName still returns historical UNKNOWN + GCS facts", async () => {
+  let getExecutionCalled = false;
+  let checkRunJobProgressCalled = false;
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: null, operationName: null,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: true, probeReport: PASSING_PROBE,
+    getExecution: async () => { getExecutionCalled = true; return runningExecution(); },
+    checkRunJobProgress: async () => { checkRunJobProgressCalled = true; return {}; }
+  });
+  assert.equal(result.body.state, "UNKNOWN");
+  assert.equal(result.body.artifactExists, true);
+  assert.equal(result.body.probeExists, true);
+  assert.equal(result.body.probePassed, true);
+  assert.equal(getExecutionCalled, false);
+  assert.equal(checkRunJobProgressCalled, false);
+});
+
+// --- Recommended additional coverage ---
+
+test("executionMatchesJob: matches when execution.job equals the expected Job resource", () => {
+  assert.equal(executionMatchesJob({ job: JOB_RESOURCE }, PROJECT, REGION, JOB_NAME), true);
+});
+
+test("executionMatchesJob: rejects when execution.job points at a different Job", () => {
+  assert.equal(
+    executionMatchesJob({ job: `projects/${PROJECT}/locations/${REGION}/jobs/some-other-job` }, PROJECT, REGION, JOB_NAME),
+    false
+  );
+});
+
+test("executionMatchesJob: rejects when execution.job is missing entirely", () => {
+  assert.equal(executionMatchesJob({}, PROJECT, REGION, JOB_NAME), false);
+  assert.equal(executionMatchesJob(null, PROJECT, REGION, JOB_NAME), false);
+});
+
+test("buildStatusResponse: malformed executionName is rejected even with a valid operationName also present", async () => {
+  const result = await buildStatusResponse({
+    jobId: VALID_JOB_ID, executionName: "not-an-execution-name", operationName: VALID_OPERATION_NAME,
+    project: PROJECT, region: REGION, jobName: JOB_NAME,
+    artifactExists: false, probeReport: null,
+    getExecution: throwingGetExecution(), checkRunJobProgress: throwingCheckRunJobProgress()
+  });
+  assert.equal(result.status, 400);
+});
+
+test("isValidExecutionName rejects path traversal and embedded control characters", () => {
+  assert.equal(isValidExecutionName(`${VALID_EXECUTION_NAME}/../other-job`, PROJECT, REGION, JOB_NAME), false);
+  assert.equal(isValidExecutionName(`${VALID_EXECUTION_NAME}\n/etc/passwd`, PROJECT, REGION, JOB_NAME), false);
+  assert.equal(isValidExecutionName(VALID_EXECUTION_NAME, PROJECT, REGION, JOB_NAME), true);
+  assert.equal(isValidExecutionName(undefined, PROJECT, REGION, JOB_NAME), true);
 });

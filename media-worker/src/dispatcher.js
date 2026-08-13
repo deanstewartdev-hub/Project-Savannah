@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { v4 as uuid } from "uuid";
-import { JobsClient } from "@google-cloud/run";
+import { JobsClient, ExecutionsClient } from "@google-cloud/run";
 import { dispatcherConfig } from "./dispatcherConfig.js";
 import { requireAuth } from "./lib/auth.js";
 import { validateBeats } from "./lib/validateBeats.js";
@@ -17,6 +17,7 @@ const app = express();
 app.use(express.json({ limit: "2mb" }));
 
 const jobsClient = new JobsClient();
+const executionsClient = new ExecutionsClient();
 const jobResourceName = `projects/${dispatcherConfig.project}/locations/${dispatcherConfig.region}/jobs/${dispatcherConfig.renderJobName}`;
 
 // Cloud Run's fully-managed platform intercepts GET /healthz before it ever reaches this
@@ -86,7 +87,7 @@ app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res
 // Apps Script, never triggers recovery - reconciliation decisions belong to Apps Script
 // (a later increment), this endpoint only supplies the evidence for that decision.
 app.post("/jobs/status", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res) => {
-  const { jobId, operationName } = req.body || {};
+  const { jobId, executionName, operationName } = req.body || {};
 
   // Only gather artifact facts for a jobId shape that's already known-safe - avoids ever
   // building a GCS path from unvalidated input, even though buildStatusResponse() would
@@ -101,12 +102,17 @@ app.post("/jobs/status", requireAuth(dispatcherConfig.jobSubmitSecret), async (r
 
   const result = await buildStatusResponse({
     jobId,
+    executionName,
     operationName,
     project: dispatcherConfig.project,
     region: dispatcherConfig.region,
     jobName: dispatcherConfig.renderJobName,
     artifactExists,
     probeReport,
+    getExecution: async (name) => {
+      const [execution] = await executionsClient.getExecution({ name });
+      return execution;
+    },
     checkRunJobProgress: (name) => jobsClient.checkRunJobProgress(name)
   });
   res.status(result.status).json(result.body);
