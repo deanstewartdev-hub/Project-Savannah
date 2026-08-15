@@ -17,7 +17,8 @@ const path = require("path");
 const SOURCE_PATH = path.join(__dirname, "..", "Frontend", "Assets", "Scripts", "Production.html");
 const FUNCTION_NAMES = [
   "escapeHtml", "reconciliationReason", "isDeliveryRecoveryRequired", "isDeliveredSuccess",
-  "classifyReadyJobs_", "jobStatusBadgeClass", "jobStatusLabel", "renderJobCard"
+  "classifyReadyJobs_", "jobStatusBadgeClass", "jobStatusLabel", "renderJobCard",
+  "countScriptNarrationWords_"
 ];
 
 function extractFunction(source, name) {
@@ -164,6 +165,29 @@ function runProductionUiReconciliationTests() {
     const html = ui.renderJobCard(raveena);
     includes(html, "Re-render safely", "STALE_NO_OPERATION must remain an ordinary retryable failure");
     excludes(html, "Delivery recovery required", "STALE_NO_OPERATION is not a delivery-recovery condition");
+  });
+
+  test("11. countScriptNarrationWords_ counts scenes[].narration, not voiceoverScript (2026-08-14 fix)", function () {
+    const script = {
+      voiceoverScript: "A completely different independently-written voiceover field with about twenty words in it that must never be counted here at all.",
+      scenes: [
+        { narration: "Six words go right here now." },
+        { narration: "Four more words here." }
+      ]
+    };
+    const count = ui.countScriptNarrationWords_(script);
+    if (count !== 10) throw new Error("Expected 10 words summed from scenes[].narration, got " + count);
+  });
+
+  test("12. countScriptNarrationWords_ matches the real Render A/B shapes (37 and 59 words)", function () {
+    const renderA = { scenes: [7, 5, 14, 3, 3, 5].map(function (n) {
+      return { narration: Array.from({ length: n }, function (_, i) { return "w" + i; }).join(" ") };
+    }) };
+    const renderB = { scenes: [6, 15, 11, 10, 7, 10].map(function (n) {
+      return { narration: Array.from({ length: n }, function (_, i) { return "w" + i; }).join(" ") };
+    }) };
+    if (ui.countScriptNarrationWords_(renderA) !== 37) throw new Error("Render A shape must count to 37 words.");
+    if (ui.countScriptNarrationWords_(renderB) !== 59) throw new Error("Render B shape must count to 59 words.");
   });
 
   const failures = results.filter(function (r) { return !r.passed; });

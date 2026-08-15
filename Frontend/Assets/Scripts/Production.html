@@ -48,6 +48,21 @@
     return job && job.status === "SUCCEEDED" && !!job.videoUrl;
   }
 
+  // Mirrors Scripts/Script_Validator.js's DEFAULT_RULES.minimumWordCount/maximumWordCount and
+  // Production/VideoProcessingProvider.js's MINIMUM_NARRATION_WORDS/MAXIMUM_NARRATION_WORDS -
+  // kept as separate literal constants (no cross-file import in this project). Counts
+  // scenes[].narration, the exact text Cloud Run renders, not the script's separate
+  // voiceoverScript field - an existing approved script may predate the validator fix that
+  // keeps the two in sync.
+  const MINIMUM_NARRATION_WORDS = 90;
+  const MAXIMUM_NARRATION_WORDS = 130;
+  function countScriptNarrationWords_(script) {
+    const scenes = script && Array.isArray(script.scenes) ? script.scenes : [];
+    return scenes.reduce(function (total, scene) {
+      return total + String(scene && scene.narration || "").trim().split(/\s+/).filter(Boolean).length;
+    }, 0);
+  }
+
   function showError(target, response) {
     const error = response && response.error ? response.error : {};
     const detail = error.message || "The request could not be completed.";
@@ -170,14 +185,22 @@
       currentProvider = response.data.provider || currentProvider;
       const items = response.data.items || [];
       const enriched = items.map(function (item) {
-        return { item: item, state: classifyReadyJobs_(item.existingJobs || []) };
+        const narrationWordCount = countScriptNarrationWords_(item.script);
+        return {
+          item: item,
+          state: classifyReadyJobs_(item.existingJobs || []),
+          narrationWordCount: narrationWordCount,
+          narrationOutOfRange: narrationWordCount < MINIMUM_NARRATION_WORDS || narrationWordCount > MAXIMUM_NARRATION_WORDS
+        };
       });
       // "Ready to render" means actionable render work right now: never-rendered scripts
       // and failed-but-retryable ones. A script already covered by a successful render
       // doesn't belong in that count just because it still appears in this collection,
-      // and a script currently rendering isn't "ready" - it's already in progress.
+      // a script currently rendering isn't "ready" - it's already in progress, and a script
+      // whose rendered narration is outside Savannah's length bounds isn't actionable either
+      // - see narrationOutOfRange below.
       readyCount.textContent = enriched.filter(function (entry) {
-        return !entry.state.active && !entry.state.succeeded && !entry.state.recovery;
+        return !entry.state.active && !entry.state.succeeded && !entry.state.recovery && !entry.narrationOutOfRange;
       }).length;
       if (!items.length) {
         readyList.innerHTML = '<div class="empty-state"><h3>Nothing is ready yet</h3>' +
@@ -186,6 +209,7 @@
       }
       readyList.innerHTML = enriched.map(function (entry) {
         const item = entry.item, state = entry.state;
+        const narrationWordCount = entry.narrationWordCount, narrationOutOfRange = entry.narrationOutOfRange;
         const task = item.preparationTask;
         const prepared = task && task.preparedScenes ? task.preparedScenes.length : 0;
         // Once a real render job exists (active, succeeded, failed, or recovery-required) for
@@ -195,6 +219,7 @@
           task.status === "PREPARING" : true);
 
         let action;
+        let narrationGuardNotice = '';
         if (state.recovery) {
           action = '<button class="button button-secondary" disabled>Recovery required</button>';
         } else if (state.active) {
@@ -205,6 +230,18 @@
             '<a class="button button-secondary" href="' + escapeHtml(state.succeeded.videoUrl) +
             '" target="_blank" rel="noopener">View video</a>' :
             '<button class="button button-secondary" disabled>Rendered</button>';
+        } else if (narrationOutOfRange) {
+          // Neither a never-rendered script nor a failed one gets an enabled submit action
+          // here - both would otherwise reach CloudRunFFmpegProvider.submitRender(), which
+          // enforces the exact same bounds and would just fail after the fact.
+          const tooShort = narrationWordCount < MINIMUM_NARRATION_WORDS;
+          action = '<button class="button button-secondary" disabled>' +
+            (tooShort ? 'Script too short for rendering' : 'Script too long for rendering') + '</button>';
+          narrationGuardNotice = '<p class="form-help">' + escapeHtml(
+            'This script contains ' + narrationWordCount + ' rendered narration words. Savannah requires ' +
+            (tooShort ? 'at least ' + MINIMUM_NARRATION_WORDS + ' before creating a Short.' :
+              'no more than ' + MAXIMUM_NARRATION_WORDS + ' - send it back for a rewrite.')
+          ) + '</p>';
         } else if (state.failed) {
           action = '<button class="button button-secondary production-ready-retry" data-job-id="' +
             escapeHtml(state.failed.id) + '">Re-render safely</button>';
@@ -242,6 +279,7 @@
           '<div class="list-card-body">' +
             '<p class="list-card-meta">' + escapeHtml(item.script.hook) + '</p>' +
             '<div class="list-card-actions">' + action + '</div>' +
+            narrationGuardNotice +
             (showTaskControls && task.errorMessage ? '<p class="form-help">' + escapeHtml(task.errorMessage) + '</p>' : '') +
             controls +
           '</div>' +

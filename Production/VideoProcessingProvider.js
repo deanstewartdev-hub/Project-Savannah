@@ -111,6 +111,23 @@ const CloudRunFFmpegProvider = (() => {
       };
     });
 
+    // Redundant with ScriptValidator's word-count check by design: existing approved
+    // scripts may predate that fix, and this is also the only check that runs on the
+    // EXACT text about to be sent (beats[].text), so it must run before request_() -
+    // no Cloud Run Job, ElevenLabs, Pexels, OpenAI image fallback, or FFmpeg work can be
+    // triggered for a script outside Savannah's narration-length bounds. Bounds/rate
+    // calibrated 2026-08-14 from two real Cloud Run renders (2.21-2.30 words/sec measured).
+    const narrationWordCount = beats.reduce(function (total, beat) {
+      return total + countNarrationWords_(beat.text);
+    }, 0);
+    if (narrationWordCount < MINIMUM_NARRATION_WORDS || narrationWordCount > MAXIMUM_NARRATION_WORDS) {
+      throw error_(
+        "This script's rendered narration is " + narrationWordCount + " words; Savannah requires between " +
+        MINIMUM_NARRATION_WORDS + " and " + MAXIMUM_NARRATION_WORDS +
+        " words before submitting a Cloud Run render."
+      );
+    }
+
     const jobId = VideoProcessingProvider.RENDER_ID_PREFIX + Utilities.getUuid();
     const callbackUrl = callbackUrl_();
     const response = request_("post", "/jobs", {
@@ -148,6 +165,15 @@ const CloudRunFFmpegProvider = (() => {
         callbackUrl: callbackUrl
       }
     };
+  }
+
+  // Mirrors Scripts/Script_Validator.js's DEFAULT_RULES.minimumWordCount/maximumWordCount -
+  // kept as separate literal constants rather than a shared reference because Apps Script
+  // has no cross-file import; the two are intentionally redundant (see submitRender()).
+  const MINIMUM_NARRATION_WORDS = 90;
+  const MAXIMUM_NARRATION_WORDS = 130;
+  function countNarrationWords_(text) {
+    return String(text || "").trim().split(/\s+/).filter(Boolean).length;
   }
 
   // A historical row with no execution identifiers at all is only judged stale after this

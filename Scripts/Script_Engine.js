@@ -382,7 +382,7 @@ const ScriptEngine = (() => {
     generatedScript,
     options
   ) {
-    normaliseGeneratedTiming_(generatedScript, options.targetDurationSeconds);
+    normaliseGeneratedTiming_(generatedScript);
     return ScriptValidator.validate(
       generatedScript,
       {
@@ -404,17 +404,40 @@ const ScriptEngine = (() => {
     );
   }
 
-  function normaliseGeneratedTiming_(generatedScript, targetDurationSeconds) {
+  // Real Cloud Run renders (2026-08-14 calibration, jobs cr-5ff223a6.../cr-06a28788...)
+  // measured 2.2981 and 2.2097 words/second of actual ElevenLabs narration audio. This uses
+  // the faster of the two so the estimate is conservative: a script that clears a duration
+  // floor against this rate will, if real narration speaks slightly slower, run LONGER once
+  // measured - never shorter. This is only ever a pre-render estimate to let ScriptValidator's
+  // duration check mean something; the post-TTS probe result remains the authoritative
+  // duration (see RenderQuality_Service.js's evaluateProbe_).
+  const NARRATION_WORDS_PER_SECOND_ESTIMATE = 2.3;
+
+  // Previously this forced estimatedDurationSeconds to an even split of a 30-60s target
+  // regardless of what the AI actually wrote, which meant ScriptValidator's duration check
+  // was validating a fabricated number that could never fail - see the 2026-08-14 forensic
+  // audit (two real renders, both far under 30s, both still carried a fabricated 50s
+  // estimate). This now derives an honest estimate from each scene's own narration word
+  // count, so a genuinely too-short script produces a genuinely-too-short estimate.
+  function normaliseGeneratedTiming_(generatedScript) {
     if (!generatedScript || !Array.isArray(generatedScript.scenes) || !generatedScript.scenes.length) return;
-    const target = Math.max(30, Math.min(60, Math.round(Number(targetDurationSeconds) || 50)));
-    const sceneCount = generatedScript.scenes.length;
-    const baseSeconds = Math.floor(target / sceneCount);
-    let remainder = target - baseSeconds * sceneCount;
-    generatedScript.scenes.forEach(function (scene) {
-      scene.estimatedSeconds = baseSeconds + (remainder > 0 ? 1 : 0);
-      if (remainder > 0) remainder -= 1;
+    let totalWords = 0;
+    const sceneWordCounts = generatedScript.scenes.map(function (scene) {
+      const words = countTimingWords_(scene && scene.narration);
+      totalWords += words;
+      return words;
     });
-    generatedScript.estimatedDurationSeconds = target;
+    generatedScript.scenes.forEach(function (scene, index) {
+      scene.estimatedSeconds = roundTiming_(sceneWordCounts[index] / NARRATION_WORDS_PER_SECOND_ESTIMATE, 2);
+    });
+    generatedScript.estimatedDurationSeconds = roundTiming_(totalWords / NARRATION_WORDS_PER_SECOND_ESTIMATE, 2);
+  }
+  function countTimingWords_(text) {
+    return String(text || "").trim().split(/\s+/).filter(Boolean).length;
+  }
+  function roundTiming_(value, places) {
+    const factor = Math.pow(10, places);
+    return Math.round(value * factor) / factor;
   }
 
   /**
@@ -1982,7 +2005,11 @@ const ScriptEngine = (() => {
 
     getEngineVersion: function () {
       return ENGINE_VERSION;
-    }
+    },
+
+    // Exposed only so Tests/ScriptDurationValidation_Tests.js can exercise the honest
+    // duration-estimate logic directly with fixture data, with no AI call involved.
+    __test_normaliseGeneratedTiming: normaliseGeneratedTiming_
   };
 })();
 
