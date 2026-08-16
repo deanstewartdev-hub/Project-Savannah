@@ -486,12 +486,17 @@ const ScriptEngine = (() => {
         .join("\n"),
       "",
       "STRICT REQUIREMENTS:",
-      "- The voiceover must contain between " +
+      "- scenes[].narration is the canonical field being measured and rendered, not voiceoverScript.",
+      "- The combined words across every scene's narration field, added together, must total between " +
         options.minimumWordCount +
         " and " +
         options.maximumWordCount +
-        " words.",
-      "- Aim for " + Math.round((options.minimumWordCount + options.maximumWordCount) / 2) + " voiceover words. Count them before returning JSON.",
+        " words - that combined scene narration is what failed validation above.",
+      "- Expand or reduce the scenes[].narration text itself into that range; do not just edit voiceoverScript.",
+      "- Preserve the same number of scenes and the same scene structure while adjusting narration length.",
+      "- Once scene narration is corrected, regenerate voiceoverScript as that exact scene narration joined in order, word for word.",
+      "- Changing voiceoverScript alone will NOT fix this validation failure; only scenes[].narration is checked.",
+      "- Aim for approximately " + Math.round((options.minimumWordCount + options.maximumWordCount) / 2) + " combined scene-narration words. Count the words in scenes[].narration only, not voiceoverScript, before returning JSON.",
       "- Write the final hook first, then copy that exact hook text to the beginning of voiceoverScript.",
       "- The hook field must be the exact opening words of voiceoverScript; do not paraphrase it in either location.",
       "- Rewrite weak source-hook wording into an 8 to 15 word curiosity gap.",
@@ -508,7 +513,7 @@ const ScriptEngine = (() => {
       "- Make every shot usable as both a strong still and a future image-to-video prompt without naming a generator.",
       "- Do not request stock footage, logos, celebrities, copyrighted characters or another creator's style.",
       "- Keep every scene at 15 seconds or less so visuals change with the narration.",
-      "- Scene narration joined in order must reproduce the complete voiceoverScript in the same order without omissions.",
+      "- voiceoverScript must exactly reproduce the corrected scenes[].narration joined in order, word for word.",
       "- Keep estimated duration between " +
         options.minimumDurationSeconds +
         " and " +
@@ -2009,7 +2014,11 @@ const ScriptEngine = (() => {
 
     // Exposed only so Tests/ScriptDurationValidation_Tests.js can exercise the honest
     // duration-estimate logic directly with fixture data, with no AI call involved.
-    __test_normaliseGeneratedTiming: normaliseGeneratedTiming_
+    __test_normaliseGeneratedTiming: normaliseGeneratedTiming_,
+
+    // Exposed only so Tests/PromptAlignment_Tests.js can exercise correction-prompt text
+    // with a synthetic validation error, with no AI call involved.
+    __test_buildCorrectionPrompt: buildCorrectionPrompt_
   };
 })();
 
