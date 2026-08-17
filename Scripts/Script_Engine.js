@@ -467,6 +467,13 @@ const ScriptEngine = (() => {
         ? validationError.validationErrors
         : [validationError.message];
 
+    const rejectedScenes = Array.isArray(rejectedScript && rejectedScript.scenes) ? rejectedScript.scenes : [];
+    const currentCanonicalWords = rejectedScenes.reduce(function (total, scene) {
+      return total + countTimingWords_(scene && scene.narration);
+    }, 0);
+    const currentHookWords = countTimingWords_(rejectedScript && rejectedScript.hook);
+    const HOOK_MAXIMUM_WORDS = 18;
+
     return [
       "Revise the rejected YouTube Shorts script below.",
       "",
@@ -485,21 +492,21 @@ const ScriptEngine = (() => {
         })
         .join("\n"),
       "",
+      "FIX THESE IN PRIORITY ORDER:",
+      "1. Combined scenes[].narration currently totals " + currentCanonicalWords +
+        " words; it must total between " + options.minimumWordCount + " and " + options.maximumWordCount +
+        " words. Expand or reduce the scenes[].narration text itself into that range; do not just edit voiceoverScript.",
+      "2. script.hook is currently " + currentHookWords + " words; it must be at most " + HOOK_MAXIMUM_WORDS +
+        " words (aim for 8 to 15). Rewrite it shorter if it exceeds " + HOOK_MAXIMUM_WORDS + ".",
+      "3. Scene 1's narration must begin with that corrected hook text, word for word, with no paraphrase and no separate spoken hook.",
+      "",
       "STRICT REQUIREMENTS:",
       "- scenes[].narration is the canonical field being measured and rendered, not voiceoverScript.",
-      "- The combined words across every scene's narration field, added together, must total between " +
-        options.minimumWordCount +
-        " and " +
-        options.maximumWordCount +
-        " words - that combined scene narration is what failed validation above.",
-      "- Expand or reduce the scenes[].narration text itself into that range; do not just edit voiceoverScript.",
       "- Preserve the same number of scenes and the same scene structure while adjusting narration length.",
+      "- Redistribute narration across scenes as needed to reach the required total; do not concentrate all the added or removed words in a single scene.",
       "- Once scene narration is corrected, regenerate voiceoverScript as that exact scene narration joined in order, word for word.",
       "- Changing voiceoverScript alone will NOT fix this validation failure; only scenes[].narration is checked.",
       "- Aim for approximately " + Math.round((options.minimumWordCount + options.maximumWordCount) / 2) + " combined scene-narration words. Count the words in scenes[].narration only, not voiceoverScript, before returning JSON.",
-      "- Write the final hook first, then copy that exact hook text to the beginning of voiceoverScript.",
-      "- The hook field must be the exact opening words of voiceoverScript; do not paraphrase it in either location.",
-      "- Rewrite weak source-hook wording into an 8 to 15 word curiosity gap.",
       "- Never begin with 'Did you know', 'Here are', 'Welcome', 'Today', or 'In this video'.",
       "- Keep most spoken sentences below 14 words.",
       "- Add a new reveal, consequence or pattern interrupt every one or two sentences.",

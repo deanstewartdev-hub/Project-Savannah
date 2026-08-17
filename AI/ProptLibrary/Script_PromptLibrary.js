@@ -50,6 +50,7 @@ const ScriptPromptLibrary = (() => {
     validateIdea_(idea);
 
     const settings = resolveOptions_(options);
+    const narrationMidpoint = Math.round((settings.minimumWordCount + settings.maximumWordCount) / 2);
 
     return [
       "Create one original YouTube Short script using the source idea below.",
@@ -75,7 +76,8 @@ const ScriptPromptLibrary = (() => {
         " words - this combined scene narration is the actual spoken and rendered narration.",
       "- Longer target durations require proportionally more spoken narration; do not pad with silent scenes.",
       "- Rewrite the source hook when needed; do not preserve weak wording.",
-      "- Begin with an 8 to 15 word hook that creates a specific curiosity gap.",
+      "- Begin with an 8 to 15 word hook that creates a specific curiosity gap; the hook must never exceed 18 words, so stay comfortably under that limit.",
+      "- Write scene 1's narration to begin with that exact hook text, word for word; do not paraphrase or shorten it there, and do not write a separate, different spoken hook.",
       "- Make the first spoken line understandable in under two seconds.",
       "- Prefer surprise, consequence, contrast or an unanswered question over hype.",
       "- Never begin with 'Did you know', 'Here are', 'Welcome', 'Today', or 'In this video'.",
@@ -105,6 +107,13 @@ const ScriptPromptLibrary = (() => {
       "",
       "SCENE REQUIREMENTS",
       "- Divide the script into 4 to 6 sequential scenes.",
+      "- Plan roughly " + narrationMidpoint +
+        " total narration words divided across however many scenes you use, as a planning target, not a separate validation rule: " +
+        "about " + Math.round(narrationMidpoint / 4) + " words per scene across 4 scenes, " +
+        Math.round(narrationMidpoint / 5) + " across 5 scenes, or " +
+        Math.round(narrationMidpoint / 6) + " across 6 scenes. Scene 1 may run slightly longer because it carries the hook.",
+      "- Six short scenes that only add up to a fraction of the target (for example, far under " + narrationMidpoint +
+        " words in total) fail validation just as badly as one long scene would; keep every scene's narration substantial.",
       "- Scene numbers must begin at 1 and increase by exactly 1.",
       "- Each scene must contain narration.",
       "- Scene narration is the exact spoken and rendered narration; write voiceoverScript only after every scene's narration is finished.",
@@ -139,7 +148,7 @@ const ScriptPromptLibrary = (() => {
       "",
       "QUALITY CHECK",
       "Before returning the response, confirm internally that:",
-      "1. The hook creates curiosity, avoids banned openings and appears at the beginning.",
+      "1. The hook creates curiosity, avoids banned openings, is at most 18 words, and appears word for word at the very start of scene 1's narration.",
       "2. The combined scene narration is within the requested word range, and voiceoverScript exactly matches it.",
       "3. Scene numbers are sequential.",
       "4. The scene durations approximately match the total duration.",

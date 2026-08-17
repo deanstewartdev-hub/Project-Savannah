@@ -173,6 +173,166 @@ function runPromptAlignmentTests() {
     );
   });
 
+  // --- Initial prompt: hook ceiling, exact scene-1 placement, per-scene word budget ---
+  // (2026-08-17 convergence fix - covers the real live proof-render failure: 81 canonical
+  // words against a 99 floor, plus a 20-word hook against an 18-word ceiling that also
+  // didn't open scene 1's narration verbatim.)
+
+  test("I. Initial prompt states the hook must never exceed 18 words", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea());
+    assertIncludes(
+      prompt,
+      "the hook must never exceed 18 words",
+      "Initial prompt must state the hard hook-length ceiling explicitly."
+    );
+  });
+
+  test("J. Initial prompt targets the hook comfortably below the maximum", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea());
+    assertIncludes(
+      prompt,
+      "8 to 15 word hook",
+      "Initial prompt must keep the 8-15 word soft target, well under the 18-word ceiling."
+    );
+  });
+
+  test("K. Initial prompt requires scene 1 narration to begin with the exact hook", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea());
+    assertIncludes(
+      prompt,
+      "Write scene 1's narration to begin with that exact hook text, word for word",
+      "Initial prompt must require scene 1's narration to open with the verbatim hook, not voiceoverScript."
+    );
+  });
+
+  test("L. Initial prompt includes the dynamic active total narration range", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea(), {
+      minimumWordCount: 90,
+      maximumWordCount: 130
+    });
+    assertIncludes(
+      prompt,
+      "must total between 90 and 130 words",
+      "Initial prompt must reflect whatever active min/max was actually passed in, not a fixed 99/125."
+    );
+  });
+
+  test("M. Initial prompt provides a dynamic per-scene narration budget", function () {
+    // min=80, max=120 -> midpoint=100 -> 25/scene at 4, 20/scene at 5, 17/scene at 6.
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea(), {
+      minimumWordCount: 80,
+      maximumWordCount: 120
+    });
+    assertIncludes(
+      prompt,
+      "Plan roughly 100 total narration words divided across however many scenes you use",
+      "Initial prompt must state a planning-target total derived from the active min/max midpoint."
+    );
+    assertIncludes(prompt, "25 words per scene across 4 scenes", "Per-scene budget must be computed for 4 scenes.");
+    assertIncludes(prompt, "20 across 5 scenes", "Per-scene budget must be computed for 5 scenes.");
+    assertIncludes(prompt, "17 across 6 scenes", "Per-scene budget must be computed for 6 scenes.");
+  });
+
+  // --- Correction prompt: the exact real live-proof failure (81/99/125/20/18) ---
+
+  function realWorldRejectedScriptFixture() {
+    // Mirrors the actual 2026-08-17 live proof-render failure shape: 6 scenes totaling
+    // 81 canonical words (short of a 99 floor) and a 20-word hook (over an 18-word cap).
+    const hook = Array.from({ length: 20 }, function (_, i) { return "hookword" + i; }).join(" ") + ".";
+    return {
+      title: "Traveling the World with just $10!",
+      hook: hook,
+      voiceoverScript: hook + " A different, independently-written continuation that nothing enforces staying in sync.",
+      scenes: [14, 14, 13, 13, 14, 13].map(function (n, index) {
+        return {
+          sceneNumber: index + 1,
+          narration: Array.from({ length: n }, function (_, i) { return "s" + index + "w" + i; }).join(" ") + ".",
+          onScreenText: "Fact " + (index + 1),
+          visualDirection: "Concrete visual detail for scene " + (index + 1),
+          estimatedSeconds: Math.round((n / 2.3) * 100) / 100
+        };
+      }),
+      callToAction: "Follow for more travel facts.",
+      estimatedDurationSeconds: 35.22,
+      generationNotes: ""
+    };
+  }
+
+  function realWorldValidationError() {
+    const messages = [
+      "Voiceover contains 81 words; minimum is 99.",
+      "The script hook does not appear near the beginning of the voiceover.",
+      "The hook contains 20 words; maximum is 18."
+    ];
+    const error = new Error("Generated script failed validation:\n- " + messages.join("\n- "));
+    error.name = "ScriptValidationError";
+    error.validationErrors = messages;
+    return error;
+  }
+
+  function buildRealWorldCorrectionPrompt() {
+    return ScriptEngine.__test_buildCorrectionPrompt(
+      "ORIGINAL PROMPT TEXT",
+      realWorldRejectedScriptFixture(),
+      realWorldValidationError(),
+      fixtureIdea(),
+      {
+        minimumWordCount: 99,
+        maximumWordCount: 125,
+        minimumDurationSeconds: 30,
+        maximumDurationSeconds: 60
+      },
+      2
+    );
+  }
+
+  test("N. Correction prompt for the real 81/99/125/20/18 failure explicitly prioritizes all three corrections in order", function () {
+    const prompt = buildRealWorldCorrectionPrompt();
+    assertIncludes(prompt, "FIX THESE IN PRIORITY ORDER", "Correction prompt must present a clear priority order.");
+    assertIncludes(
+      prompt,
+      "1. Combined scenes[].narration currently totals 81 words; it must total between 99 and 125 words",
+      "Priority 1 must state the real measured canonical count against the real active range."
+    );
+    assertIncludes(
+      prompt,
+      "2. script.hook is currently 20 words; it must be at most 18 words",
+      "Priority 2 must state the real measured hook count against the real hook ceiling."
+    );
+    assertIncludes(
+      prompt,
+      "3. Scene 1's narration must begin with that corrected hook text, word for word",
+      "Priority 3 must require the corrected hook to open scene 1 verbatim."
+    );
+  });
+
+  test("O. Correction prompt for the real failure still tells the model to expand scenes[].narration, not voiceoverScript", function () {
+    const prompt = buildRealWorldCorrectionPrompt();
+    assertIncludes(
+      prompt,
+      "scenes[].narration is the canonical field being measured and rendered, not voiceoverScript",
+      "Correction prompt must name scenes[].narration as canonical even in the real hook+length failure case."
+    );
+  });
+
+  test("P. Correction prompt requires the corrected hook to appear exactly at the start of scene 1", function () {
+    const prompt = buildRealWorldCorrectionPrompt();
+    assertIncludes(
+      prompt,
+      "with no paraphrase and no separate spoken hook",
+      "Correction prompt must forbid a paraphrased or separately-written spoken hook."
+    );
+  });
+
+  test("Q. Correction prompt preserves scene count and structure", function () {
+    const prompt = buildRealWorldCorrectionPrompt();
+    assertIncludes(
+      prompt,
+      "Preserve the same number of scenes and the same scene structure while adjusting narration length",
+      "Correction prompt must require the same scene count/structure to be preserved during repair."
+    );
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Prompt alignment tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };
