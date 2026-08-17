@@ -225,7 +225,7 @@ function runPromptAlignmentTests() {
     });
     assertIncludes(
       prompt,
-      "Plan roughly 100 total narration words divided across however many scenes you use",
+      "Plan roughly 100 total narration words divided across whichever valid scene count (4, 5 or 6) you chose",
       "Initial prompt must state a planning-target total derived from the active min/max midpoint."
     );
     assertIncludes(prompt, "25 words per scene across 4 scenes", "Per-scene budget must be computed for 4 scenes.");
@@ -330,6 +330,168 @@ function runPromptAlignmentTests() {
       prompt,
       "Preserve the same number of scenes and the same scene structure while adjusting narration length",
       "Correction prompt must require the same scene count/structure to be preserved during repair."
+    );
+  });
+
+  // --- Scene-count convergence (2026-08-17 v88->v89 fix) ---
+  // Covers the real live v88 proof failure: 95 canonical words (short of a 99 floor) AND
+  // 7 scenes (over a 6-scene maximum), with no hook errors at all - proof the prior hook fix
+  // worked, and that the model was adding a 7th scene to chase the narration target instead
+  // of expanding narration inside a valid (<=6) scene count.
+
+  test("R. Initial prompt states the active minimum and maximum scene count", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea());
+    assertIncludes(prompt, "4 to 6 sequential scenes", "Initial prompt must state the scene-count range.");
+    assertIncludes(
+      prompt,
+      "the script MUST contain between 4 and 6 scenes, never 7 or more",
+      "Initial prompt must make the scene-count ceiling an explicit MUST, not just a soft range."
+    );
+  });
+
+  test("S. Initial prompt forbids adding an extra scene to meet the narration target", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea());
+    assertIncludes(
+      prompt,
+      "never add a 7th scene just to fit more narration in",
+      "Initial prompt must explicitly forbid adding a scene to hit the word target."
+    );
+  });
+
+  test("T. Initial prompt tells the model to expand narration inside existing valid scenes", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea());
+    assertIncludes(
+      prompt,
+      "If more narration is needed to reach the target, add words to your existing scenes' narration - never by adding another scene",
+      "Initial prompt must redirect a narration shortfall to existing scenes, not a new scene."
+    );
+  });
+
+  test("U. Initial prompt prefers a central scene count without invalidating 4 or 6", function () {
+    const prompt = ScriptPromptLibrary.buildScriptPrompt(fixtureIdea());
+    assertIncludes(
+      prompt,
+      "Prefer 5 scenes as a solid default; 4 or 6 remain valid when the content genuinely benefits",
+      "Initial prompt must prefer 5 scenes as a default while keeping 4 and 6 explicitly valid."
+    );
+  });
+
+  function realWorldSceneOverflowFixture() {
+    // Mirrors the actual 2026-08-17 v88 live proof failure: 7 scenes totaling 95 canonical
+    // words (short of a 99 floor), valid hook (no hook error occurred in that real failure).
+    const hook = "Can you really explore a city on ten dollars a day?";
+    const wordCounts = [14, 14, 13, 13, 14, 14, 13]; // sums to 95 across 7 scenes
+    return {
+      title: "Traveling the World with just $10!",
+      hook: hook,
+      voiceoverScript: hook + " A different, independently-written continuation that nothing enforces staying in sync.",
+      scenes: wordCounts.map(function (n, index) {
+        const words = index === 0
+          ? hook.split(" ").concat(Array.from({ length: Math.max(0, n - hook.split(" ").length) }, function (_, i) { return "s0w" + i; }))
+          : Array.from({ length: n }, function (_, i) { return "s" + index + "w" + i; });
+        return {
+          sceneNumber: index + 1,
+          narration: words.join(" ") + ".",
+          onScreenText: "Fact " + (index + 1),
+          visualDirection: "Concrete visual detail for scene " + (index + 1),
+          estimatedSeconds: Math.round((n / 2.3) * 100) / 100
+        };
+      }),
+      callToAction: "Follow for more travel facts.",
+      estimatedDurationSeconds: 41.3,
+      generationNotes: ""
+    };
+  }
+
+  function realWorldSceneOverflowValidationError() {
+    const messages = [
+      "Voiceover contains 95 words; minimum is 99.",
+      "Script contains 7 scenes; maximum is 6."
+    ];
+    const error = new Error("Generated script failed validation:\n- " + messages.join("\n- "));
+    error.name = "ScriptValidationError";
+    error.validationErrors = messages;
+    return error;
+  }
+
+  function buildSceneOverflowCorrectionPrompt() {
+    return ScriptEngine.__test_buildCorrectionPrompt(
+      "ORIGINAL PROMPT TEXT",
+      realWorldSceneOverflowFixture(),
+      realWorldSceneOverflowValidationError(),
+      fixtureIdea(),
+      {
+        minimumWordCount: 99,
+        maximumWordCount: 125,
+        minimumDurationSeconds: 30,
+        maximumDurationSeconds: 60
+      },
+      2
+    );
+  }
+
+  test("V. Correction prompt for the real 95-word/7-scene failure reflects the actual current scene count", function () {
+    const prompt = buildSceneOverflowCorrectionPrompt();
+    assertIncludes(
+      prompt,
+      "Reduce the scene count from 7 to at most 6 scenes",
+      "Correction prompt must state the real rejected scene count (7) against the real maximum (6)."
+    );
+  });
+
+  test("W. 7 scenes against a maximum of 6 produces explicit reduction instructions", function () {
+    const prompt = buildSceneOverflowCorrectionPrompt();
+    assertIncludes(prompt, "FIX THESE IN PRIORITY ORDER", "Correction prompt must present a priority-ordered fix list.");
+    assertIncludes(
+      prompt,
+      "1. Reduce the scene count from 7 to at most 6 scenes.",
+      "Reducing scene count must be the first priority when the rejected script already exceeds the maximum."
+    );
+  });
+
+  test("X. Repair tells the model to merge excess scene content rather than discard it", function () {
+    const prompt = buildSceneOverflowCorrectionPrompt();
+    assertIncludes(
+      prompt,
+      "Merge the excess scene(s)' narration and visual content into the remaining scenes rather than deleting information",
+      "Correction prompt must instruct merging excess scene content, not deleting it."
+    );
+  });
+
+  test("Y. Repair explicitly forbids solving the 95->99 word shortage by adding scenes", function () {
+    const prompt = buildSceneOverflowCorrectionPrompt();
+    assertIncludes(
+      prompt,
+      "Do NOT add scenes to solve a narration-length shortage; add words to existing scene narration instead",
+      "Correction prompt must explicitly rule out adding a scene to fix the narration shortfall."
+    );
+  });
+
+  test("Z. Repair tells the model to increase narration within the repaired valid scene set", function () {
+    const prompt = buildSceneOverflowCorrectionPrompt();
+    assertIncludes(
+      prompt,
+      "Bring the combined scenes[].narration into 99 to 125 words (currently 95) by adding narration within your repaired, valid scene set",
+      "Correction prompt must tie the narration fix to the repaired (<=6) scene set, using the real 95/99/125 figures."
+    );
+  });
+
+  test("AA. \"Preserve scene count\" applies only when the current count is already valid", function () {
+    const invalidCountPrompt = buildSceneOverflowCorrectionPrompt();
+    assertIncludes(
+      invalidCountPrompt,
+      "The rejected script's scene count (7) is itself invalid - do not preserve it",
+      "When the rejected scene count is invalid, the prompt must say so instead of asking to preserve it."
+    );
+    if (invalidCountPrompt.indexOf("Preserve the same number of scenes and the same scene structure while adjusting narration length") !== -1) {
+      throw new Error("The old unconditional 'preserve scene count' instruction must not appear when the rejected count is invalid.");
+    }
+
+    const validCountPrompt = buildRealWorldCorrectionPrompt(); // 6 scenes, a valid count
+    assertIncludes(
+      validCountPrompt,
+      "Preserve the same number of scenes and the same scene structure while adjusting narration length",
+      "When the rejected scene count is already valid, the prompt must still tell the model to preserve it."
     );
   });
 

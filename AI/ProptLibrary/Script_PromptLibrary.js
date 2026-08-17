@@ -106,12 +106,14 @@ const ScriptPromptLibrary = (() => {
         ".",
       "",
       "SCENE REQUIREMENTS",
-      "- Divide the script into 4 to 6 sequential scenes.",
+      "- Divide the script into 4 to 6 sequential scenes - the script MUST contain between 4 and 6 scenes, never 7 or more.",
+      "- Choose your scene count first, before writing any narration. Prefer 5 scenes as a solid default; 4 or 6 remain valid when the content genuinely benefits, but never add a 7th scene just to fit more narration in.",
       "- Plan roughly " + narrationMidpoint +
-        " total narration words divided across however many scenes you use, as a planning target, not a separate validation rule: " +
+        " total narration words divided across whichever valid scene count (4, 5 or 6) you chose, as a planning target, not a separate validation rule: " +
         "about " + Math.round(narrationMidpoint / 4) + " words per scene across 4 scenes, " +
         Math.round(narrationMidpoint / 5) + " across 5 scenes, or " +
         Math.round(narrationMidpoint / 6) + " across 6 scenes. Scene 1 may run slightly longer because it carries the hook.",
+      "- If more narration is needed to reach the target, add words to your existing scenes' narration - never by adding another scene.",
       "- Six short scenes that only add up to a fraction of the target (for example, far under " + narrationMidpoint +
         " words in total) fail validation just as badly as one long scene would; keep every scene's narration substantial.",
       "- Scene numbers must begin at 1 and increase by exactly 1.",

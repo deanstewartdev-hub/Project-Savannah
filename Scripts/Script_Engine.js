@@ -472,7 +472,59 @@ const ScriptEngine = (() => {
       return total + countTimingWords_(scene && scene.narration);
     }, 0);
     const currentHookWords = countTimingWords_(rejectedScript && rejectedScript.hook);
+    const currentSceneCount = rejectedScenes.length;
     const HOOK_MAXIMUM_WORDS = 18;
+    const MINIMUM_SCENE_COUNT = 4;
+    const MAXIMUM_SCENE_COUNT = 6;
+    const sceneCountTooHigh = currentSceneCount > MAXIMUM_SCENE_COUNT;
+    const sceneCountTooLow = currentSceneCount > 0 && currentSceneCount < MINIMUM_SCENE_COUNT;
+    const sceneCountInvalid = sceneCountTooHigh || sceneCountTooLow;
+
+    // When the rejected script's own scene count is already invalid, fixing it must come
+    // first and every later instruction (narration total, "preserve structure") has to defer
+    // to the repaired count - not the rejected one. See the 2026-08-17 v88 live proof: a
+    // 7-scene rejection was previously told to "preserve the same number of scenes", which
+    // directly told the model to keep the invalid count.
+    const priorityFixes = [];
+    if (sceneCountTooHigh) {
+      priorityFixes.push(
+        "Reduce the scene count from " + currentSceneCount + " to at most " + MAXIMUM_SCENE_COUNT + " scenes."
+      );
+      priorityFixes.push(
+        "Merge the excess scene(s)' narration and visual content into the remaining scenes rather than deleting information."
+      );
+      priorityFixes.push(
+        "Preserve the important information from the merged scenes while redistributing their narration across the repaired scene set."
+      );
+      priorityFixes.push(
+        "Bring the combined scenes[].narration into " + options.minimumWordCount + " to " + options.maximumWordCount +
+          " words (currently " + currentCanonicalWords + ") by adding narration within your repaired, valid scene set."
+      );
+      priorityFixes.push(
+        "Do NOT add scenes to solve a narration-length shortage; add words to existing scene narration instead."
+      );
+    } else if (sceneCountTooLow) {
+      priorityFixes.push(
+        "Restructure the script from " + currentSceneCount + " scenes into at least " + MINIMUM_SCENE_COUNT + " scenes."
+      );
+      priorityFixes.push(
+        "Bring the combined scenes[].narration into " + options.minimumWordCount + " to " + options.maximumWordCount +
+          " words (currently " + currentCanonicalWords + ") across that repaired, valid scene set."
+      );
+    } else {
+      priorityFixes.push(
+        "Combined scenes[].narration currently totals " + currentCanonicalWords +
+          " words; it must total between " + options.minimumWordCount + " and " + options.maximumWordCount +
+          " words. Expand or reduce the scenes[].narration text itself into that range; do not just edit voiceoverScript."
+      );
+    }
+    priorityFixes.push(
+      "script.hook is currently " + currentHookWords + " words; it must be at most " + HOOK_MAXIMUM_WORDS +
+        " words (aim for 8 to 15). Rewrite it shorter if it exceeds " + HOOK_MAXIMUM_WORDS + "."
+    );
+    priorityFixes.push(
+      "Scene 1's narration must begin with that corrected hook text, word for word, with no paraphrase and no separate spoken hook."
+    );
 
     return [
       "Revise the rejected YouTube Shorts script below.",
@@ -493,16 +545,21 @@ const ScriptEngine = (() => {
         .join("\n"),
       "",
       "FIX THESE IN PRIORITY ORDER:",
-      "1. Combined scenes[].narration currently totals " + currentCanonicalWords +
-        " words; it must total between " + options.minimumWordCount + " and " + options.maximumWordCount +
-        " words. Expand or reduce the scenes[].narration text itself into that range; do not just edit voiceoverScript.",
-      "2. script.hook is currently " + currentHookWords + " words; it must be at most " + HOOK_MAXIMUM_WORDS +
-        " words (aim for 8 to 15). Rewrite it shorter if it exceeds " + HOOK_MAXIMUM_WORDS + ".",
-      "3. Scene 1's narration must begin with that corrected hook text, word for word, with no paraphrase and no separate spoken hook.",
+      priorityFixes
+        .map(function (message, index) {
+          return (index + 1) + ". " + message;
+        })
+        .join("\n"),
       "",
       "STRICT REQUIREMENTS:",
       "- scenes[].narration is the canonical field being measured and rendered, not voiceoverScript.",
-      "- Preserve the same number of scenes and the same scene structure while adjusting narration length.",
+      "- The final script must contain between " + MINIMUM_SCENE_COUNT + " and " + MAXIMUM_SCENE_COUNT +
+        " scenes; never create an extra scene merely to add narration length.",
+      sceneCountInvalid
+        ? "- The rejected script's scene count (" + currentSceneCount + ") is itself invalid - do not preserve it. " +
+          "Once repaired to " + MINIMUM_SCENE_COUNT + "-" + MAXIMUM_SCENE_COUNT + " scenes, keep that corrected " +
+          "scene count and structure stable while adjusting narration length."
+        : "- Preserve the same number of scenes and the same scene structure while adjusting narration length.",
       "- Redistribute narration across scenes as needed to reach the required total; do not concentrate all the added or removed words in a single scene.",
       "- Once scene narration is corrected, regenerate voiceoverScript as that exact scene narration joined in order, word for word.",
       "- Changing voiceoverScript alone will NOT fix this validation failure; only scenes[].narration is checked.",
