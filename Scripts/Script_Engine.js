@@ -163,69 +163,6 @@ const ScriptEngine = (() => {
   }
 
   /**
-   * Creates a script but does not save it.
-   *
-   * Useful for previews and future regeneration flows.
-   * This still performs a real AI request and records
-   * neither repository data nor AI cost.
-   *
-   * @param {Object} idea Source idea.
-   * @param {Object=} options Workflow overrides.
-   * @return {Object} Generated canonical ScriptModel.
-   */
-  function generatePreview(idea, options) {
-    const runId = createScriptRunId_();
-    const workflowOptions = resolveOptions_(options);
-    const normalisedIdea = normaliseIdea_(idea);
-
-    const promptResult = buildPrompt_(
-      normalisedIdea,
-      workflowOptions
-    );
-
-    const aiResponse = requestScript_(
-      promptResult.prompt,
-      normalisedIdea,
-      workflowOptions,
-      runId
-    );
-
-    const validationResult =
-      ScriptValidator.validate(
-        aiResponse.data,
-        {
-          minimumWordCount:
-            workflowOptions.minimumWordCount,
-
-          maximumWordCount:
-            workflowOptions.maximumWordCount,
-
-          minimumDurationSeconds:
-            workflowOptions.minimumDurationSeconds,
-
-          maximumDurationSeconds:
-            workflowOptions.maximumDurationSeconds,
-
-          durationToleranceSeconds:
-            workflowOptions.durationToleranceSeconds
-        }
-      );
-
-    const formattingResult =
-      ScriptFormatter.format(
-        validationResult
-      );
-
-    return createScriptModel_(
-      normalisedIdea,
-      promptResult,
-      aiResponse,
-      validationResult,
-      formattingResult,
-      workflowOptions,
-      runId
-    );
-  }  /**
    * Generates and validates a script without saving it.
    *
    * This performs a real AI request but does not write a
@@ -1369,148 +1306,6 @@ const ScriptEngine = (() => {
   }
 
   /**
-   * Resolves workflow options.
-   *
-   * @param {Object=} options Supplied options.
-   * @return {Object} Normalised options.
-   */
-  function resolveOptions_(options) {
-    const supplied = options || {};
-
-    if (
-      typeof supplied !== "object" ||
-      Array.isArray(supplied)
-    ) {
-      throw new Error(
-        "Script Engine options must be an object."
-      );
-    }
-
-    const validatorDefaults = ScriptValidator.getDefaultRules();
-    const targetDurationSeconds = resolvePositiveNumber_(
-      supplied.targetDurationSeconds,
-      DEFAULT_OPTIONS.targetDurationSeconds
-    );
-    const durationWordRange = wordRangeForDuration_(targetDurationSeconds);
-
-    const resolved = {
-      temperature:
-        resolveOptionalNumber_(
-          supplied.temperature,
-          safeSetting_(
-            "getTemperature",
-            DEFAULT_OPTIONS.temperature
-          )
-        ),
-
-      maxTokens:
-        resolveOptionalNumber_(
-          supplied.maxTokens,
-          safeSetting_(
-            "getMaxTokens",
-            DEFAULT_OPTIONS.maxTokens
-          )
-        ),
-
-      targetDurationSeconds: targetDurationSeconds,
-
-      minimumWordCount:
-        resolvePositiveNumber_(
-          supplied.minimumWordCount,
-          durationWordRange.minimumWordCount
-        ),
-
-      maximumWordCount:
-        resolvePositiveNumber_(
-          supplied.maximumWordCount,
-          durationWordRange.maximumWordCount
-        ),
-
-      minimumDurationSeconds:
-        resolvePositiveNumber_(
-          supplied.minimumDurationSeconds,
-          validatorDefaults
-            .minimumDurationSeconds
-        ),
-
-      maximumDurationSeconds:
-        resolvePositiveNumber_(
-          supplied.maximumDurationSeconds,
-          validatorDefaults
-            .maximumDurationSeconds
-        ),
-
-      durationToleranceSeconds:
-        resolveNonNegativeNumber_(
-          supplied.durationToleranceSeconds,
-          validatorDefaults
-            .durationToleranceSeconds
-        ),
-
-      tone:
-        normaliseString_(
-          supplied.tone
-        ),
-
-      language:
-        normaliseString_(
-          supplied.language
-        ),
-
-      callToActionStyle:
-        normaliseString_(
-          supplied.callToActionStyle
-        ),
-
-      status:
-        normaliseString_(
-          supplied.status ||
-          DEFAULT_OPTIONS.status
-        ).toUpperCase()
-    };
-
-    if (
-      resolved.maximumWordCount <
-      resolved.minimumWordCount
-    ) {
-      throw new Error(
-        "Maximum word count cannot be lower than minimum word count."
-      );
-    }
-
-    if (
-      resolved.maximumDurationSeconds <
-      resolved.minimumDurationSeconds
-    ) {
-      throw new Error(
-        "Maximum duration cannot be lower than minimum duration."
-      );
-    }
-
-    const statuses =
-      ScriptModel.getStatuses();
-
-    const allowedStatuses =
-      Object.keys(statuses).map(
-        function (key) {
-          return statuses[key];
-        }
-      );
-
-    if (
-      allowedStatuses.indexOf(
-        resolved.status
-      ) === -1
-    ) {
-      throw new Error(
-        "Unsupported Script Engine status: " +
-          resolved.status +
-          "."
-      );
-    }
-
-    return resolved;
-  }  /**
    * Resolves and validates Script Engine options.
    *
    * @param {Object=} options Supplied options.
@@ -2082,7 +1877,11 @@ const ScriptEngine = (() => {
 
     // Exposed only so Tests/PromptAlignment_Tests.js can exercise correction-prompt text
     // with a synthetic validation error, with no AI call involved.
-    __test_buildCorrectionPrompt: buildCorrectionPrompt_
+    __test_buildCorrectionPrompt: buildCorrectionPrompt_,
+
+    // Exposed only so Tests/ScriptEngineOptionsResolution_Tests.js can exercise option
+    // resolution directly, with no AI call involved.
+    __test_resolveOptions: resolveOptions_
   };
 })();
 
