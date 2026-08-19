@@ -1,3 +1,5 @@
+import { assertSecretFormat } from "./lib/secretFormat.js";
+
 function required(name, fallback) {
   const value = process.env[name] ?? fallback;
   if (value === undefined) {
@@ -6,13 +8,31 @@ function required(name, fallback) {
   return value;
 }
 
+// Security-sensitive token/key values, validated for format (not trimmed or
+// otherwise repaired) before anything tries to use them in an HTTP header. See
+// src/lib/secretFormat.js for why: a malformed value here must fail loudly and
+// immediately, before any paid provider call, not deep inside the pipeline.
+function requiredSecret(name, fallback) {
+  const value = required(name, fallback);
+  assertSecretFormat(name, value);
+  return value;
+}
+
+function optionalSecret(name) {
+  const value = process.env[name] || "";
+  if (value) {
+    assertSecretFormat(name, value);
+  }
+  return value;
+}
+
 export const config = {
   port: Number(process.env.PORT) || 8080,
-  jobSubmitSecret: process.env.JOB_SUBMIT_SECRET || "",
-  openaiApiKey: required("OPENAI_API_KEY"),
-  elevenLabsApiKey: required("ELEVENLABS_API_KEY"),
+  jobSubmitSecret: optionalSecret("JOB_SUBMIT_SECRET"),
+  openaiApiKey: requiredSecret("OPENAI_API_KEY"),
+  elevenLabsApiKey: requiredSecret("ELEVENLABS_API_KEY"),
   elevenLabsVoiceId: required("ELEVENLABS_VOICE_ID"),
-  pexelsApiKey: required("PEXELS_API_KEY"),
+  pexelsApiKey: requiredSecret("PEXELS_API_KEY"),
   gcsBucket: required("GCS_BUCKET"),
   // Inline service-account key, for hosts without Cloud Run's attached-service-account
   // metadata server (e.g. Railway). Base64-encoded to survive plain env var UIs without
