@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { downloadJson, getSignedReadUrl } from "./lib/storage.js";
 import { postCallback } from "./lib/callback.js";
+import { redactSecretParams } from "./lib/sanitize.js";
 
 // One-time/reusable delivery-only recovery: for a job whose render (narration through
 // FFmpeg assembly through probe) already succeeded and whose final.mp4/probe-report.json
@@ -27,10 +28,6 @@ if (!callbackUrl) {
 
 const videoDestination = `renders/${jobId}/final.mp4`;
 const reportDestination = `renders/${jobId}/probe-report.json`;
-
-function redactSecret(message) {
-  return String(message || "").replace(/secret=[^&\s]+/gi, "secret=<redacted>");
-}
 
 let payload;
 try {
@@ -65,7 +62,7 @@ try {
     }
   };
 } catch (error) {
-  console.error(`RECOVERY_PREP_FAILED: ${redactSecret(error.message)}`);
+  console.error(`RECOVERY_PREP_FAILED: ${redactSecretParams(error.message)}`);
   process.exit(1);
 }
 
@@ -74,6 +71,6 @@ try {
   console.log(`RECOVERY_OK: callback delivered for ${jobId}`);
   process.exit(0);
 } catch (error) {
-  console.error(`RECOVERY_CALLBACK_FAILED: ${redactSecret(error.message)}`);
+  console.error(`RECOVERY_CALLBACK_FAILED: ${redactSecretParams(error.message)}`);
   process.exit(1);
 }
