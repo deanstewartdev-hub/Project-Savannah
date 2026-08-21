@@ -56,22 +56,29 @@ test("9. normal non-secret config fields are not run through this validator", ()
   const configSource = readFileSync(join(__dirname, "..", "src", "config.js"), "utf8");
   const dispatcherConfigSource = readFileSync(join(__dirname, "..", "src", "dispatcherConfig.js"), "utf8");
 
+  const isValidatedIn = (source, name) =>
+    source.includes(`requiredSecret("${name}")`) ||
+    source.includes(`optionalSecret("${name}")`) ||
+    source.includes(`requireSecretEnv("${name}")`);
+
+  // JOB_SUBMIT_SECRET is required (not optional) in both files as of SAV-13: an empty
+  // secret used to make requireAuth() wave every request through unauthenticated.
   const mustBeValidated = ["OPENAI_API_KEY", "ELEVENLABS_API_KEY", "PEXELS_API_KEY", "JOB_SUBMIT_SECRET"];
   mustBeValidated.forEach((name) => {
-    const inConfig = configSource.includes(`requiredSecret("${name}")`) || configSource.includes(`optionalSecret("${name}")`);
-    const inDispatcherConfig = dispatcherConfigSource.includes(`optionalSecret("${name}")`);
     assert.equal(
-      inConfig || inDispatcherConfig,
+      isValidatedIn(configSource, name) || isValidatedIn(dispatcherConfigSource, name),
       true,
-      `${name} must be loaded through requiredSecret/optionalSecret in config.js or dispatcherConfig.js`
+      `${name} must be loaded through requiredSecret/optionalSecret/requireSecretEnv in config.js or dispatcherConfig.js`
     );
   });
 
   const mustNotBeValidated = ["PORT", "GCS_BUCKET", "ELEVENLABS_VOICE_ID", "DEFAULT_MUSIC_TRACK_PATH", "CLOUD_RUN_PROJECT", "CLOUD_RUN_REGION", "RENDER_JOB_NAME"];
   mustNotBeValidated.forEach((name) => {
-    const inConfig = configSource.includes(`requiredSecret("${name}")`) || configSource.includes(`optionalSecret("${name}")`);
-    const inDispatcherConfig = dispatcherConfigSource.includes(`requiredSecret("${name}")`) || dispatcherConfigSource.includes(`optionalSecret("${name}")`);
-    assert.equal(inConfig || inDispatcherConfig, false, `${name} is not a credential and must not be run through the secret-format validator`);
+    assert.equal(
+      isValidatedIn(configSource, name) || isValidatedIn(dispatcherConfigSource, name),
+      false,
+      `${name} is not a credential and must not be run through the secret-format validator`
+    );
   });
 });
 

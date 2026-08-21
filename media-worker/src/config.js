@@ -1,4 +1,4 @@
-import { assertSecretFormat } from "./lib/secretFormat.js";
+import { assertSecretFormat, requireSecretEnv } from "./lib/secretFormat.js";
 
 function required(name, fallback) {
   const value = process.env[name] ?? fallback;
@@ -18,17 +18,11 @@ function requiredSecret(name, fallback) {
   return value;
 }
 
-function optionalSecret(name) {
-  const value = process.env[name] || "";
-  if (value) {
-    assertSecretFormat(name, value);
-  }
-  return value;
-}
-
 export const config = {
   port: Number(process.env.PORT) || 8080,
-  jobSubmitSecret: optionalSecret("JOB_SUBMIT_SECRET"),
+  // Must never resolve to "" - see requireSecretEnv: an empty JOB_SUBMIT_SECRET used
+  // to make requireAuth() wave every request through unauthenticated (SAV-13).
+  jobSubmitSecret: requireSecretEnv("JOB_SUBMIT_SECRET"),
   openaiApiKey: requiredSecret("OPENAI_API_KEY"),
   elevenLabsApiKey: requiredSecret("ELEVENLABS_API_KEY"),
   elevenLabsVoiceId: required("ELEVENLABS_VOICE_ID"),

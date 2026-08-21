@@ -50,3 +50,21 @@ export function assertSecretFormat(name, value) {
     throw new Error(`${name} contains trailing whitespace. Re-copy the credential without surrounding whitespace or newlines.`);
   }
 }
+
+/**
+ * Reads a required security-sensitive env var and validates its format. Unlike a
+ * plain `required()` helper, this can never resolve to an empty string: a missing
+ * or empty value fails here, at config-load time, rather than letting downstream
+ * code (e.g. requireAuth) receive a falsy secret and have to decide what that means.
+ *
+ * @param {string} name Environment variable name.
+ * @return {string} The validated value.
+ */
+export function requireSecretEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  assertSecretFormat(name, value);
+  return value;
+}
