@@ -79,3 +79,22 @@ hand-written test script used to verify the pipeline) and watched side by side a
 Creatomate render — this is the explicit success condition for v1.4 in `ROADMAP.md`.
 `Secrets.setVideoProvider("creatomate")` switches back if the worker path needs to be
 paused without losing the ability to render at all.
+
+**Note (11 August 2026, night):** the Cloud Run migration this section describes as
+blocked is no longer blocked — a real render completed narration through FFmpeg
+assembly through delivery on Cloud Run with no SIGKILL, `MEDIA_WORKER_URL` now points at
+the dispatcher, and Railway is retained only as the rollback. This section's "Cloud Run
+is currently broken" framing is stale and needs a fuller rewrite as separate follow-up
+work - not done here to keep this cleanup pass scoped to what was asked.
+
+## Media worker callback secret rotation
+
+Status: **waiting for one-time manual action.**
+
+`MEDIA_WORKER_SHARED_SECRET` (the Apps Script Script Property that authenticates the
+media worker's callback, embedded in `callbackUrl_()`'s query string) had a copy of its
+value pass through a command transcript during the Cloud Run migration's delivery
+recovery work on 11 August 2026. Treat that value as compromised. Rotation needs a
+manual step in the Apps Script editor since no Execution API deployment exists to do it
+programmatically - see the current session for the exact function to run.
+paused without losing the ability to render at all.

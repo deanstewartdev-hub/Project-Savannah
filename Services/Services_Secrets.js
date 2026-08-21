@@ -121,6 +121,22 @@ const Secrets = {
     return PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
   },
 
+  // The production /exec base URL the media worker's callback must always target,
+  // regardless of whether the render was submitted from a /dev test session or the
+  // production deployment - ScriptApp.getService().getUrl() returns whichever URL the
+  // current execution happens to be running under, which is /dev during testing.
+  setMediaWorkerCallbackUrl(url) {
+    const value = String(url || "").trim().replace(/\/$/, "");
+    if (!/^https:\/\/script\.google\.com\/.*\/exec$/i.test(value)) {
+      throw new Error("The media worker callback URL must be the production https://script.google.com/.../exec URL.");
+    }
+    PropertiesService.getScriptProperties().setProperty("MEDIA_WORKER_CALLBACK_URL", value);
+  },
+
+  getMediaWorkerCallbackUrl() {
+    return PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_CALLBACK_URL");
+  },
+
   // "cloud-run" (default) or "creatomate", see Production/VideoProcessingProvider.js.
   setVideoProvider(name) {
     const value = String(name || "").trim().toLowerCase();

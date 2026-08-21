@@ -15,20 +15,28 @@ import { config } from "../config.js";
 // on the previous one's output.
 export async function runJob({ jobId, beats, musicTrackPath }) {
   const workDir = await createJobWorkDir(jobId);
+  const log = (stage) => console.log(`[${jobId}] ${stage} (beats=${beats.length})`);
   try {
     const fullScript = beats.map((beat) => beat.text.trim()).join(" ");
 
+    log("narration:start");
     const narrationPath = await generateContinuousNarration(fullScript, workDir);
+    log("narration:done");
+    log("alignment:start");
     const alignedWords = await alignNarration(narrationPath);
+    log("alignment:done");
     const timedBeats = computeBeatTimings(beats, alignedWords);
 
+    log("visuals:start");
     const visuals = await Promise.all(
       timedBeats.map((beat, index) => resolveBeatVisual(beat, index, workDir))
     );
+    log("visuals:done");
 
     const musicLocalPath = workDir.path("music.mp3");
     await downloadToFile(musicTrackPath || config.defaultMusicTrackPath, musicLocalPath);
 
+    log("assembly:start");
     const assembled = await assembleVideo({
       timedBeats,
       visuals,
@@ -36,13 +44,18 @@ export async function runJob({ jobId, beats, musicTrackPath }) {
       musicPath: musicLocalPath,
       workDir
     });
+    log("assembly:done");
 
+    log("probe:start");
     const probeResult = await probeVideo(assembled.outPath);
+    log("probe:done");
+    log("deliver:start");
     const delivery = await deliverResult(jobId, {
       videoPath: assembled.outPath,
       probeResult,
       workDir
     });
+    log("deliver:done");
 
     return {
       jobId,

@@ -5,6 +5,172 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 11 August 2026 (late night) — post-migration security/cleanup pass
+
+**Migration status: functionally validated end to end** — a real render survived
+narration through FFmpeg assembly through quality probing with no SIGKILL (the original
+Railway blocker), and the recovered render's delivery/callback reached production
+`/exec` successfully. Railway is retained as the rollback path; `MEDIA_WORKER_URL`
+already points at Cloud Run.
+
+**Removed temporary recovery-only infrastructure** once confirmed unused by the normal
+pipeline: the `recovery-callback-url` Secret Manager secret (deleted) and the render
+Job's `CALLBACK_URL` secret binding (removed via `--remove-secrets`). Verified afterward
+that the Job's real configuration - `JOB_SUBMIT_SECRET` and the four provider secrets,
+`MEDIA_WORKER_CALLBACK_URL`'s Apps Script Script Property, the `signBlob`
+self-binding, and `run.jobsExecutorWithOverrides` on the dispatcher - is untouched.
+
+**Removed `src/test-sign-url.js`** (one-off diagnostic, its job is done - signing is
+proven). Kept and documented `src/recover-delivery.js` as a supported operational tool
+in `media-worker/README.md`: "render succeeded, delivery failed" is a real recurring
+failure class, not one-off migration scaffolding.
+
+**Known remaining item:** the media worker callback shared secret
+(`MEDIA_WORKER_SHARED_SECRET`) needs rotation - a copy of its value passed through a
+command transcript during the delivery recovery above. Not yet rotated as of this entry;
+see the next entry once it lands, or `APPROVALS_REQUIRED.md` if it's still pending.
+
+### 11 August 2026 (night) — first real render succeeded end to end; delivery/callback bugs found and recovered without re-rendering
+
+**The render itself worked.** A real submission (jobId `cr-5ff223a6-...`, "Unexpected
+Travel Destinations", 6 beats) completed narration → alignment → visuals → FFmpeg
+assembly → quality probing entirely cleanly on Cloud Run - no SIGKILL, the exact failure
+mode that blocked every Railway attempt. `final.mp4` and `probe-report.json` landed in
+GCS, all three quality gates passed. This is the core migration goal validated.
+
+**Two unrelated bugs surfaced in delivery/callback, both root-caused and fixed without
+touching the already-good render:**
+
+1. **Signed URL generation:** `getSignedReadUrl()` failed with `PERMISSION_DENIED:
+   iam.serviceAccounts.signBlob` - generating a V4 signed URL under ADC (no local key)
+   requires the signing service account to hold `roles/iam.serviceAccountTokenCreator`
+   on *itself*, which `savannah-render-job@...` didn't have. Granted, scoped to the SA's
+   own resource. Verified independently of any render: executed a small diagnostic
+   script (`src/test-sign-url.js`) as a one-off `gcloud run jobs execute` override,
+   using the real render Job identity, against the already-existing `final.mp4` - signed
+   successfully, the URL fetched with `200`.
+2. **Callback URL:** `callbackUrl_()` used `ScriptApp.getService().getUrl()`, which
+   returns whichever URL the current execution is running under - `/dev` when triggered
+   from an editor test session, which can never receive a server-to-server callback
+   regardless of web app access settings. Added `MEDIA_WORKER_CALLBACK_URL` as an
+   explicit Script Property holding the production `/exec` URL; `callbackUrl_()` now
+   reads that unconditionally. Deployed as version 83 to the existing production
+   deployment (same Deployment ID, same URL, access unaffected - verified with the same
+   before/after anonymous-GET check used for version 81/82 last night).
+
+**Recovered the already-completed render without regenerating anything.** Added
+`src/recover-delivery.js`: re-signs the existing GCS artifacts and re-sends the callback
+for a job whose render already succeeded, refusing to run if the stored probe result
+didn't pass its gates. Never imports narration/alignment/visuals/assembly. Confirmed
+`final.mp4`'s GCS `creation_time`/`update_time`/`metageneration` unchanged after
+recovery - nothing was re-uploaded. The corrected callback reached production `/exec`
+and was accepted, updating the existing Render Job record - no duplicate created.
+
+**Provider credential:** the production callback URL's shared secret was carried as an
+input to the recovery script via a dedicated Secret Manager secret
+(`recovery-callback-url`, IAM-scoped to the render Job SA only) rather than a
+command-line argument, after a first attempt embedding it directly was correctly
+blocked by the local permission classifier.
+
+### 11 August 2026 (evening) — first controlled render attempt failed at the trigger stage; dispatcher IAM and false-202 bug fixed
+
+**MEDIA_WORKER_URL cut over to the Cloud Run dispatcher and the first real controlled
+render was attempted** (via "Re-render safely" on a FAILED script). It never actually
+rendered anything - it failed before a single Cloud Run Job execution was created:
+
+1. Apps Script's `UrlFetchApp` POST reached the dispatcher, which validated the
+   request, wrote it to `gs://savannah-media/job-requests/<jobId>.json`, and responded
+   `202` **before** attempting to trigger the render Job.
+2. The dispatcher's subsequent (unawaited, fire-and-forget) call to
+   `JobsClient.runJob()` failed: `PERMISSION_DENIED: Permission
+   'run.jobs.runWithOverrides' denied on resource '.../jobs/savannah-render-job'`.
+   `roles/run.invoker` (granted in the original migration) does not include the
+   `runWithOverrides` permission needed when invoking with `containerOverrides` - a gap
+   the Phase 5 smoke tests never caught, because that test called
+   `gcloud run jobs execute` with owner credentials, not the dispatcher's own service
+   account making the same Admin API call `dispatcher.js` actually makes.
+3. Because the `202` had already gone out, Apps Script had no way to learn any of this
+   happened - it reported the submission as successful, leaving the Production UI
+   showing "Rendering" against a script that was never actually running anywhere.
+
+**Fixed both problems together, same evening, before any real render was reattempted:**
+
+- Granted `roles/run.jobsExecutorWithOverrides` to `savannah-dispatcher@...`, scoped to
+  the `savannah-render-job` resource only, alongside the existing `run.invoker` binding.
+- Restructured `dispatcher.js`'s `POST /jobs` handler to `await` `uploadJson()` and
+  `jobsClient.runJob()` (the initial LRO-creation call only, never
+  `operation.promise()`) **before** responding - a `202` now means "the Cloud Run Admin
+  API accepted creation of the Job execution," not merely "the dispatcher received the
+  request." A failed trigger now returns `502` with a safe error message instead of a
+  silently-logged, unreachable failure. This also removes a latent reliability gap: the
+  dispatcher runs under Cloud Run's default CPU throttling (confirmed - no
+  `cpu-throttling` override annotation present), and the old code did its real work
+  *after* the response was sent, i.e. outside the window CPU is guaranteed to be
+  allocated.
+- Added an optional `dryRun` field to the `/jobs` request body (sets `DRY_RUN=true` in
+  the Job's `containerOverrides`) so the dispatcher's own trigger path - not a manual
+  `gcloud run jobs execute` bypass - can be exercised end to end without paid API calls.
+
+**Verified the fix with a real authenticated request through the live dispatcher**
+(`dryRun: true`, the dispatcher's own service account, not owner credentials):
+`202`, `savannah-render-job-qdm79` created and completed cleanly (`exit(0)`), zero
+duplicate executions.
+
+**Left exactly as found, not touched:** the original failed job's GCS request file
+(`job-requests/cr-c68c66f5-....json`) is still orphaned in the bucket, and the
+Production UI's stale "Rendering 5%" cards (for the script that was actually submitted,
+and separately for one that shows no backend trace at all) have not been reconciled -
+that needs an intentional decision, not an automated edit, and is a separate follow-up.
+
+### 11 August 2026 — Cloud Run dispatcher + render Job migration (infra provisioned and smoke-tested, not yet the live path)
+
+**Why.** Two real renders were SIGKILLed on Railway (`cr-a8fc4832...`,
+`cr-52423380...`, both `signal: SIGKILL, stderr: (empty)` — the OOM-kill signature)
+despite every practical memory mitigation already in place (serialized job execution,
+sequential beat normalization, `-threads 1`, `-filter_threads 1`/
+`-filter_complex_threads 1`, `-preset veryfast`). Railway's plan hard-caps each replica
+at 2 vCPU/1GB — there was no more headroom to reclaim by tuning; the fix is
+infrastructure. Also verified (via a throwaway canary deploy) that the Google-side
+routing bug blocking Cloud Run since the 7 August billing incident only affects Cloud Run
+Services that existed *before* that incident — a brand-new Service is reachable
+externally, which unblocked moving back to Cloud Run at all.
+
+**What changed.** The single-Cloud-Run-service design is retired in favor of a
+lightweight, always-responsive dispatcher (`savannah-media-worker-dispatcher`, a Cloud
+Run Service) that validates + hands a job off, and a separate Cloud Run *Job*
+(`savannah-render-job`, 2 vCPU/2Gi) that does the actual rendering with real memory
+headroom, triggered via the Cloud Run Admin API and decoupled from any HTTP request
+lifecycle. See `media-worker/README.md` → "Architecture: dispatcher + render Job" for the
+full design. The render pipeline itself (`pipeline/runJob.js`, ffmpeg, narration,
+alignment, visuals) is unchanged — this is purely an infrastructure split.
+
+**Also found and fixed while wiring this up:**
+
+- Cloud Run's platform layer silently intercepts `GET /healthz` before it reaches any
+  container (confirmed via Cloud Logging: zero log entries for that exact path, while
+  `/`, `/jobs`, and even `/readyz` on the same revision all route through and log
+  normally). Worked around by adding `/health` as the real health-check path on both
+  `dispatcher.js` and `server.js`, and pointing
+  `VideoProcessingProvider.js#testConnection()` at it.
+- `dispatcher.js`'s first deploy crashed on boot (`Missing required environment variable:
+  OPENAI_API_KEY`) because `storage.js` imported the full `config.js`, whose
+  `required()` throws synchronously at import time — but the dispatcher process
+  intentionally has none of the render-only API keys. Fixed by decoupling `storage.js` to
+  read `GCS_BUCKET`/`GOOGLE_APPLICATION_CREDENTIALS_B64` directly from `process.env`.
+
+**Verified via infrastructure smoke tests (no paid API calls):** dispatcher `/health` →
+200, unauthenticated `/jobs` → 401, IAM confirmed on the bucket/secrets/Job resource for
+both service accounts, and a `DRY_RUN=true` Job execution against a synthetic
+`job-requests/<id>.json` proved the full trigger → GCS write → Admin API → ADC → GCS read
+→ clean exit path end to end.
+
+**Not done yet:** no real render has been triggered through this path — that's a
+separate, explicitly approval-gated next step. `MEDIA_WORKER_URL` still points at
+Railway; cutover requires one manual Script Property change (no safe automated path
+exists — see `APPROVALS_REQUIRED.md`). Railway itself is untouched and remains the
+rollback path until a real Cloud Run render is verified end-to-end and compared against
+the legacy result.
+
 ### 7 August 2026 (later) — found and fixed a second real bug: both Apps Script deployments were unreachable by the callback
 
 **Status for whoever picks this up next (human or AI): the render pipeline is proven
