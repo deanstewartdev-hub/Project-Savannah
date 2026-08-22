@@ -51,6 +51,14 @@
  * 5. Only then redeploy the main project with appsscript.json's access: MYSELF from this
  *    same commit - deploying that alone, first, would break the callback.
  * 6. Verify with one real render before considering this migration complete.
+ *
+ * SAV-16 (pre-deploy hardening, before any of the above deployment happens): render IDs
+ * are validated against the same strict cr-<UUID> pattern the dispatcher already
+ * enforces, callback status is an explicit allow-list (completed/failed) rather than
+ * "anything but completed means failed", the Render Jobs header row is verified to
+ * match RENDER_JOBS_HEADERS exactly before any write (never repaired or guessed at),
+ * and the whole row update happens through exactly one setValues() call so there is no
+ * window where Status is written but a later column update fails.
  ****************************************************/
 
 // Must exactly match RenderJobRepository's HEADERS order (Production/RenderJob_Repository.js)
@@ -59,6 +67,22 @@
 var RENDER_JOBS_HEADERS = ["Job ID", "Render ID", "Script ID", "SEO Pack ID", "Template ID", "Status",
   "Progress", "Video URL", "Snapshot URL", "Error Message", "Request JSON", "Response JSON",
   "Created At", "Updated At", "Version", "Model Version"];
+
+// Matches VideoProcessingProvider.RENDER_ID_PREFIX + Utilities.getUuid() exactly - the same
+// pattern media-worker/src/lib/jobStatus.js's isValidJobId() already enforces server-side,
+// reused here rather than reinvented (SAV-16). Deliberately strict: this value is looked up
+// directly against a Sheet column, so anything this rejects (path separators, "../",
+// arbitrary strings) never reaches SpreadsheetApp at all.
+var RENDER_ID_PATTERN = /^cr-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// SAV-16: only these two are ever accepted; anything else fails closed rather than being
+// silently treated as a failure.
+var VALID_CALLBACK_STATUSES = ["completed", "failed"];
+
+// Only the columns this bridge is ever allowed to touch, in the exact order they will be
+// written. Every other Render Jobs column is read back unchanged and rewritten as-is (see
+// writeCompletionColumns_), never left blank and never guessed at.
+var WRITABLE_COLUMNS = ["Status", "Progress", "Video URL", "Error Message", "Response JSON", "Updated At"];
 
 function doPost(event) {
   var parameters = resolveParameters_(event);
@@ -86,6 +110,32 @@ function isAuthorizedCallback_(parameters, expectedSecret) {
   return supplied === expectedSecret;
 }
 
+// Pure (SAV-16). Rejects anything that isn't exactly cr-<UUID> - path separators,
+// "../", blank values, and arbitrary strings all fail here, before any SpreadsheetApp
+// call is ever made.
+function isValidRenderId_(renderId) {
+  return typeof renderId === "string" && RENDER_ID_PATTERN.test(renderId);
+}
+
+// Pure (SAV-16). Only "completed" or "failed" are accepted; anything else (unknown,
+// missing, misspelled) fails closed rather than being silently treated as a failure -
+// previously body.status === "completed" ? ... : failedChanges_(body) meant any other
+// value fell through to failedChanges_ unnoticed.
+function isValidCallbackStatus_(status) {
+  return typeof status === "string" && VALID_CALLBACK_STATUSES.indexOf(status) !== -1;
+}
+
+// Pure (SAV-16). The anonymous bridge must never guess column positions against a
+// changed schema - this must match RENDER_JOBS_HEADERS exactly (same length, same
+// order, same text), not just contain the columns this bridge needs.
+function headersMatchExpected_(actualHeaders) {
+  if (!Array.isArray(actualHeaders) || actualHeaders.length !== RENDER_JOBS_HEADERS.length) return false;
+  for (var i = 0; i < RENDER_JOBS_HEADERS.length; i++) {
+    if (String(actualHeaders[i]) !== RENDER_JOBS_HEADERS[i]) return false;
+  }
+  return true;
+}
+
 function handleCallback_(event, parameters) {
   try {
     var expectedSecret = PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
@@ -97,6 +147,8 @@ function handleCallback_(event, parameters) {
     var body;
     try { body = JSON.parse(raw); } catch (parseError) { body = null; }
     if (!body || !body.jobId) return { success: false, error: "A jobId is required." };
+    if (!isValidRenderId_(String(body.jobId))) return { success: false, error: "Malformed render ID." };
+    if (!isValidCallbackStatus_(body.status)) return { success: false, error: "Unknown or missing status." };
 
     var updated = updateRenderJobByRenderId_(String(body.jobId), body);
     if (!updated) return { success: false, error: "Render job was not found." };
@@ -107,17 +159,27 @@ function handleCallback_(event, parameters) {
   }
 }
 
-// Deliberately narrow: updates only the completion-bookkeeping columns (Status,
-// Progress, Video URL, Error Message, Response JSON, Updated At), matched by Render ID.
-// Leaves every other column (Job ID, Script ID, SEO Pack ID, Template ID, Snapshot URL,
-// Request JSON, Created At, Version, Model Version) untouched, unlike
-// RenderJobRepository.update()'s full-row overwrite - a safer subset for an isolated
-// project that cannot reuse RenderJobModel's validation.
+// Deliberately narrow: updates only WRITABLE_COLUMNS (Status, Progress, Video URL,
+// Error Message, Response JSON, Updated At), matched by Render ID. Every other column
+// (Job ID, Script ID, SEO Pack ID, Template ID, Snapshot URL, Request JSON, Created At,
+// Version, Model Version) is read back and rewritten unchanged, never guessed at -
+// unlike RenderJobRepository.update()'s full-row overwrite, a safer subset for an
+// isolated project that cannot reuse RenderJobModel's validation.
+//
+// SAV-16: everything - schema shape, row lookup, computed values - is validated before
+// the first (and only) write. There is no code path that writes some columns and then
+// fails on a later one: either every check upstream of the single setValues() call
+// below passes, or nothing is written at all.
 function updateRenderJobByRenderId_(renderId, body) {
   var spreadsheetId = PropertiesService.getScriptProperties().getProperty("RENDER_JOBS_SPREADSHEET_ID");
   if (!spreadsheetId) throw new Error("RENDER_JOBS_SPREADSHEET_ID is not configured.");
   var sheet = SpreadsheetApp.openById(spreadsheetId).getSheetByName("Render Jobs");
   if (!sheet || sheet.getLastRow() < 2) return false;
+
+  var actualHeaders = sheet.getRange(1, 1, 1, RENDER_JOBS_HEADERS.length).getDisplayValues()[0];
+  if (!headersMatchExpected_(actualHeaders)) {
+    throw new Error("Render Jobs sheet schema does not match the expected headers - refusing to write.");
+  }
 
   var renderIdColumn = RENDER_JOBS_HEADERS.indexOf("Render ID") + 1;
   var values = sheet.getRange(2, renderIdColumn, sheet.getLastRow() - 1, 1).getDisplayValues();
@@ -128,13 +190,34 @@ function updateRenderJobByRenderId_(renderId, body) {
   if (rowIndex === -1) return false;
 
   var changes = body.status === "completed" ? completedChanges_(body) : failedChanges_(body);
-  writeColumn_(sheet, rowIndex, "Status", changes.status);
-  writeColumn_(sheet, rowIndex, "Progress", changes.progress);
-  writeColumn_(sheet, rowIndex, "Video URL", changes.videoUrl);
-  writeColumn_(sheet, rowIndex, "Error Message", changes.errorMessage);
-  writeColumn_(sheet, rowIndex, "Response JSON", JSON.stringify(changes.providerResponse));
-  writeColumn_(sheet, rowIndex, "Updated At", new Date());
+  writeCompletionColumns_(sheet, rowIndex, changes);
   return true;
+}
+
+// One setValues() call across the narrowest contiguous span that covers every column in
+// WRITABLE_COLUMNS - reads the current row first so any column inside that span that
+// this bridge does not own (e.g. Snapshot URL, Request JSON, Created At, which all sit
+// between Status and Updated At) is written back unchanged, never blanked.
+function writeCompletionColumns_(sheet, row, changes) {
+  var values = { Status: changes.status, Progress: changes.progress, "Video URL": changes.videoUrl,
+    "Error Message": changes.errorMessage, "Response JSON": JSON.stringify(changes.providerResponse), "Updated At": new Date() };
+
+  var columnIndexes = WRITABLE_COLUMNS.map(function (name) { return RENDER_JOBS_HEADERS.indexOf(name) + 1; });
+  var startColumn = Math.min.apply(null, columnIndexes);
+  var endColumn = Math.max.apply(null, columnIndexes);
+  var span = endColumn - startColumn + 1;
+
+  var current = sheet.getRange(row, startColumn, 1, span).getValues()[0];
+  WRITABLE_COLUMNS.forEach(function (name) {
+    var value = values[name];
+    if (value === null || value === undefined) return;
+    // RENDER_JOBS_HEADERS.indexOf(name) is 0-based; +1 makes it the real 1-based column
+    // number, which is what startColumn also is - mixing a 0-based index directly
+    // against a 1-based column would silently write into the wrong slot.
+    current[(RENDER_JOBS_HEADERS.indexOf(name) + 1) - startColumn] = value;
+  });
+
+  sheet.getRange(row, startColumn, 1, span).setValues([current]);
 }
 
 function completedChanges_(body) {
@@ -150,10 +233,4 @@ function completedChanges_(body) {
 function failedChanges_(body) {
   var message = String((body.error && body.error.message) || "The media worker reported a failure.").slice(0, 500);
   return { status: "FAILED", progress: null, videoUrl: null, errorMessage: message, providerResponse: { status: "failed", error_message: message } };
-}
-
-function writeColumn_(sheet, row, headerName, value) {
-  if (value === null || value === undefined) return;
-  var column = RENDER_JOBS_HEADERS.indexOf(headerName) + 1;
-  sheet.getRange(row, column).setValue(value);
 }
