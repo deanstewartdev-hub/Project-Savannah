@@ -13,6 +13,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { execFileSync } = require("child_process");
 
 const REPO = path.join(__dirname, "..");
 const VALID_RENDER_ID = "cr-c68c66f5-b646-4c1c-a88a-8748c5c0f1d9";
@@ -368,9 +369,32 @@ function runCallbackBridgeTests() {
   test("SAV-16.16c CallbackBridge has no main-operator-controller source (App/, Production/, Services/, etc. absent)", () => {
     const bridgeDir = path.join(REPO, "CallbackBridge");
     const entries = fs.readdirSync(bridgeDir);
-    const expectedEntries = ["CallbackBridge.js", "appsscript.json", ".claspignore"].sort();
-    if (JSON.stringify(entries.sort()) !== JSON.stringify(expectedEntries)) {
-      throw new Error("CallbackBridge/ must contain only its own minimal files, found: " + entries.join(", "));
+    const requiredEntries = ["CallbackBridge.js", "appsscript.json", ".claspignore"];
+    // .clasp.json is the standalone project's own local clasp binding (script ID). It is
+    // expected to exist on disk once the bridge project has been created, but must never
+    // be committed - see the untracked check below.
+    const optionalLocalEntries = [".clasp.json"];
+    const allowedEntries = requiredEntries.concat(optionalLocalEntries);
+
+    const unexpected = entries.filter((e) => !allowedEntries.includes(e));
+    if (unexpected.length > 0) {
+      throw new Error("CallbackBridge/ must contain only its own minimal files, found unexpected: " + unexpected.join(", "));
+    }
+    const missingRequired = requiredEntries.filter((e) => !entries.includes(e));
+    if (missingRequired.length > 0) {
+      throw new Error("CallbackBridge/ is missing required files: " + missingRequired.join(", "));
+    }
+
+    if (entries.includes(".clasp.json")) {
+      let isTracked = true;
+      try {
+        execFileSync("git", ["ls-files", "--error-unmatch", "CallbackBridge/.clasp.json"], { cwd: REPO, stdio: "pipe" });
+      } catch (error) {
+        isTracked = false;
+      }
+      if (isTracked) {
+        throw new Error("CallbackBridge/.clasp.json must never be tracked by Git.");
+      }
     }
   });
 
