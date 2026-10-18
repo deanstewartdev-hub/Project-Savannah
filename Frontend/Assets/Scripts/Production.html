@@ -411,6 +411,16 @@
     const uncertainUpload = job.publishingJob && job.publishingJob.status === "RECONCILE";
     const uploading = job.publishingJob && job.publishingJob.status === "UPLOADING";
     const publishingDetails = published && job.publishingJob.providerResponse || {};
+    const history = job.publishingHistory || {};
+    const historicalUploadNotice = history.showingEarlierAttempt && job.publishingJob ?
+      '<p class="form-help"><strong>Earlier upload attempt:</strong> ' +
+      'A newer ' + escapeHtml(history.latestStatus || 'unknown') +
+      ' attempt does not clear this ' + escapeHtml(job.publishingJob.status) +
+      ' attempt (' + escapeHtml(job.publishingJob.id) + '). ' +
+      'YouTube upload remains blocked while a protected attempt exists.</p>' : '';
+    const multipleAttemptsNotice = Number(history.unresolvedCount || 0) > 1 ?
+      '<p class="form-help">There are ' + escapeHtml(history.unresolvedCount) +
+      ' unresolved upload attempts. Review each attempt in YouTube Studio before retrying.</p>' : '';
     const seo = job.seoPack || {}, quality = job.quality || {}, review = job.review || {};
     const title = seo.titleOptions && seo.titleOptions[0] || "";
     // A delivered success always wins over a stale reconciliation flag; only otherwise does
@@ -431,7 +441,8 @@
       '<button class="button button-primary production-approve-render" data-job-id="' +
       escapeHtml(job.id) + '">Approve finished video</button>' :
       (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
-    const retryAction = !published && !recoveryRequired && (job.status === "FAILED" ||
+    const retryAction = !published && !uncertainUpload && !uploading && !recoveryRequired &&
+      (job.status === "FAILED" ||
       (job.status === "SUCCEEDED" && (!quality.passed || !review.approved))) ?
       '<button class="button button-secondary production-retry" data-job-id="' +
       escapeHtml(job.id) + '">Re-render safely</button>' : '';
@@ -452,12 +463,15 @@
       (publishingDetails.publishAt ? '<p>Scheduled: ' +
         escapeHtml(new Date(publishingDetails.publishAt).toLocaleString()) + '</p>' : '') +
       '<button class="button button-secondary production-refresh-publication" data-job-id="' +
-      escapeHtml(job.id) + '">Refresh YouTube status</button>' : uncertainUpload ?
+      escapeHtml(job.id) + '" data-publishing-job-id="' +
+      escapeHtml(job.publishingJob.id) + '">Refresh YouTube status</button>' : uncertainUpload ?
       '<p><strong>Upload needs reconciliation.</strong> Check YouTube Studio for this title before retrying.</p>' +
       '<button class="button button-secondary production-reconcile-publication" data-job-id="' +
-      escapeHtml(job.id) + '">Find existing YouTube upload</button>' +
+      escapeHtml(job.id) + '" data-publishing-job-id="' +
+      escapeHtml(job.publishingJob.id) + '">Find existing YouTube upload</button>' +
       '<button class="button button-secondary production-abandon-publication" data-job-id="' +
-      escapeHtml(job.id) + '">Confirm no upload and allow retry</button>' : uploading ?
+      escapeHtml(job.id) + '" data-publishing-job-id="' +
+      escapeHtml(job.publishingJob.id) + '">Confirm no upload for this attempt</button>' : uploading ?
       '<p><strong>YouTube upload is in progress.</strong> Savannah is preventing a duplicate submission.</p>' :
       (quality.passed && review.approved ? '<div class="production-publish-panel form-grid" data-job-id="' +
       escapeHtml(job.id) + '" style="margin-top:12px">' +
@@ -491,7 +505,8 @@
           '<div class="progress-bar-fill" style="width:' + progress + '%"></div>' +
         '</div>' +
         '<p class="list-card-meta">' + progress + '% complete</p>' +
-        qualitySummary + videoAction + recoveryNotice + reviewAction + retryAction + publishAction +
+        qualitySummary + videoAction + recoveryNotice + historicalUploadNotice +
+        multipleAttemptsNotice + reviewAction + retryAction + publishAction +
         (job.publishingJob && job.publishingJob.status === "FAILED" ?
           '<p class="form-help">' + escapeHtml(job.publishingJob.errorMessage) + '</p>' : '') +
         (job.errorMessage ? '<p class="form-help">' + escapeHtml(job.errorMessage) + '</p>' : '') +
@@ -601,7 +616,10 @@
         if (!response || !response.success) return showError(jobList, response);
         loadJobs();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
-        .productionRefreshPublication({ renderJobId: refreshPublication.dataset.jobId });
+        .productionRefreshPublication({
+          renderJobId: refreshPublication.dataset.jobId,
+          publishingJobId: refreshPublication.dataset.publishingJobId
+        });
       return;
     }
     const reconcilePublication = event.target.closest(".production-reconcile-publication");
@@ -617,7 +635,10 @@
         reconcilePublication.disabled = false;
         reconcilePublication.textContent = "Find existing YouTube upload";
         showError(jobList, { error: error });
-      }).productionReconcilePublication({ renderJobId: reconcilePublication.dataset.jobId });
+      }).productionReconcilePublication({
+        renderJobId: reconcilePublication.dataset.jobId,
+        publishingJobId: reconcilePublication.dataset.publishingJobId
+      });
       return;
     }
     const abandonPublication = event.target.closest(".production-abandon-publication");
@@ -628,7 +649,11 @@
         if (!response || !response.success) return showError(jobList, response);
         loadJobs();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
-        .productionAbandonPublication({ renderJobId: abandonPublication.dataset.jobId, confirmNoUpload: true });
+        .productionAbandonPublication({
+          renderJobId: abandonPublication.dataset.jobId,
+          publishingJobId: abandonPublication.dataset.publishingJobId,
+          confirmNoUpload: true
+        });
     }
   });
 

@@ -264,9 +264,17 @@ const ProductionController = (() => {
     const jobId = String(request && request.jobId || "").trim();
     const job = RenderJobRepository.getById(jobId);
     if (!job) return failure_("Render job was not found.");
-    const published = PublishingJobRepository.getByRenderJobId(job.id);
-    if (published && published.status === "PUBLISHED") {
+    // Retry must respect older upload attempts, not only the latest sheet row.
+    const uploadHistory = PublishingJobRepository.getAll().filter(function (upload) {
+      return upload.renderJobId === job.id;
+    });
+    if (uploadHistory.some(function (upload) { return upload.status === "PUBLISHED"; })) {
       return failure_("Published videos cannot be re-rendered from the retry action.");
+    }
+    if (uploadHistory.some(function (upload) {
+      return upload.status === "RECONCILE" || upload.status === "UPLOADING";
+    })) {
+      return failure_("Resolve the existing YouTube upload attempt before re-rendering.");
     }
     const quality = RenderQualityService.evaluate(job);
     const review = RenderReviewService.get(job.id);
@@ -317,9 +325,24 @@ const ProductionController = (() => {
         return new Date(b.updatedAt) - new Date(a.updatedAt);
       }).map(function (job) {
         const result = Object.assign({}, job);
-        result.publishingJob = publishingJobs.filter(function (publishingJob) {
+        const attempts = publishingJobs.filter(function (publishingJob) {
           return publishingJob.renderJobId === job.id;
-        }).sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); })[0] || null;
+        }).sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
+        // A later FAILED attempt cannot conceal an earlier published or uncertain one.
+        // Use the same precedence as publish()'s history-wide safety guard.
+        const visible = attempts.filter(function (item) { return item.status === "PUBLISHED"; })[0] ||
+          attempts.filter(function (item) { return item.status === "UPLOADING"; })[0] ||
+          attempts.filter(function (item) { return item.status === "RECONCILE"; })[0] ||
+          attempts[0] || null;
+        result.publishingJob = visible;
+        result.publishingHistory = {
+          attemptCount: attempts.length,
+          latestStatus: attempts.length ? attempts[0].status : "",
+          showingEarlierAttempt: !!(visible && attempts[0].id !== visible.id),
+          unresolvedCount: attempts.filter(function (item) {
+            return item.status === "UPLOADING" || item.status === "RECONCILE";
+          }).length
+        };
         result.seoPack = job.seoPackId ? SeoRepository.getById(job.seoPackId) : null;
         result.quality = RenderQualityService.evaluate(job);
         result.review = RenderReviewService.get(job.id);
@@ -441,7 +464,7 @@ const ProductionController = (() => {
   function refreshPublication(request) {
     return run_("YouTube processing status refreshed.", function () {
       const renderJobId = String(request && request.renderJobId || "").trim();
-      const job = PublishingJobRepository.getByRenderJobId(renderJobId);
+      const job = publishingJobForAction_(request);
       if (!job || !job.youtubeVideoId) throw error_("Published YouTube video was not found.");
       const status = YouTubeService.getVideo(job.youtubeVideoId);
       return {
@@ -460,16 +483,16 @@ const ProductionController = (() => {
   }
 
   function abandonPublication(request) {
-    return run_("Uncertain YouTube upload cleared for retry.", function () {
+    return run_("Uncertain YouTube upload attempt reviewed.", function () {
       return withScriptLock_(function () {
       const source = request || {};
       if (source.confirmNoUpload !== true) throw error_("Confirmation that no YouTube upload exists is required.");
       const renderJobId = String(source.renderJobId || "").trim();
-      const job = PublishingJobRepository.getByRenderJobId(renderJobId);
+      const job = publishingJobForAction_(source);
       if (!job || job.status !== "RECONCILE") throw error_("No uncertain upload was found for this render.");
       return { job: PublishingJobRepository.update(PublishingJobModel.update(job, {
         status: "FAILED",
-        errorMessage: "YouTube Studio was checked and no upload was found. A controlled retry is now allowed."
+        errorMessage: "No upload was confirmed in YouTube Studio for this attempt. Other attempts may still block retry."
       })) };
       });
     });
@@ -478,7 +501,7 @@ const ProductionController = (() => {
   function reconcilePublication(request) {
     return run_("YouTube upload reconciliation completed.", function () {
       return withScriptLock_(function () {
-        const job = PublishingJobRepository.getByRenderJobId(String(request && request.renderJobId || "").trim());
+        const job = publishingJobForAction_(request);
         if (!job || job.status !== "RECONCILE") throw error_("No uncertain upload was found for this render.");
         const found = YouTubeService.findUpload(job);
         if (!found) throw error_("No matching upload was found among the latest 250 channel uploads. Completion is unknown; check YouTube Studio. Older uploads may not contain a Savannah identifier.");
@@ -490,6 +513,22 @@ const ProductionController = (() => {
         })) };
       });
     });
+  }
+
+  // UI actions may target a historical upload attempt by its persisted ID.
+  // Verify both identifiers so another render's publishing job cannot be changed.
+  // Keep the render-only fallback for older web app clients.
+  function publishingJobForAction_(request) {
+    const source = request || {};
+    const renderJobId = String(source.renderJobId || "").trim();
+    const publishingJobId = String(source.publishingJobId || "").trim();
+    if (!renderJobId) throw error_("Render job ID is required.");
+    if (!publishingJobId) return PublishingJobRepository.getByRenderJobId(renderJobId);
+    const job = PublishingJobRepository.getAll().filter(function (item) {
+      return item.id === publishingJobId && item.renderJobId === renderJobId;
+    })[0];
+    if (!job) throw error_("The selected YouTube upload attempt was not found for this render.");
+    return job;
   }
 
   function resolveTemplateId_() {

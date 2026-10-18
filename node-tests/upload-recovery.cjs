@@ -15,15 +15,24 @@ function fixture(options = {}) {
     Logger: { log() {} },
     Utilities: { getUuid: randomUUID },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => releases++ }) },
-    RenderJobRepository: { getById: () => ({ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST', status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4' }) },
-    RenderQualityService: { assertPublishable() {} }, RenderReviewService: { assertApproved() {} },
+    RenderJobRepository: {
+      getById: () => ({ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
+        status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }),
+      getAll: () => [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
+        status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }]
+    },
+    RenderQualityService: { assertPublishable() {}, evaluate: () => ({ passed: true }) },
+    RenderReviewService: { assertApproved() {}, get: () => ({ approved: true }) },
     SeoRepository: { getById: () => ({ titleOptions: ['Test Short'], description: 'Description', tags: options.tags || [], hashtags: [] }) },
     PublishingJobRepository: {
       getByRenderJobId: () => job, getAll: () => history.concat(job ? [job] : []),
       save(value) { job = value; return value; },
       update(value) {
         if (options.allWritesFail || (options.persistenceFailure && value.status === 'PUBLISHED' && !updateFailed)) { updateFailed = true; throw new Error('Sheet unavailable'); }
-        job = value; return value;
+        const index = history.findIndex(entry => entry.id === value.id);
+        if (index >= 0) history[index] = value;
+        else job = value;
+        return value;
       }
     },
     UrlFetchApp: { fetch: () => ({ getResponseCode: () => options.downloadFailure ? 500 : 200, getBlob: () => blob }) },
@@ -41,7 +50,8 @@ function fixture(options = {}) {
           return { id: 'VIDEO', status: resource.status };
         },
         list: () => ({ items: options.matches === false ? [] : Array.from({ length: options.duplicates ? 2 : 1 }, (_, i) => ({
-          id: 'VIDEO' + i, snippet: { channelId: options.wrongChannel ? 'OTHER' : 'CHANNEL', tags: ['savannah-upload-' + job.id] },
+          id: 'VIDEO' + i, snippet: { channelId: options.wrongChannel ? 'OTHER' : 'CHANNEL',
+            tags: ['savannah-upload-' + (options.matchesJobId || job.id)] },
           status: { privacyStatus: 'private', uploadStatus: 'processed' }, processingDetails: { processingStatus: 'succeeded' }
         })) })
       }
@@ -52,7 +62,8 @@ function fixture(options = {}) {
   }
   return {
     call: expression => vm.runInContext(expression, context, { timeout: 10000 }),
-    job: () => job, inserts: () => inserts, pages: () => pages, releases: () => releases
+    job: () => job, history: () => history.slice(), inserts: () => inserts,
+    pages: () => pages, releases: () => releases
   };
 }
 const publish = 'ProductionController.publish({renderJobId:"RND-TEST"})';
@@ -123,6 +134,88 @@ test('Older FAILED attempts do not block a safe retry when no upload is protecte
   assert.equal(f.call(publish).success, true);
   assert.equal(f.inserts(), 1);
   assert.equal(f.job().status, 'PUBLISHED');
+});
+function historicalJob(id, status, updatedAt, overrides = {}) {
+  return Object.assign({
+    id, renderJobId: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
+    title: 'Test Short', privacyStatus: 'private', status, providerResponse: {},
+    updatedAt, createdAt: updatedAt, version: 1
+  }, overrides);
+}
+test('Production listing prefers older published record to a newer failed attempt', () => {
+  const now = new Date().toISOString();
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'PUBLISHED', '2026-01-01T00:00:00.000Z',
+      { youtubeVideoId: 'EXISTING', youtubeUrl: 'https://youtu.be/EXISTING' })],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', now)
+  });
+  const response = f.call('ProductionController.listJobs()');
+  assert.equal(response.success, true);
+  const entry = response.data.jobs[0];
+  assert.equal(entry.publishingJob.id, 'PUB-OLDER');
+  assert.equal(entry.publishingHistory.showingEarlierAttempt, true);
+  assert.equal(entry.publishingHistory.latestStatus, 'FAILED');
+  assert.equal(entry.publishingHistory.attemptCount, 2);
+  assert.equal(f.inserts(), 0);
+});
+test('Production listing prefers unresolved older upload over a newer failed attempt', () => {
+  const now = new Date().toISOString();
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'RECONCILE', now)],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', now)
+  });
+  const response = f.call('ProductionController.listJobs()');
+  assert.equal(response.success, true);
+  assert.equal(response.data.jobs[0].publishingJob.id, 'PUB-OLDER');
+  assert.equal(response.data.jobs[0].publishingHistory.unresolvedCount, 1);
+});
+test('Reconcile action targets selected older publishing ID, not the newer failure', () => {
+  const now = new Date().toISOString();
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'RECONCILE', now)],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', now),
+    matchesJobId: 'PUB-OLDER'
+  });
+  const response = f.call('ProductionController.reconcilePublication({renderJobId:"RND-TEST",publishingJobId:"PUB-OLDER"})');
+  assert.equal(response.success, true);
+  assert.equal(f.history()[0].status, 'PUBLISHED');
+  assert.equal(f.job().status, 'FAILED');
+  assert.equal(f.inserts(), 0);
+  assert.equal(f.call(publish).success, false);
+});
+test('Confirming no upload clears only the selected older uncertain attempt', () => {
+  const now = new Date().toISOString();
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'RECONCILE', now)],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', now)
+  });
+  const response = f.call('ProductionController.abandonPublication({renderJobId:"RND-TEST",publishingJobId:"PUB-OLDER",confirmNoUpload:true})');
+  assert.equal(response.success, true);
+  assert.equal(f.history()[0].status, 'FAILED');
+  assert.equal(f.job().status, 'FAILED');
+  assert.equal(f.call(publish).success, true);
+  assert.equal(f.inserts(), 1);
+});
+test('Selected upload attempt must belong to the requested render', () => {
+  const now = new Date().toISOString();
+  const f = fixture({
+    history: [historicalJob('PUB-OTHER', 'RECONCILE', now, { renderJobId: 'RND-OTHER' })],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', now)
+  });
+  const response = f.call('ProductionController.abandonPublication({renderJobId:"RND-TEST",publishingJobId:"PUB-OTHER",confirmNoUpload:true})');
+  assert.equal(response.success, false);
+  assert.equal(f.history()[0].status, 'RECONCILE');
+  assert.equal(f.inserts(), 0);
+});
+test('Rerender is blocked when an older upload requires reconciliation', () => {
+  const now = new Date().toISOString();
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'RECONCILE', now)],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', now)
+  });
+  const response = f.call('ProductionController.retry({jobId:"RND-TEST"})');
+  assert.equal(response.success, false);
+  assert.equal(f.inserts(), 0);
 });
 test('Complete persistence outage leaves UPLOADING blocked', () => {
   const f = fixture({ allWritesFail: true }); f.call(publish);
