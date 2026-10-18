@@ -8,7 +8,8 @@ const PublishingScheduleService = (() => {
   function assertAvailable(publishAt, jobs, excludeRenderJobId) {
     const requested = normalise_(publishAt);
     if (!requested) return { scheduled: false, publishAt: "", conflicts: [] };
-    const conflicts = upcoming(jobs).filter(function (slot) {
+    // Recently elapsed slots still reserve the minimum gap after publication.
+    const conflicts = slots_(jobs).filter(function (slot) {
       return slot.renderJobId !== String(excludeRenderJobId || "").trim() &&
         Math.abs(new Date(slot.publishAt).getTime() - new Date(requested).getTime()) < MINIMUM_GAP_MS;
     });
@@ -23,6 +24,12 @@ const PublishingScheduleService = (() => {
 
   function upcoming(jobs) {
     const now = Date.now();
+    return slots_(jobs).filter(function (slot) {
+      return new Date(slot.publishAt).getTime() > now;
+    });
+  }
+
+  function slots_(jobs) {
     return (Array.isArray(jobs) ? jobs : []).map(function (job) {
       const publishAt = normalise_(job && job.providerResponse && job.providerResponse.publishAt, true);
       return publishAt ? {
@@ -34,7 +41,7 @@ const PublishingScheduleService = (() => {
         privacyStatus: String(job.privacyStatus || "private")
       } : null;
     }).filter(function (slot) {
-      return slot && new Date(slot.publishAt).getTime() > now;
+      return slot !== null;
     }).sort(function (a, b) {
       return new Date(a.publishAt) - new Date(b.publishAt);
     });

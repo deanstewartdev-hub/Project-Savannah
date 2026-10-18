@@ -160,6 +160,38 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Publishing schedule protects the gap after a recent publication", function () {
+    const now = Date.now();
+    let blocked = false;
+    try {
+      PublishingScheduleService.assertAvailable(new Date(now + 10 * 60000).toISOString(), [{
+        id: "PUB-RECENT", renderJobId: "RND-RECENT", title: "Recent Short",
+        providerResponse: { publishAt: new Date(now - 20 * 60000).toISOString() }
+      }], "RND-NEXT");
+    } catch (error) { blocked = error.name === "PublishingScheduleError"; }
+    if (!blocked) throw new Error("Publication less than an hour after a recent Short was accepted.");
+  });
+
+  test("Publishing schedule accepts an exact one-hour gap", function () {
+    const now = Date.now();
+    const result = PublishingScheduleService.assertAvailable(new Date(now + 40 * 60000).toISOString(), [{
+      id: "PUB-RECENT", renderJobId: "RND-RECENT", title: "Recent Short",
+      providerResponse: { publishAt: new Date(now - 20 * 60000).toISOString() }
+    }], "RND-NEXT");
+    if (!result.scheduled) throw new Error("Exact one-hour gap was rejected.");
+  });
+
+  test("Upcoming schedule still excludes past publications", function () {
+    const now = Date.now();
+    const slots = PublishingScheduleService.upcoming([
+      { id: "PAST", providerResponse: { publishAt: new Date(now - 20 * 60000).toISOString() } },
+      { id: "FUTURE", providerResponse: { publishAt: new Date(now + 40 * 60000).toISOString() } }
+    ]);
+    if (slots.length !== 1 || slots[0].publishingJobId !== "FUTURE") {
+      throw new Error("Upcoming schedule included a past publication or lost a future one.");
+    }
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };

@@ -189,6 +189,8 @@
       '<button class="button button--secondary production-refresh-publication" data-job-id="' +
       escapeHtml(job.id) + '">Refresh YouTube status</button>' : uncertainUpload ?
       '<p><strong>Upload needs reconciliation.</strong> Check YouTube Studio for this title before retrying.</p>' +
+      '<button class="button button--secondary production-reconcile-publication" data-job-id="' +
+      escapeHtml(job.id) + '">Find existing YouTube upload</button>' +
       '<button class="button button--secondary production-abandon-publication" data-job-id="' +
       escapeHtml(job.id) + '">Confirm no upload and allow retry</button>' : uploading ?
       '<p><strong>YouTube upload is in progress.</strong> Savannah is preventing a duplicate submission.</p>' :
@@ -275,6 +277,22 @@
         loadJobs();
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
         .productionRefreshPublication({ renderJobId: refreshPublication.dataset.jobId });
+      return;
+    }
+    const reconcilePublication = event.target.closest(".production-reconcile-publication");
+    if (reconcilePublication) {
+      reconcilePublication.disabled = true;
+      reconcilePublication.textContent = "Checking YouTube...";
+      google.script.run.withSuccessHandler(function (response) {
+        reconcilePublication.disabled = false;
+        reconcilePublication.textContent = "Find existing YouTube upload";
+        if (!response || !response.success) return showError(jobList, response);
+        loadJobs(); loadPublishingSchedule();
+      }).withFailureHandler(function (error) {
+        reconcilePublication.disabled = false;
+        reconcilePublication.textContent = "Find existing YouTube upload";
+        showError(jobList, { error: error });
+      }).productionReconcilePublication({ renderJobId: reconcilePublication.dataset.jobId });
       return;
     }
     const abandonPublication = event.target.closest(".production-abandon-publication");

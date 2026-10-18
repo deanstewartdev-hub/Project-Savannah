@@ -10,7 +10,7 @@ GitHub CLI is authenticated as `deanstewartdev-hub`. The verified `sprint-2` cha
 
 ## Google background queue worker
 
-Status: waiting for one-time authorization.
+Status: OAuth scope prepared locally on 19 October 2026; deployment and one-time Google authorization are still required.
 
 The worker code is implemented, but Apps Script needs this additional OAuth scope before it can install a five-minute time trigger:
 
@@ -18,7 +18,7 @@ The worker code is implemented, but Apps Script needs this additional OAuth scop
 https://www.googleapis.com/auth/script.scriptapp
 ```
 
-After the scope is deliberately added to `appsscript.json` and deployed, Dean must reauthorize the app and select **Enable** in Production → Background automation.
+The scope is now included in `appsscript.json`. After deploying this change, Dean must reauthorize the app and select **Enable** in Production → Background automation. No trigger has been installed by the local change.
 
 Until then, browser-driven scene preparation remains operational and persistent; reopening Production resumes an interrupted task.
 

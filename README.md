@@ -16,7 +16,7 @@ GitHub branch `sprint-2` is the source of truth. Google Apps Script is deployed 
 | Rendering | Creatomate |
 | Publishing | YouTube Data API |
 | Channel | Savannah Atlas |
-| Live deployment | Apps Script version 61 |
+| Live deployment | Unverified: this README last recorded version 61; ROADMAP.md records version 72 |
 | Deployment ID | `AKfycbzfD4HhW82TJyrdl5wteB1L84uiQJqb_hANd106zLDOOpY4HKqclGv67noe-kpQn2vDDw` |
 | Last verified | 2 August 2026 |
 
@@ -160,6 +160,31 @@ git push origin sprint-2
 Do not run `clasp pull` unless the Apps Script copy is intentionally becoming canonical; it can overwrite newer local work.
 
 ## Testing
+
+Run the local validation from any checkout with Node.js 24 (no npm install,
+Google login, or provider credentials required):
+
+```sh
+node Tests/run-local.cjs
+```
+
+This command parses server JavaScript and executable frontend script blocks,
+then runs all 19 production hardening fixtures with a mocked UUID helper.
+It also runs 11 upload recovery integration fixtures with mocked Google APIs
+and persistence, including ambiguous timeouts and failed persistence after upload.
+The server-rendered JSON data block is excluded from JavaScript parsing.
+Failures exit nonzero. These checks do not validate live Sheets/Drive access,
+Google authorization, template rendering, or paid provider integrations.
+GitHub Actions runs the same command on pushes and pull requests.
+The `.cjs` runner is local tooling and is excluded from Apps Script uploads
+by the extensions configured in `.clasp.json`.
+
+When an upload has an uncertain outcome, Production blocks another upload.
+Use **Find existing YouTube upload** to search up to 250 channel uploads for
+the job's unique metadata tag. A single owned match reconnects the original
+video; no match or multiple matches keep the job blocked. Older untagged uploads
+still require review in YouTube Studio. Only confirm no upload after checking
+Studio; the lookup's absence result does not establish that no video exists.
 
 Safe local checks:
 

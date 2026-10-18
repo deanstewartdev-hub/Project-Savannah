@@ -4,6 +4,15 @@ Last updated: 2 August 2026
 Live Apps Script deployment: version 72
 Canonical branch: `sprint-2`
 
+## Local reliability update — 19 October 2026
+
+- Added a dependency-free local validation command: `node Tests/run-local.cjs`.
+- Added a GitHub Actions workflow for push and pull-request validation; hosted execution is pending push.
+- Fixed the one-hour publishing conflict guard to include recently elapsed publication slots. The upcoming schedule still displays only future slots.
+- All 19 local production hardening fixtures pass, including the reproduced scheduling regression and exact one-hour boundary.
+- Added 11 local upload recovery integration fixtures. Ambiguous YouTube insert failures and persistence failures after upload now block duplicate submissions. Production can reconnect one matching owned upload using a unique metadata tag, with a bounded 250-video search; older untagged uploads still need manual review.
+- These changes have not been deployed to Apps Script. Live Google validation and the previously recorded renderer/authorization blockers remain outstanding; phase percentages above have not been reassessed.
+
 ## Overall progress
 
 ```text
