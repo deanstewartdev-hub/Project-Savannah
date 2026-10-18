@@ -396,10 +396,12 @@ const ProductionController = (() => {
         title: source.title || seoPack.titleOptions[0],
         description: source.description || seoPack.description,
         tags: seoPack.tags,
-        privacyStatus: source.privacyStatus || "private"
+        privacyStatus: source.publishAt ? "private" : source.privacyStatus || "private",
+        providerResponse: { publishAt: source.publishAt || "" }
       }));
+      let upload;
       try {
-        const upload = YouTubeService.upload(renderJob, seoPack, source);
+        upload = YouTubeService.upload(renderJob, seoPack, Object.assign({}, source, { publishingJobId: job.id }));
         job = PublishingJobRepository.update(PublishingJobModel.update(job, {
           youtubeVideoId: upload.videoId,
           youtubeUrl: upload.videoUrl,
@@ -416,9 +418,12 @@ const ProductionController = (() => {
         }));
       } catch (caught) {
         PublishingJobRepository.update(PublishingJobModel.update(job, {
-          status: "FAILED",
-          errorMessage: String(caught && caught.message || "YouTube upload failed.").slice(0, 500)
+          status: caught.uploadUncertain || upload ? "RECONCILE" : "FAILED",
+          errorMessage: caught.uploadUncertain || upload ?
+            "YouTube upload completion is unknown. Reconcile the upload or check YouTube Studio before retrying." :
+            friendlyError_(caught)
         }));
+        if (upload) throw error_("YouTube upload completion is unknown. Reconcile the upload before retrying.");
         throw caught;
       }
       return { job: job };
@@ -449,6 +454,7 @@ const ProductionController = (() => {
 
   function abandonPublication(request) {
     return run_("Uncertain YouTube upload cleared for retry.", function () {
+      return withScriptLock_(function () {
       const source = request || {};
       if (source.confirmNoUpload !== true) throw error_("Confirmation that no YouTube upload exists is required.");
       const renderJobId = String(source.renderJobId || "").trim();
@@ -458,6 +464,24 @@ const ProductionController = (() => {
         status: "FAILED",
         errorMessage: "YouTube Studio was checked and no upload was found. A controlled retry is now allowed."
       })) };
+      });
+    });
+  }
+
+  function reconcilePublication(request) {
+    return run_("YouTube upload reconciliation completed.", function () {
+      return withScriptLock_(function () {
+        const job = PublishingJobRepository.getByRenderJobId(String(request && request.renderJobId || "").trim());
+        if (!job || job.status !== "RECONCILE") throw error_("No uncertain upload was found for this render.");
+        const found = YouTubeService.findUpload(job);
+        if (!found) throw error_("No matching upload was found among the latest 250 channel uploads. Completion is unknown; check YouTube Studio. Older uploads may not contain a Savannah identifier.");
+        return { job: PublishingJobRepository.update(PublishingJobModel.update(job, {
+          status: "PUBLISHED", youtubeVideoId: found.videoId, youtubeUrl: found.videoUrl,
+          privacyStatus: found.privacyStatus || job.privacyStatus, errorMessage: "",
+          providerResponse: { video: found.response, publishAt: found.publishAt,
+            uploadStatus: found.uploadStatus, processingStatus: found.processingStatus }
+        })) };
+      });
     });
   }
 
@@ -554,7 +578,8 @@ const ProductionController = (() => {
     refreshActive: refreshActive, retry: retry, prepareScene: prepareScene, approveRender: approveRender, listJobs: listJobs,
     getYouTubeConnection: getYouTubeConnection, getAutomationStatus: getAutomationStatus,
     getPublishingSchedule: getPublishingSchedule, setAutomation: setAutomation, publish: publish,
-    refreshPublication: refreshPublication, abandonPublication: abandonPublication };
+    refreshPublication: refreshPublication, abandonPublication: abandonPublication,
+    reconcilePublication: reconcilePublication };
 })();
 
 function productionTestConnection() { return ProductionController.testConnection(); }
@@ -577,3 +602,4 @@ function productionSetAutomation(request) { return ProductionController.setAutom
 function productionPublish(request) { return ProductionController.publish(request); }
 function productionRefreshPublication(request) { return ProductionController.refreshPublication(request); }
 function productionAbandonPublication(request) { return ProductionController.abandonPublication(request); }
+function productionReconcilePublication(request) { return ProductionController.reconcilePublication(request); }

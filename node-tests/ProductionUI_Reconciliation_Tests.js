@@ -190,6 +190,22 @@ function runProductionUiReconciliationTests() {
     if (ui.countScriptNarrationWords_(renderB) !== 59) throw new Error("Render B shape must count to 59 words.");
   });
 
+  test("Uncertain YouTube uploads offer recovery without a new upload action", function () {
+    const html = ui.renderJobCard(job({ status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { status: "RECONCILE" } }));
+    includes(html, "production-reconcile-publication", "Missing lookup action.");
+    includes(html, "production-abandon-publication", "Missing explicit manual recovery.");
+    excludes(html, "production-publish-panel", "Uncertain upload must not expose another upload form.");
+  });
+
+  test("Published YouTube videos retain their existing link without recovery controls", function () {
+    const html = ui.renderJobCard(job({ status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { status: "PUBLISHED", youtubeUrl: "https://youtu.be/VIDEO", privacyStatus: "private" } }));
+    includes(html, "https://youtu.be/VIDEO", "Published link was lost.");
+    excludes(html, "production-reconcile-publication", "Published uploads must not offer uncertain recovery.");
+    excludes(html, "production-publish-panel", "Published upload must not expose another upload form.");
+  });
+
   const failures = results.filter(function (r) { return !r.passed; });
   return { passed: failures.length === 0, total: results.length, failures: failures, results: results };
 }

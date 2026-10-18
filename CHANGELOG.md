@@ -5,6 +5,19 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 19 October 2026 — publishing reliability on the current Cloud Run baseline
+
+- Block duplicate uploads after ambiguous YouTube insert failures or persistence
+  failures after upload. Add a bounded lookup for an owned upload with the job's
+  unique metadata tag; absent or ambiguous matches remain blocked.
+- Count elapsed publications toward the one-hour gap and daily limit, including
+  recurring schedule suggestions, while displaying only future upcoming slots.
+- Add a portable local runner and CI for the existing Apps Script, callback/UI,
+  and media-worker suites, plus upload recovery regressions.
+- Based on `chore/post-duration-hardening` at `883e34f`. Cloud Run rendering,
+  callback bridge isolation, deployment configuration and OAuth scopes are retained.
+  Live deployment and private-upload acceptance are still pending.
+
 ### 11 August 2026 (late night) — post-migration security/cleanup pass
 
 **Migration status: functionally validated end to end** — a real render survived
