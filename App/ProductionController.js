@@ -372,17 +372,24 @@ const ProductionController = (() => {
       }
       RenderQualityService.assertPublishable(renderJob);
       RenderReviewService.assertApproved(renderJob.id);
-      const existing = PublishingJobRepository.getByRenderJobId(renderJobId);
-      if (existing && existing.status === "PUBLISHED") throw error_("This render is already published to YouTube.");
-      if (existing && existing.status === "UPLOADING") {
+      // A newer FAILED attempt must never hide an older published, in-progress, or
+      // uncertain upload. Inspect every attempt for this render before inserting.
+      const publishingJobs = PublishingJobRepository.getAll();
+      const history = publishingJobs.filter(function (job) {
+        return job.renderJobId === renderJobId;
+      });
+      if (history.some(function (job) { return job.status === "PUBLISHED"; })) {
+        throw error_("This render is already published to YouTube.");
+      }
+      if (history.some(function (job) { return job.status === "UPLOADING"; })) {
         throw error_("This video already has an upload in progress. Refresh its YouTube status before retrying.");
       }
-      if (existing && existing.status === "RECONCILE") {
-        throw error_("This upload ended in an uncertain state. Check YouTube Studio, then use Confirm no upload before retrying.");
+      if (history.some(function (job) { return job.status === "RECONCILE"; })) {
+        throw error_("This upload ended in an uncertain state. Check YouTube Studio, then reconcile each uncertain attempt before retrying.");
       }
       const scheduleCheck = PublishingScheduleService.assertAvailable(
         source.publishAt,
-        PublishingJobRepository.getAll(),
+        publishingJobs,
         renderJobId,
         { timezoneOffsetMinutes: source.timezoneOffsetMinutes, maxPerDay: 2 }
       );
