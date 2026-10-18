@@ -206,6 +206,68 @@ function runProductionUiReconciliationTests() {
     excludes(html, "production-publish-panel", "Published upload must not expose another upload form.");
   });
 
+  test("Older published upload overrides newer failed attempt in Production card", function () {
+    const html = ui.renderJobCard(job({
+      status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { id: "PUB-OLDER", status: "PUBLISHED", youtubeUrl: "https://youtu.be/OLDER",
+        privacyStatus: "private", providerResponse: {} },
+      publishingHistory: { attemptCount: 2, latestStatus: "FAILED", showingEarlierAttempt: true,
+        unresolvedCount: 0 }
+    }));
+    includes(html, "Earlier upload attempt:", "Must explain why older protected upload is shown");
+    includes(html, "https://youtu.be/OLDER", "Must show existing uploaded video");
+    includes(html, 'data-publishing-job-id="PUB-OLDER"', "Refresh must target the correct publishing record");
+    excludes(html, "production-publish-panel", "Already published video must not offer upload");
+    excludes(html, "production-retry", "Already published video must not offer rerender");
+  });
+
+  test("Older uncertain upload offers only exact-record recovery controls", function () {
+    const html = ui.renderJobCard(job({
+      status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { id: "PUB-OLDER", status: "RECONCILE" },
+      publishingHistory: { attemptCount: 2, latestStatus: "FAILED", showingEarlierAttempt: true,
+        unresolvedCount: 1 }
+    }));
+    includes(html, "Earlier upload attempt:", "Older uncertain attempt must be visible");
+    includes(html, "production-reconcile-publication", "Missing lookup recovery");
+    includes(html, 'data-publishing-job-id="PUB-OLDER"', "Recovery must include historical job ID");
+    includes(html, "Confirm no upload for this attempt", "Manual confirmation must be attempt-scoped");
+    excludes(html, "production-publish-panel", "Cannot upload while uncertain");
+    excludes(html, "production-retry", "Cannot rerender while upload is uncertain");
+  });
+
+  test("Multiple unresolved attempts require individual review and block new uploads", function () {
+    const html = ui.renderJobCard(job({
+      status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { id: "PUB-OLDER", status: "UPLOADING" },
+      publishingHistory: { attemptCount: 3, latestStatus: "FAILED", showingEarlierAttempt: true,
+        unresolvedCount: 2 }
+    }));
+    includes(html, "2 unresolved upload attempts", "Multiple attempts need explicit notice");
+    includes(html, "YouTube upload is in progress", "Old in-progress upload must be respected");
+    excludes(html, "production-publish-panel", "Uploading history must block new uploads");
+    excludes(html, "production-retry", "Do not rerender during a protected upload");
+  });
+
+  test("Only failed attempts still expose the upload form", function () {
+    const html = ui.renderJobCard(job({
+      status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { id: "PUB-FAILED", status: "FAILED", errorMessage: "Download failed" },
+      publishingHistory: { attemptCount: 1, latestStatus: "FAILED", showingEarlierAttempt: false,
+        unresolvedCount: 0 }
+    }));
+    includes(html, "production-publish-panel", "Failed-only history must allow normal upload action");
+    excludes(html, "Earlier upload attempt:", "No historical warning is warranted");
+  });
+
+  test("Recovery event handlers forward the selected publishing attempt ID", function () {
+    const source = fs.readFileSync(SOURCE_PATH, "utf8");
+    for (const field of ["refreshPublication", "reconcilePublication", "abandonPublication"]) {
+      includes(source, "publishingJobId: " + field + ".dataset.publishingJobId",
+        field + " handler must send selected publishing ID");
+    }
+  });
+
   const failures = results.filter(function (r) { return !r.passed; });
   return { passed: failures.length === 0, total: results.length, failures: failures, results: results };
 }
