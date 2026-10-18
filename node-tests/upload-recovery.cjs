@@ -8,7 +8,8 @@ const root = path.resolve(__dirname, '..');
 let passed = 0;
 function test(name, run) { run(); passed++; console.log('PASS ' + name); }
 function fixture(options = {}) {
-  let job, inserts = 0, pages = 0, releases = 0, updateFailed = false;
+  let job = options.initialJob || null, inserts = 0, pages = 0, releases = 0, updateFailed = false;
+  const history = options.history || [];
   const blob = { getBytes: () => [1], setName() { return this; }, setContentType() { return this; } };
   const context = vm.createContext({
     Logger: { log() {} },
@@ -18,7 +19,7 @@ function fixture(options = {}) {
     RenderQualityService: { assertPublishable() {} }, RenderReviewService: { assertApproved() {} },
     SeoRepository: { getById: () => ({ titleOptions: ['Test Short'], description: 'Description', tags: options.tags || [], hashtags: [] }) },
     PublishingJobRepository: {
-      getByRenderJobId: () => job, getAll: () => job ? [job] : [],
+      getByRenderJobId: () => job, getAll: () => history.concat(job ? [job] : []),
       save(value) { job = value; return value; },
       update(value) {
         if (options.allWritesFail || (options.persistenceFailure && value.status === 'PUBLISHED' && !updateFailed)) { updateFailed = true; throw new Error('Sheet unavailable'); }
@@ -101,6 +102,27 @@ test('Retry requires explicit confirmation and the reconciliation state', () => 
   assert.equal(f.job().status, 'RECONCILE');
   assert.equal(f.call('ProductionController.abandonPublication({renderJobId:"RND-TEST",confirmNoUpload:true})').success, true);
   assert.equal(f.job().status, 'FAILED');
+});
+for (const state of ['PUBLISHED', 'RECONCILE', 'UPLOADING']) {
+  test('Older ' + state + ' upload blocks retry even when latest attempt is FAILED', () => {
+    const f = fixture({
+      history: [{ id: 'PUB-OLDER', renderJobId: 'RND-TEST', status: state }],
+      initialJob: { id: 'PUB-NEWER', renderJobId: 'RND-TEST', status: 'FAILED' }
+    });
+    const result = f.call(publish);
+    assert.equal(result.success, false);
+    assert.equal(f.inserts(), 0, 'A protected earlier upload must not be inserted again');
+    assert.equal(f.job().status, 'FAILED', 'The latest record must not be overwritten on guard failure');
+  });
+}
+test('Older FAILED attempts do not block a safe retry when no upload is protected', () => {
+  const f = fixture({
+    history: [{ id: 'PUB-OLDER', renderJobId: 'RND-TEST', status: 'FAILED' }],
+    initialJob: { id: 'PUB-NEWER', renderJobId: 'RND-TEST', status: 'FAILED' }
+  });
+  assert.equal(f.call(publish).success, true);
+  assert.equal(f.inserts(), 1);
+  assert.equal(f.job().status, 'PUBLISHED');
 });
 test('Complete persistence outage leaves UPLOADING blocked', () => {
   const f = fixture({ allWritesFail: true }); f.call(publish);
