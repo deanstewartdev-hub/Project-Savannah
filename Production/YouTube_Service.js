@@ -30,6 +30,12 @@ const YouTubeService = (() => {
     if (!title) throw error_("A YouTube title is required.");
     const description = buildDescription_(source.description || seoPack.description, seoPack.hashtags);
     const tags = normaliseTags_(seoPack.tags);
+    if (source.publishingJobId) {
+      const uploadTag = uploadTag_(source.publishingJobId);
+      // YouTube counts commas and quotes around tags containing spaces toward 500 characters.
+      while (tags.length && tagLength_(tags.concat([uploadTag])) > 500) tags.pop();
+      tags.push(uploadTag);
+    }
     const publishAt = normalisePublishAt_(source.publishAt);
     const privacyStatus = publishAt ? "private" : normalisePrivacy_(source.privacyStatus);
     const videoBlob = download_(renderJob.videoUrl, title);
@@ -46,8 +52,15 @@ const YouTubeService = (() => {
       }
     };
     if (publishAt) resource.status.publishAt = publishAt;
-    const video = YouTube.Videos.insert(resource, "snippet,status", videoBlob);
-    if (!video || !video.id) throw error_("YouTube did not return a video ID.");
+    let video;
+    try {
+      video = YouTube.Videos.insert(resource, "snippet,status", videoBlob);
+      if (!video || !video.id) throw error_("YouTube did not return a video ID.");
+    } catch (caught) {
+      const uncertain = error_("YouTube upload completion is unknown. Check YouTube Studio or reconcile the upload before retrying.");
+      uncertain.uploadUncertain = true;
+      throw uncertain;
+    }
     return {
       videoId: video.id,
       videoUrl: "https://youtu.be/" + video.id,
@@ -75,6 +88,62 @@ const YouTubeService = (() => {
       processingProgress: video.processingDetails && video.processingDetails.processingProgress || {},
       response: sanitise_(video)
     };
+  }
+
+  function findUpload(job) {
+    const tag = uploadTag_(job.id);
+    const channels = YouTube.Channels.list("id,contentDetails", { mine: true });
+    const channel = channels && channels.items && channels.items[0];
+    const playlist = channel && channel.contentDetails && channel.contentDetails.relatedPlaylists &&
+      channel.contentDetails.relatedPlaylists.uploads;
+    if (!playlist) throw error_("The authorized YouTube channel uploads playlist was not found.");
+    const matches = [];
+    let pageToken = "";
+    // Bound quota and execution time. Absence is never permission to re-upload.
+    for (let page = 0; page < 5; page++) {
+      const options = { playlistId: playlist, maxResults: 50 };
+      if (pageToken) options.pageToken = pageToken;
+      const response = YouTube.PlaylistItems.list("contentDetails", options);
+      const ids = (response.items || []).map(function (item) {
+        return item.contentDetails && item.contentDetails.videoId;
+      }).filter(Boolean);
+      if (ids.length) {
+        const videos = YouTube.Videos.list("id,snippet,status,processingDetails", { id: ids.join(",") });
+        (videos.items || []).forEach(function (video) {
+          if (video.snippet && video.snippet.channelId === channel.id &&
+              (video.snippet.tags || []).indexOf(tag) !== -1 &&
+              !matches.some(function (match) { return match.id === video.id; })) matches.push(video);
+        });
+      }
+      pageToken = response.nextPageToken || "";
+      if (!pageToken) break;
+    }
+    if (matches.length > 1) throw error_("Multiple matching YouTube uploads exist. Check YouTube Studio before continuing.");
+    if (!matches.length) return null;
+    const video = matches[0];
+    if (!video.status || ["failed", "rejected", "deleted"].indexOf(video.status.uploadStatus) !== -1) {
+      throw error_("The matching YouTube upload needs review. Check YouTube Studio before continuing.");
+    }
+    return {
+      videoId: video.id, videoUrl: "https://youtu.be/" + video.id,
+      privacyStatus: video.status.privacyStatus,
+      publishAt: video.status.publishAt || "",
+      uploadStatus: video.status.uploadStatus || "",
+      processingStatus: video.processingDetails && video.processingDetails.processingStatus || "",
+      response: sanitise_(video)
+    };
+  }
+
+  function uploadTag_(id) {
+    const value = String(id || "").trim();
+    if (!/^PUB-[A-Za-z0-9-]+$/.test(value)) throw error_("A valid publishing job ID is required.");
+    return "savannah-upload-" + value;
+  }
+
+  function tagLength_(tags) {
+    return tags.reduce(function (length, tag) {
+      return length + tag.length + (/\s/.test(tag) ? 2 : 0);
+    }, Math.max(0, tags.length - 1));
   }
 
   function download_(url, title) {
@@ -129,7 +198,8 @@ const YouTubeService = (() => {
   }
   function error_(message) { const error = new Error(message); error.name = "YouTubeServiceError"; return error; }
 
-  return { requireAuthorization: requireAuthorization, getChannel: getChannel, upload: upload, getVideo: getVideo };
+  return { requireAuthorization: requireAuthorization, getChannel: getChannel, upload: upload, getVideo: getVideo,
+    findUpload: findUpload };
 })();
 
 function authorizeYouTubePublishing() {
