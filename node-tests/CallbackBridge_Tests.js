@@ -262,6 +262,7 @@ function runCallbackBridgeTests() {
       console,
       PropertiesService: { getScriptProperties: () => ({ getProperty: (name) => scriptProperties[name] }) },
       SpreadsheetApp: { openById: () => ({ getSheetByName: () => mockSheet }) },
+      LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
       Logger: { log: () => {} },
       ContentService: { createTextOutput: (s) => ({ text: s, setMimeType: function () { return this; } }), MimeType: { JSON: "JSON" } }
     };
@@ -395,6 +396,78 @@ function runCallbackBridgeTests() {
       if (isTracked) {
         throw new Error("CallbackBridge/.clasp.json must never be tracked by Git.");
       }
+    }
+  });
+
+
+  // ============================================================
+  // Callback terminal-state safety: delayed or repeated delivery must not
+  // overwrite output or trigger a second persistence write.
+  // ============================================================
+
+  function terminalRow_(status) {
+    const row = new Array(REAL_HEADERS.length).fill("");
+    row[1] = VALID_RENDER_ID;
+    row[5] = status;
+    row[6] = 100;
+    row[7] = "https://example.test/first-success.mp4";
+    row[9] = "existing-error";
+    row[11] = '{"status":"succeeded","video":{"url":"https://example.test/first-success.mp4"}}';
+    row[13] = "existing-updated-time";
+    return row;
+  }
+
+  test("SAV-17.1 delayed failure cannot overwrite a succeeded bridge render", () => {
+    const row = terminalRow_("SUCCEEDED");
+    const sheet = makeMockSheet(REAL_HEADERS.slice(), [row]);
+    const sandbox = runInFreshSandboxWithMocks(sheet, { RENDER_JOBS_SPREADSHEET_ID: "test-id" });
+    const before = JSON.stringify(sheet.state.rows[1]);
+    if (sandbox.updateRenderJobByRenderId_(VALID_RENDER_ID, { status: "failed", error: { message: "late error" } }) !== true) {
+      throw new Error("Expected an acknowledged no-op for a terminal render.");
+    }
+    if (sheet.state.calls.length !== 0 || JSON.stringify(sheet.state.rows[1]) !== before) {
+      throw new Error("Late failure must not touch a successful video, metadata or timestamp.");
+    }
+  });
+
+  test("SAV-17.2 duplicate completed callback is idempotent and preserves video evidence", () => {
+    const sheet = makeMockSheet(REAL_HEADERS.slice(), [terminalRow_("SUCCEEDED")]);
+    const sandbox = runInFreshSandboxWithMocks(sheet, { RENDER_JOBS_SPREADSHEET_ID: "test-id" });
+    const before = JSON.stringify(sheet.state.rows[1]);
+    sandbox.updateRenderJobByRenderId_(VALID_RENDER_ID, { status: "completed", video: { url: "https://example.test/second.mp4" } });
+    if (sheet.state.calls.length || JSON.stringify(sheet.state.rows[1]) !== before) {
+      throw new Error("Repeated completion must not replace successful artifacts.");
+    }
+  });
+
+  test("SAV-17.3 completed event after FAILED or CANCELLED requires explicit reconciliation", () => {
+    ["FAILED", "CANCELLED"].forEach((status) => {
+      const sheet = makeMockSheet(REAL_HEADERS.slice(), [terminalRow_(status)]);
+      const sandbox = runInFreshSandboxWithMocks(sheet, { RENDER_JOBS_SPREADSHEET_ID: "test-id" });
+      const before = JSON.stringify(sheet.state.rows[1]);
+      sandbox.updateRenderJobByRenderId_(VALID_RENDER_ID, { status: "completed", video: { url: "https://example.test/late.mp4" } });
+      if (sheet.state.calls.length || JSON.stringify(sheet.state.rows[1]) !== before) {
+        throw new Error("Terminal " + status + " must not change from delayed callbacks.");
+      }
+    });
+  });
+
+  test("SAV-17.4 valid callback still completes active render under a lock", () => {
+    const row = terminalRow_("RENDERING");
+    const sheet = makeMockSheet(REAL_HEADERS.slice(), [row]);
+    const sandbox = runInFreshSandboxWithMocks(sheet, {
+      RENDER_JOBS_SPREADSHEET_ID: "test-id", MEDIA_WORKER_SHARED_SECRET: "synthetic-secret"
+    });
+    const result = sandbox.handleCallback_({
+      postData: { contents: JSON.stringify({
+        jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.test/final.mp4" }
+      }) }
+    }, { secret: "synthetic-secret" });
+    if (!result.success || sheet.state.rows[1][5] !== "SUCCEEDED") {
+      throw new Error("Active render callback must still reach SUCCEEDED.");
+    }
+    if (sheet.state.calls.filter((call) => call.type === "setValues").length !== 1) {
+      throw new Error("Active callback must use one atomic row write.");
     }
   });
 
