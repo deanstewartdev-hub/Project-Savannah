@@ -217,6 +217,95 @@ test('Rerender is blocked when an older upload requires reconciliation', () => {
   assert.equal(response.success, false);
   assert.equal(f.inserts(), 0);
 });
+for (const evidence of [{ youtubeVideoId: 'VIDEO-REMOTE' }, { youtubeUrl: 'https://youtu.be/VIDEO-REMOTE' }]) {
+  test('Failed attempt with remote evidence blocks another YouTube insert', () => {
+    const f = fixture({ initialJob: historicalJob('PUB-FAILED', 'FAILED',
+      new Date().toISOString(), evidence) });
+    assert.equal(f.call(publish).success, false);
+    assert.equal(f.inserts(), 0);
+    const retryResult = f.call('ProductionController.retry({jobId:"RND-TEST"})');
+    assert.equal(retryResult.success, false);
+    assert.match(retryResult.error.message, /Resolve the existing YouTube upload/);
+  });
+}
+test('Production listing surfaces older failed upload with remote evidence', () => {
+  const now = new Date().toISOString();
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'FAILED', '2026-01-01T00:00:00.000Z',
+      { youtubeVideoId: 'VIDEO-REMOTE' })],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', now)
+  });
+  const response = f.call('ProductionController.listJobs()');
+  assert.equal(response.success, true);
+  assert.equal(response.data.jobs[0].publishingJob.id, 'PUB-OLDER');
+  assert.equal(response.data.jobs[0].publishingHistory.showingEarlierAttempt, true);
+  assert.equal(response.data.jobs[0].publishingHistory.unresolvedCount, 1);
+});
+test('Tagged owned upload can reconcile a FAILED attempt that has remote evidence', () => {
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'FAILED', new Date().toISOString(),
+      { youtubeVideoId: 'VIDEO-REMOTE' })],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', new Date().toISOString()),
+    matchesJobId: 'PUB-OLDER'
+  });
+  const result = f.call('ProductionController.reconcilePublication({renderJobId:"RND-TEST",publishingJobId:"PUB-OLDER"})');
+  assert.equal(result.success, true);
+  assert.equal(f.history()[0].status, 'PUBLISHED');
+  assert.equal(f.history()[0].youtubeVideoId, 'VIDEO0');
+  assert.equal(f.inserts(), 0);
+  assert.equal(f.call(publish).success, false);
+});
+test('Missing tagged video never releases FAILED upload evidence automatically', () => {
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'FAILED', new Date().toISOString(),
+      { youtubeVideoId: 'VIDEO-REMOTE' })],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', new Date().toISOString()),
+    matches: false
+  });
+  const result = f.call('ProductionController.reconcilePublication({renderJobId:"RND-TEST",publishingJobId:"PUB-OLDER"})');
+  assert.equal(result.success, false);
+  assert.equal(f.history()[0].youtubeVideoId, 'VIDEO-REMOTE');
+  assert.equal(f.call(publish).success, false);
+  assert.equal(f.inserts(), 0);
+});
+test('Explicit no-upload confirmation archives and clears contradictory remote evidence', () => {
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'FAILED', new Date().toISOString(), {
+      youtubeVideoId: 'VIDEO-REMOTE', youtubeUrl: 'https://youtu.be/VIDEO-REMOTE',
+      providerResponse: { publishAt: '2026-12-10T12:00:00.000Z' }
+    })],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', new Date().toISOString())
+  });
+  const command = 'ProductionController.abandonPublication({renderJobId:"RND-TEST",publishingJobId:"PUB-OLDER",confirmNoUpload:true})';
+  assert.equal(f.call(command.replace('confirmNoUpload:true', 'confirmNoUpload:false')).success, false);
+  assert.equal(f.history()[0].youtubeVideoId, 'VIDEO-REMOTE');
+  assert.equal(f.call(publish).success, false);
+  assert.equal(f.call(command).success, true);
+  const cleared = f.history()[0];
+  assert.equal(cleared.status, 'FAILED');
+  assert.equal(cleared.youtubeVideoId, '');
+  assert.equal(cleared.youtubeUrl, '');
+  assert.equal(cleared.providerResponse.manualReconciliation.previousYoutubeVideoId, 'VIDEO-REMOTE');
+  assert.equal(cleared.providerResponse.manualReconciliation.previousYoutubeUrl, 'https://youtu.be/VIDEO-REMOTE');
+  assert.equal(cleared.providerResponse.manualReconciliation.previousStatus, 'FAILED');
+  assert.ok(cleared.providerResponse.manualReconciliation.confirmedAt);
+  assert.equal(cleared.providerResponse.publishAt, '2026-12-10T12:00:00.000Z');
+  assert.equal(f.call(publish).success, true);
+  assert.equal(f.inserts(), 1);
+});
+test('Manual confirmation also archives YouTube evidence in a RECONCILE attempt', () => {
+  const f = fixture({
+    history: [historicalJob('PUB-OLDER', 'RECONCILE', new Date().toISOString(),
+      { youtubeVideoId: 'REMOTE' })],
+    initialJob: historicalJob('PUB-NEWER', 'FAILED', new Date().toISOString())
+  });
+  const result = f.call('ProductionController.abandonPublication({renderJobId:"RND-TEST",publishingJobId:"PUB-OLDER",confirmNoUpload:true})');
+  assert.equal(result.success, true);
+  assert.equal(f.history()[0].status, 'FAILED');
+  assert.equal(f.history()[0].youtubeVideoId, '');
+  assert.equal(f.history()[0].providerResponse.manualReconciliation.previousYoutubeVideoId, 'REMOTE');
+  assert.equal(f.call(publish).success, true);
+});
 test('Complete persistence outage leaves UPLOADING blocked', () => {
   const f = fixture({ allWritesFail: true }); f.call(publish);
   assert.equal(f.job().status, 'UPLOADING'); f.call(publish); assert.equal(f.inserts(), 1);

@@ -268,6 +268,42 @@ function runProductionUiReconciliationTests() {
     }
   });
 
+  test("FAILED upload with a YouTube ID shows manual recovery but no new upload", function () {
+    const html = ui.renderJobCard(job({
+      status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { id: "PUB-EVIDENCE", status: "FAILED", youtubeVideoId: "VIDEO-REMOTE" },
+      publishingHistory: { attemptCount: 2, latestStatus: "FAILED", showingEarlierAttempt: true,
+        unresolvedCount: 1 }
+    }));
+    includes(html, "Upload evidence needs review", "Must explain contradictory FAILED record");
+    includes(html, 'data-publishing-job-id="PUB-EVIDENCE"', "Recovery must target selected attempt");
+    includes(html, "production-reconcile-publication", "Must support tagged-upload lookup");
+    includes(html, "Confirm no upload for this attempt", "Must require operator confirmation");
+    excludes(html, "production-publish-panel", "Do not offer a duplicate upload");
+    excludes(html, "production-retry", "Do not rerender if a previous upload may exist");
+  });
+
+  test("FAILED upload with a YouTube URL alone is also protected", function () {
+    const html = ui.renderJobCard(job({
+      status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { id: "PUB-EVIDENCE", status: "FAILED",
+        youtubeUrl: "https://youtu.be/REMOTE" }
+    }));
+    includes(html, "Upload evidence needs review", "Remote URL must count as evidence");
+    excludes(html, "production-publish-panel", "URL evidence must block upload");
+    excludes(html, "production-retry", "URL evidence must block rerender");
+  });
+
+  test("Normal FAILED pre-upload attempt remains safely retryable", function () {
+    const html = ui.renderJobCard(job({
+      status: "SUCCEEDED", videoUrl: "https://example.com/video.mp4",
+      publishingJob: { id: "PUB-FAILED", status: "FAILED",
+        youtubeVideoId: "", youtubeUrl: "" }
+    }));
+    includes(html, "production-publish-panel", "No upload evidence: normal retry remains possible");
+    excludes(html, "Upload evidence needs review", "No evidence warning for safe failed upload");
+  });
+
   const failures = results.filter(function (r) { return !r.passed; });
   return { passed: failures.length === 0, total: results.length, failures: failures, results: results };
 }
