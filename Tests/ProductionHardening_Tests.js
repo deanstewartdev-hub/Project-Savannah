@@ -339,11 +339,8 @@ function runProductionHardeningTests() {
   });
 
   test("Scheduled uploads and uncertain attempts still enforce the daily limit", function () {
-    const when = new Date(Date.now() + 3 * 60 * 60 * 1000);
-    const first = new Date(when.getTime() - 90 * 60 * 1000).toISOString();
-    const second = new Date(when.getTime() - 75 * 60 * 1000).toISOString();
-    // The two protected records deliberately share a day with the request.
-    const requestDate = new Date(when);
+    // The protected records deliberately share a day with the requested slot.
+    const requestDate = new Date(Date.now() + 3 * 60 * 60 * 1000);
     requestDate.setUTCHours(18, 0, 0, 0);
     requestDate.setUTCDate(requestDate.getUTCDate() + 1);
     const date = requestDate.toISOString().slice(0, 10);
