@@ -47,6 +47,12 @@ const PublishingScheduleService = (() => {
   // Elapsed slots still count toward daily limits and the gap after publication.
   function slots_(jobs) {
     return (Array.isArray(jobs) ? jobs : []).map(function (job) {
+      // A confirmed pre-upload failure releases its tentative slot. An uncertain
+      // upload must keep its reservation; a FAILED row carrying a YouTube ID/URL
+      // is inconsistent but still evidence of an upload, so fail closed.
+      if (job && String(job.status || "").toUpperCase() === "FAILED" &&
+          !String(job.youtubeVideoId || "").trim() &&
+          !String(job.youtubeUrl || "").trim()) return null;
       const publishAt = normalise_(job && job.providerResponse && job.providerResponse.publishAt, true);
       return publishAt ? {
         publishingJobId: String(job.id || ""),
