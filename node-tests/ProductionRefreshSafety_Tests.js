@@ -36,6 +36,8 @@ function fixture(options = {}) {
       releaseLock: () => { releases++; }
     }) },
     LoggingService: { started() {}, success() {}, failure() {} },
+    // Simulate an empty inbox; race scenarios in this fixture are injected by onPoll.
+    MediaWorkerCallbackInbox: { processPending: () => ({ processed: 0 }), processPendingLocked: () => ({ processed: 0 }) },
     ProductionErrorService: {
       normalise: caught => ({ message: String(caught.message || caught), statusCode: 400 }),
       recordOccurrence: issue => issue
