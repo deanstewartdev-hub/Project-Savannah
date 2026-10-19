@@ -452,22 +452,48 @@ function runCallbackBridgeTests() {
     });
   });
 
-  test("SAV-17.4 valid callback still completes active render under a lock", () => {
-    const row = terminalRow_("RENDERING");
-    const sheet = makeMockSheet(REAL_HEADERS.slice(), [row]);
-    const sandbox = runInFreshSandboxWithMocks(sheet, {
-      RENDER_JOBS_SPREADSHEET_ID: "test-id", MEDIA_WORKER_SHARED_SECRET: "synthetic-secret"
-    });
-    const result = sandbox.handleCallback_({
+  test("SAV-17.4 validated callback is durably queued without writing Render Jobs", () => {
+    const received = [];
+    const inbox = {
+      getLastRow: () => 1 + received.length,
+      getRange: (row, col, height, width) => ({
+        getDisplayValues: () => [sandbox.CALLBACK_INBOX_HEADERS.slice()],
+        setValues: values => {
+          if (row < 2) throw new Error("Test inbox header must not be overwritten.");
+          received.push(values[0]);
+        }
+      })
+    };
+    const script = {
+      PropertiesService: { getScriptProperties: () => ({ getProperty: name => ({
+        MEDIA_WORKER_SHARED_SECRET: "synthetic-secret",
+        RENDER_JOBS_SPREADSHEET_ID: "test-id"
+      })[name] }) },
+      SpreadsheetApp: { openById: () => ({
+        getSheetByName: name => name === "Render Callback Inbox" ? inbox :
+          (() => { throw new Error("Bridge must not access Render Jobs."); })()
+      }) },
+      Utilities: { getUuid: () => "RECEIPT-TEST" },
+      LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
+      Logger: { log: () => {} }
+    };
+    vm.createContext(script);
+    vm.runInContext(bridgeSource, script);
+    const result = script.handleCallback_({
       postData: { contents: JSON.stringify({
-        jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.test/final.mp4" }
+        jobId: VALID_RENDER_ID, status: "completed",
+        video: { url: "https://example.test/final.mp4" }
       }) }
     }, { secret: "synthetic-secret" });
-    if (!result.success || sheet.state.rows[1][5] !== "SUCCEEDED") {
-      throw new Error("Active render callback must still reach SUCCEEDED.");
+    if (!result.success || !result.queued || received.length !== 1) {
+      throw new Error("Valid callback must queue precisely one receipt.");
     }
-    if (sheet.state.calls.filter((call) => call.type === "setValues").length !== 1) {
-      throw new Error("Active callback must use one atomic row write.");
+    if (received[0][1] !== VALID_RENDER_ID || received[0][2] !== "completed") {
+      throw new Error("Receipt identity and callback status were not preserved.");
+    }
+    const payload = JSON.parse(received[0][3]);
+    if (payload.jobId !== VALID_RENDER_ID || payload.video.url !== "https://example.test/final.mp4") {
+      throw new Error("Queued receipt lost the finished video's payload.");
     }
   });
 
