@@ -257,6 +257,107 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Failed pre-upload attempts release their tentative publishing time", function () {
+    const when = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    const failed = {
+      id: "PUB-FAILED", renderJobId: "RND-FAILED", status: "FAILED",
+      providerResponse: { publishAt: when }
+    };
+    const result = PublishingScheduleService.assertAvailable(when, [failed], "RND-NEW");
+    if (!result.scheduled || result.publishAt !== when) {
+      throw new Error("Failed pre-upload attempt incorrectly reserved the time.");
+    }
+  });
+
+  test("Failed pre-upload attempts do not use a daily publishing slot", function () {
+    const result = PublishingScheduleService.suggestSlots([
+      { id: "PUB-FAILED", renderJobId: "RND-FAILED", status: "FAILED",
+        providerResponse: { publishAt: "2026-11-09T12:00:00.000Z" } },
+      { id: "PUB-PUBLISHED", renderJobId: "RND-PUBLISHED", status: "PUBLISHED",
+        providerResponse: { publishAt: "2026-11-09T18:00:00.000Z" } }
+    ], { now: "2026-11-09T09:00:00.000Z", timezoneOffsetMinutes: 0,
+      dailyTimes: ["12:00", "18:00"], maxPerDay: 2, daysAhead: 1 });
+    if (result.slots.length !== 1 ||
+        result.slots[0].publishAt !== "2026-11-09T12:00:00.000Z") {
+      throw new Error("A failed pre-upload attempt used up an available daily slot.");
+    }
+  });
+
+  test("Uncertain uploads continue holding a slot even without a YouTube ID", function () {
+    const when = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    ["RECONCILE", "UPLOADING"].forEach(function (status) {
+      let blocked = false;
+      try {
+        PublishingScheduleService.assertAvailable(when, [{
+          id: "PUB-" + status, renderJobId: "RND-OTHER", status: status,
+          providerResponse: { publishAt: when }
+        }], "RND-NEW");
+      } catch (error) { blocked = error.name === "PublishingScheduleError"; }
+      if (!blocked) throw new Error(status + " upload unexpectedly released its reserved slot.");
+    });
+  });
+
+  test("Failed records with evidence of upload retain their publishing reservation", function () {
+    const when = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    [{ youtubeVideoId: "YT-EXISTS" }, { youtubeUrl: "https://youtu.be/YT-EXISTS" }].forEach(function (evidence) {
+      let blocked = false;
+      try {
+        PublishingScheduleService.assertAvailable(when, [Object.assign({
+          id: "PUB-FAILED-WITH-EVIDENCE", renderJobId: "RND-OTHER",
+          status: "FAILED", providerResponse: { publishAt: when }
+        }, evidence)], "RND-NEW");
+      } catch (error) { blocked = error.name === "PublishingScheduleError"; }
+      if (!blocked) throw new Error("A record containing YouTube upload evidence released its slot.");
+    });
+  });
+
+  test("Failed history does not double-count an existing published Short", function () {
+    const result = PublishingScheduleService.suggestSlots([
+      { id: "PUB-OLD", renderJobId: "RND-EXISTING", status: "PUBLISHED",
+        providerResponse: { publishAt: "2026-11-09T12:00:00.000Z" } },
+      { id: "PUB-LATER-FAILED", renderJobId: "RND-EXISTING", status: "FAILED",
+        providerResponse: { publishAt: "2026-11-09T18:00:00.000Z" } }
+    ], { now: "2026-11-09T09:00:00.000Z", timezoneOffsetMinutes: 0,
+      dailyTimes: ["12:00", "18:00"], maxPerDay: 2, daysAhead: 1 });
+    if (result.slots.length !== 1 ||
+        result.slots[0].publishAt !== "2026-11-09T18:00:00.000Z") {
+      throw new Error("A failed follow-up caused duplicate daily-cap consumption.");
+    }
+  });
+
+  test("Upcoming calendar hides failed-only upload reservations", function () {
+    const when = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    const scheduled = PublishingScheduleService.upcoming([
+      { id: "PUB-FAILED", status: "FAILED", providerResponse: { publishAt: when } },
+      { id: "PUB-PUBLISHED", status: "PUBLISHED", providerResponse: { publishAt: when } },
+      { id: "PUB-UNCERTAIN", status: "RECONCILE", providerResponse: { publishAt: when } }
+    ]);
+    if (scheduled.length !== 2 ||
+        scheduled.some(function (slot) { return slot.publishingJobId === "PUB-FAILED"; })) {
+      throw new Error("Upcoming calendar includes a known failed pre-upload attempt.");
+    }
+  });
+
+  test("Scheduled uploads and uncertain attempts still enforce the daily limit", function () {
+    // The protected records deliberately share a day with the requested slot.
+    const requestDate = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    requestDate.setUTCHours(18, 0, 0, 0);
+    requestDate.setUTCDate(requestDate.getUTCDate() + 1);
+    const date = requestDate.toISOString().slice(0, 10);
+    let blocked = false;
+    try {
+      PublishingScheduleService.assertAvailable(date + "T18:00:00.000Z", [
+        { id: "PUB-PUBLISHED", renderJobId: "RND-A", status: "PUBLISHED",
+          providerResponse: { publishAt: date + "T12:00:00.000Z" } },
+        { id: "PUB-UNCERTAIN", renderJobId: "RND-B", status: "RECONCILE",
+          providerResponse: { publishAt: date + "T14:00:00.000Z" } },
+        { id: "PUB-FAILED", renderJobId: "RND-C", status: "FAILED",
+          providerResponse: { publishAt: date + "T16:00:00.000Z" } }
+      ], "RND-NEW", { timezoneOffsetMinutes: 0, maxPerDay: 2 });
+    } catch (error) { blocked = /daily publishing limit/.test(error.message); }
+    if (!blocked) throw new Error("Daily limit did not count uncertain and published uploads.");
+  });
+
   test("Publishing schedule protects the gap after a recent publication", function () {
     const now = Date.now();
     let blocked = false;
