@@ -150,9 +150,19 @@ function handleCallback_(event, parameters) {
     if (!isValidRenderId_(String(body.jobId))) return { success: false, error: "Malformed render ID." };
     if (!isValidCallbackStatus_(body.status)) return { success: false, error: "Unknown or missing status." };
 
-    var updated = updateRenderJobByRenderId_(String(body.jobId), body);
-    if (!updated) return { success: false, error: "Render job was not found." };
-    return { success: true };
+    // Serialise concurrent callbacks from the media worker: a delayed failure must
+    // never race a successful completion and replace its output.
+    var lock = LockService.getScriptLock();
+    if (!lock.tryLock(30000)) {
+      return { success: false, error: "Render callback is busy; retry." };
+    }
+    try {
+      var updated = updateRenderJobByRenderId_(String(body.jobId), body);
+      if (!updated) return { success: false, error: "Render job was not found." };
+      return { success: true };
+    } finally {
+      lock.releaseLock();
+    }
   } catch (caught) {
     Logger.log("CallbackBridge failed: " + (caught && caught.message || caught));
     return { success: false, error: "Callback processing failed." };
@@ -188,6 +198,13 @@ function updateRenderJobByRenderId_(renderId, body) {
     if (String(values[i][0]).trim() === renderId) { rowIndex = i + 2; break; }
   }
   if (rowIndex === -1) return false;
+
+  // Terminal rows are immutable to callback retries. A late "failed" event must
+  // not erase a delivered video, and a late "completed" event after a failure
+  // requires manual reconciliation rather than an implicit state reversal.
+  var statusColumn = RENDER_JOBS_HEADERS.indexOf("Status") + 1;
+  var existingStatus = String(sheet.getRange(rowIndex, statusColumn, 1, 1).getDisplayValues()[0][0] || "").trim().toUpperCase();
+  if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(existingStatus) !== -1) return true;
 
   var changes = body.status === "completed" ? completedChanges_(body) : failedChanges_(body);
   writeCompletionColumns_(sheet, rowIndex, changes);
