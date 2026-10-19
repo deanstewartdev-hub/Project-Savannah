@@ -410,6 +410,8 @@
     const published = job.publishingJob && job.publishingJob.status === "PUBLISHED";
     const uncertainUpload = job.publishingJob && job.publishingJob.status === "RECONCILE";
     const uploading = job.publishingJob && job.publishingJob.status === "UPLOADING";
+    const uploadEvidenceReview = job.publishingJob && job.publishingJob.status === "FAILED" &&
+      !!(job.publishingJob.youtubeVideoId || job.publishingJob.youtubeUrl);
     const publishingDetails = published && job.publishingJob.providerResponse || {};
     const history = job.publishingHistory || {};
     const historicalUploadNotice = history.showingEarlierAttempt && job.publishingJob ?
@@ -441,7 +443,8 @@
       '<button class="button button-primary production-approve-render" data-job-id="' +
       escapeHtml(job.id) + '">Approve finished video</button>' :
       (review.approved ? '<p><span class="badge">Final review approved</span></p>' : '');
-    const retryAction = !published && !uncertainUpload && !uploading && !recoveryRequired &&
+    const retryAction = !published && !uncertainUpload && !uploading &&
+      !uploadEvidenceReview && !recoveryRequired &&
       (job.status === "FAILED" ||
       (job.status === "SUCCEEDED" && (!quality.passed || !review.approved))) ?
       '<button class="button button-secondary production-retry" data-job-id="' +
@@ -473,6 +476,16 @@
       escapeHtml(job.id) + '" data-publishing-job-id="' +
       escapeHtml(job.publishingJob.id) + '">Confirm no upload for this attempt</button>' : uploading ?
       '<p><strong>YouTube upload is in progress.</strong> Savannah is preventing a duplicate submission.</p>' :
+      uploadEvidenceReview ?
+      '<p><strong>Upload evidence needs review.</strong> This failed attempt still contains ' +
+      'a YouTube video ID or link. Savannah cannot safely retry until it is reconciled ' +
+      'or YouTube Studio confirms no upload exists.</p>' +
+      '<button class="button button-secondary production-reconcile-publication" data-job-id="' +
+      escapeHtml(job.id) + '" data-publishing-job-id="' +
+      escapeHtml(job.publishingJob.id) + '">Find existing YouTube upload</button>' +
+      '<button class="button button-secondary production-abandon-publication" data-job-id="' +
+      escapeHtml(job.id) + '" data-publishing-job-id="' +
+      escapeHtml(job.publishingJob.id) + '">Confirm no upload for this attempt</button>' :
       (quality.passed && review.approved ? '<div class="production-publish-panel form-grid" data-job-id="' +
       escapeHtml(job.id) + '" style="margin-top:12px">' +
       '<div class="form-group"><label class="form-label">Video title</label>' +
