@@ -94,7 +94,7 @@ function runCallbackBridgeTests() {
   test("SAV-15.6 CallbackBridge defines only its own minimal function set - no operator controller name appears", () => {
     const declaredFunctions = Array.from(bridgeSource.matchAll(/^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/gm)).map((m) => m[1]);
     const expected = ["doPost", "resolveParameters_", "resolveRoute_", "isAuthorizedCallback_", "isValidRenderId_",
-      "isValidCallbackStatus_", "headersMatchExpected_", "handleCallback_", "updateRenderJobByRenderId_",
+      "isValidCallbackStatus_", "headersMatchExpected_", "handleCallback_", "appendCallbackReceipt_", "updateRenderJobByRenderId_",
       "writeCompletionColumns_", "completedChanges_", "failedChanges_"];
     const unexpected = declaredFunctions.filter((name) => !expected.includes(name));
     if (unexpected.length) {
