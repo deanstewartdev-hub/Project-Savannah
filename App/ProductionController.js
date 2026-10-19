@@ -217,16 +217,10 @@ const ProductionController = (() => {
       const jobId = String(request && request.jobId || "").trim();
       const job = RenderJobRepository.getById(jobId);
       if (!job) throw error_("Render job was not found.");
+      // Terminal callback results are authoritative; polling must not revise them.
+      if (renderIsTerminal_(job)) return { job: job };
       const render = VideoProcessingProvider.forJob(job).getRender(job);
-      const updated = RenderJobModel.update(job, {
-        status: mapStatus_(render.status),
-        progress: render.progress || (String(render.status).toLowerCase() === "succeeded" ? 100 : job.progress),
-        videoUrl: render.url || job.videoUrl,
-        snapshotUrl: render.snapshot_url || job.snapshotUrl,
-        errorMessage: render.error_message || "",
-        providerResponse: sanitise_(render)
-      });
-      return { job: RenderJobRepository.update(updated) };
+      return { job: persistRenderRefresh_(job, render, null) };
     });
   }
 
@@ -241,22 +235,47 @@ const ProductionController = (() => {
           if (!job.renderId) return job;
           try {
             const render = VideoProcessingProvider.forJob(job).getRender(job);
-            return RenderJobRepository.update(RenderJobModel.update(job, {
-            status: mapStatus_(render.status),
-            progress: render.progress ||
-              (String(render.status).toLowerCase() === "succeeded" ? 100 : job.progress),
-            videoUrl: render.url || job.videoUrl,
-            snapshotUrl: render.snapshot_url || job.snapshotUrl,
-            errorMessage: render.error_message || "",
-            providerResponse: sanitise_(render)
-            }));
+            return persistRenderRefresh_(job, render, null);
           } catch (caught) {
-            return RenderJobRepository.update(RenderJobModel.update(job, {
-              errorMessage: "Status refresh failed; Savannah will retry: " + friendlyError_(caught)
-            }));
+            // A provider error must not overwrite a callback that arrived mid-poll.
+            return persistRenderRefresh_(job, null, caught);
           }
         })
       };
+    });
+  }
+
+  function renderIsTerminal_(job) {
+    return ["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(job.status) !== -1 ||
+      !!job.videoUrl;
+  }
+
+  // Do not hold the script lock during the remote provider request. Instead,
+  // re-read the authoritative row inside the lock before every Sheet write.
+  // Callback receivers in this Apps Script project use the same script lock.
+  function persistRenderRefresh_(observed, render, providerError) {
+    return withScriptLock_(function () {
+      const current = RenderJobRepository.getById(observed.id);
+      if (!current) throw error_("Render job was not found.");
+      // A callback may have finished the render while the network request ran.
+      // Version also protects newer nonterminal updates and recovery metadata.
+      if (renderIsTerminal_(current) ||
+          current.renderId !== observed.renderId ||
+          Number(current.version) !== Number(observed.version)) {
+        return current;
+      }
+      const changes = providerError ? {
+        errorMessage: "Status refresh failed; Savannah will retry: " + friendlyError_(providerError)
+      } : {
+        status: mapStatus_(render.status),
+        progress: render.progress ||
+          (String(render.status).toLowerCase() === "succeeded" ? 100 : current.progress),
+        videoUrl: render.url || current.videoUrl,
+        snapshotUrl: render.snapshot_url || current.snapshotUrl,
+        errorMessage: render.error_message || "",
+        providerResponse: sanitise_(render)
+      };
+      return RenderJobRepository.update(RenderJobModel.update(current, changes));
     });
   }
 
