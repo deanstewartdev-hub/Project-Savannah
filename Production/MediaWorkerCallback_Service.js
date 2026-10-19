@@ -27,9 +27,28 @@ const MediaWorkerCallbackService = (() => {
         return { success: false, error: "This job does not belong to the media worker." };
       }
 
-      const changes = body.status === "completed" ? completedChanges_(body) : failedChanges_(body);
-      RenderJobRepository.update(RenderJobModel.update(job, changes));
-      return { success: true };
+      if (body.status !== "completed" && body.status !== "failed") {
+        return { success: false, error: "Unknown or missing status." };
+      }
+
+      // Prevent concurrent delivery callbacks from racing each other's status writes.
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(30000)) {
+        return { success: false, error: "Render callback is busy; retry." };
+      }
+      try {
+        // Read again under the lock: another callback may have completed the row.
+        const current = RenderJobRepository.getByRenderId(String(body.jobId));
+        if (!current) return { success: false, error: "Render job was not found." };
+        if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(current.status) !== -1) {
+          return { success: true, ignored: true };
+        }
+        const changes = body.status === "completed" ? completedChanges_(body) : failedChanges_(body);
+        RenderJobRepository.update(RenderJobModel.update(current, changes));
+        return { success: true };
+      } finally {
+        lock.releaseLock();
+      }
     } catch (caught) {
       Logger.log("MediaWorkerCallbackService failed: " + (caught && caught.message || caught));
       return { success: false, error: "Callback processing failed." };
