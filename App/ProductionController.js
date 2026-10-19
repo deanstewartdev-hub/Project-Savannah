@@ -272,7 +272,8 @@ const ProductionController = (() => {
       return failure_("Published videos cannot be re-rendered from the retry action.");
     }
     if (uploadHistory.some(function (upload) {
-      return upload.status === "RECONCILE" || upload.status === "UPLOADING";
+      return upload.status === "RECONCILE" || upload.status === "UPLOADING" ||
+        needsUploadEvidenceReview_(upload);
     })) {
       return failure_("Resolve the existing YouTube upload attempt before re-rendering.");
     }
@@ -333,14 +334,15 @@ const ProductionController = (() => {
         const visible = attempts.filter(function (item) { return item.status === "PUBLISHED"; })[0] ||
           attempts.filter(function (item) { return item.status === "UPLOADING"; })[0] ||
           attempts.filter(function (item) { return item.status === "RECONCILE"; })[0] ||
-          attempts[0] || null;
+          attempts.filter(needsUploadEvidenceReview_)[0] || attempts[0] || null;
         result.publishingJob = visible;
         result.publishingHistory = {
           attemptCount: attempts.length,
           latestStatus: attempts.length ? attempts[0].status : "",
           showingEarlierAttempt: !!(visible && attempts[0].id !== visible.id),
           unresolvedCount: attempts.filter(function (item) {
-            return item.status === "UPLOADING" || item.status === "RECONCILE";
+            return item.status === "UPLOADING" || item.status === "RECONCILE" ||
+              needsUploadEvidenceReview_(item);
           }).length
         };
         result.seoPack = job.seoPackId ? SeoRepository.getById(job.seoPackId) : null;
@@ -409,6 +411,9 @@ const ProductionController = (() => {
       }
       if (history.some(function (job) { return job.status === "RECONCILE"; })) {
         throw error_("This upload ended in an uncertain state. Check YouTube Studio, then reconcile each uncertain attempt before retrying.");
+      }
+      if (history.some(needsUploadEvidenceReview_)) {
+        throw error_("A failed upload attempt still contains YouTube video evidence. Reconcile it or verify in YouTube Studio before retrying.");
       }
       const scheduleCheck = PublishingScheduleService.assertAvailable(
         source.publishAt,
@@ -489,9 +494,23 @@ const ProductionController = (() => {
       if (source.confirmNoUpload !== true) throw error_("Confirmation that no YouTube upload exists is required.");
       const renderJobId = String(source.renderJobId || "").trim();
       const job = publishingJobForAction_(source);
-      if (!job || job.status !== "RECONCILE") throw error_("No uncertain upload was found for this render.");
+      if (!job || (job.status !== "RECONCILE" && !needsUploadEvidenceReview_(job))) {
+        throw error_("No unresolved upload attempt was found for this render.");
+      }
+      // Explicit operator confirmation is the only way to clear contradictory
+      // remote evidence. Preserve an audit copy before releasing the reservation.
       return { job: PublishingJobRepository.update(PublishingJobModel.update(job, {
         status: "FAILED",
+        youtubeVideoId: "",
+        youtubeUrl: "",
+        providerResponse: Object.assign({}, job.providerResponse || {}, {
+          manualReconciliation: {
+            confirmedAt: new Date().toISOString(),
+            previousStatus: job.status,
+            previousYoutubeVideoId: job.youtubeVideoId || "",
+            previousYoutubeUrl: job.youtubeUrl || ""
+          }
+        }),
         errorMessage: "No upload was confirmed in YouTube Studio for this attempt. Other attempts may still block retry."
       })) };
       });
@@ -502,7 +521,9 @@ const ProductionController = (() => {
     return run_("YouTube upload reconciliation completed.", function () {
       return withScriptLock_(function () {
         const job = publishingJobForAction_(request);
-        if (!job || job.status !== "RECONCILE") throw error_("No uncertain upload was found for this render.");
+        if (!job || (job.status !== "RECONCILE" && !needsUploadEvidenceReview_(job))) {
+          throw error_("No unresolved upload attempt was found for this render.");
+        }
         const found = YouTubeService.findUpload(job);
         if (!found) throw error_("No matching upload was found among the latest 250 channel uploads. Completion is unknown; check YouTube Studio. Older uploads may not contain a Savannah identifier.");
         return { job: PublishingJobRepository.update(PublishingJobModel.update(job, {
@@ -513,6 +534,11 @@ const ProductionController = (() => {
         })) };
       });
     });
+  }
+
+  function needsUploadEvidenceReview_(job) {
+    return !!job && job.status === "FAILED" &&
+      !!(String(job.youtubeVideoId || "").trim() || String(job.youtubeUrl || "").trim());
   }
 
   // UI actions may target a historical upload attempt by its persisted ID.
