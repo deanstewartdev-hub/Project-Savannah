@@ -637,6 +637,13 @@ const ProductionController = (() => {
       return locked ? MediaWorkerCallbackInbox.processPendingLocked() : MediaWorkerCallbackInbox.processPending();
     } catch (caught) {
       try {
+        // The page polls every ~12s while renders are active; log a persistent
+        // inbox failure at most once per 10 minutes instead of on every drain.
+        if (typeof CacheService !== "undefined") {
+          const cache = CacheService.getScriptCache();
+          if (cache.get("CALLBACK_INBOX_WARNED")) return { error: String(caught && caught.message || caught) };
+          cache.put("CALLBACK_INBOX_WARNED", "1", 600);
+        }
         LoggingService.log({
           action: "PRODUCTION_CALLBACK_INBOX", status: LoggingService.STATUS.WARNING,
           message: "Render callback inbox could not be processed; receipts remain pending.",

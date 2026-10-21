@@ -160,6 +160,15 @@ test('Broken inbox schema does not take down refreshActive; receipt stays pendin
   assert.equal(s.lockHeld(), false);
 });
 
+test('Persistent inbox failure is logged once per throttle window, not on every poll', () => {
+  const wrong = HEADERS.slice(); wrong[0] = 'Receipt';
+  const cache = {};
+  const s = sandbox({ receipts: [receipt('completed')], headers: wrong });
+  s.context.CacheService = { getScriptCache: () => ({ get: k => cache[k] || null, put: (k, v) => { cache[k] = v; } }) };
+  for (let i = 0; i < 5; i++) assert.equal(s.call('ProductionController.refreshActive()').success, true);
+  assert.equal(s.warnings().filter(w => w.action === 'PRODUCTION_CALLBACK_INBOX').length, 1, 'Warning was not throttled.');
+});
+
 test('Broken inbox schema does not block a manual refresh write under the lock', () => {
   const wrong = HEADERS.slice(); wrong[6] = 'Outcome';
   const s = sandbox({ headers: wrong, pollResponse: { status: 'rendering', progress: 70, url: '' } });
