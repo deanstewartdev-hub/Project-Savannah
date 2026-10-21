@@ -74,12 +74,12 @@ function setup(rows, jobs, options) {
   const lock = { held: false, released: 0, tryLock: () => !opts.busy, releaseLock() { lock.released++; } };
   let sheetReads = 0;
   const context = vm.createContext({
-    console,
+    console, Logger: { log() {} },
     Utilities: { getUuid: randomUUID },
     LockService: { getScriptLock: () => lock },
     UrlFetchApp: { fetch() { throw new Error("Network access is forbidden in consumer tests."); } },
     SpreadsheetApp: {
-      getActiveSpreadsheet: () => ({ getSheetByName(name) { sheetReads++; return name === "Render Callback Inbox" ? sheet : null; } })
+      getActiveSpreadsheet: () => ({ getId: () => "main-sheet-id", getName: () => "Savannah", getSheetByName(name) { sheetReads++; return name === "Render Callback Inbox" ? sheet : null; } })
     },
     RenderJobRepository: {
       getByRenderId(renderId) {
@@ -100,7 +100,7 @@ function setup(rows, jobs, options) {
     vm.runInContext(fs.readFileSync(path.join(REPO, file), "utf8"), context, { filename: file });
   }
   const inbox = vm.runInContext("MediaWorkerCallbackInbox", context);
-  return { inbox, sheet, store, repoWrites, lock, sheetReads: () => sheetReads };
+  return { inbox, context, sheet, store, repoWrites, lock, sheetReads: () => sheetReads };
 }
 
 function result(sheet, index) { return sheet.data[index + 1][6]; }
@@ -315,6 +315,26 @@ function runCallbackInboxConsumerTests() {
     const t = setup([], [renderJob()], { noSheet: true });
     const stats = t.inbox.processPending();
     assert(stats.processed === 0 && stats.rejected === 0 && t.repoWrites.length === 0, "Missing sheet should do nothing.");
+  });
+
+  test("diagnoseCallbackInbox reports spreadsheet identity and backlog without writing", () => {
+    const done = receipt(RENDER_A, "failed"); done[5] = new Date(); done[6] = "APPLIED";
+    const erroring = receipt(RENDER_B, "completed", undefined, new Date("2026-10-20T10:00:00Z")); erroring[6] = "ERROR 2: boom";
+    const fresh = receipt(RENDER_B, "completed", undefined, new Date("2026-10-21T10:00:00Z"));
+    const t = setup([done, erroring, fresh], [renderJob()]);
+    const report = vm.runInContext("diagnoseCallbackInbox()", t.context);
+    assert(report.spreadsheetId === "main-sheet-id" && report.inboxSheetPresent && report.headersMatch === true, "Identity/schema not reported.");
+    assert(report.receipts === 3 && report.pending === 2 && report.pendingWithErrors === 1, "Backlog counts wrong: " + JSON.stringify(report));
+    assert(report.results.APPLIED === 1 && report.results.PENDING === 2, "Result breakdown wrong.");
+    assert(report.oldestPendingReceivedAt === "2026-10-20T10:00:00.000Z", "Oldest pending wrong: " + report.oldestPendingReceivedAt);
+    assert(t.sheet.writes.length === 0 && t.repoWrites.length === 0, "Diagnostic must be read-only.");
+  });
+
+  test("diagnoseCallbackInbox flags a schema mismatch instead of throwing", () => {
+    const wrong = HEADERS.slice(); wrong[1] = "Render";
+    const t = setup([receipt(RENDER_A, "completed")], [renderJob()], { headers: wrong });
+    const report = vm.runInContext("diagnoseCallbackInbox()", t.context);
+    assert(report.headersMatch === false && t.sheet.writes.length === 0, "Mismatch not flagged read-only.");
   });
 
   test("consumer source makes no network calls under the lock", () => {

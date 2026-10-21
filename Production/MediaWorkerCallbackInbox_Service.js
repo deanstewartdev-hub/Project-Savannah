@@ -90,7 +90,7 @@ const MediaWorkerCallbackInbox = (() => {
     }
     const current = RenderJobRepository.getByRenderId(renderId);
     if (!current) {
-      const receivedAt = row[4] instanceof Date ? row[4].getTime() : Date.parse(String(row[4] || ""));
+      const receivedAt = timeOf_(row[4]);
       if (isFinite(receivedAt) && now - receivedAt > ORPHAN_AFTER_MS) {
         mark_(sheet, rowNumber, "ORPHANED");
         stats.orphaned++;
@@ -137,6 +137,12 @@ const MediaWorkerCallbackInbox = (() => {
     }
   }
 
+  // Sheets returns a Date for date-formatted cells but a string for text cells.
+  function timeOf_(value) {
+    if (value && typeof value.getTime === "function") return value.getTime();
+    return Date.parse(String(value || ""));
+  }
+
   function emptyStats_(extra) {
     return Object.assign({ processed: 0, ignored: 0, deferred: 0, rejected: 0, orphaned: 0, errors: 0, failedPermanent: 0 }, extra || {});
   }
@@ -175,5 +181,60 @@ const MediaWorkerCallbackInbox = (() => {
     };
   }
 
-  return { processPending: processPending, processPendingLocked: processPendingLocked };
+  return { processPending: processPending, processPendingLocked: processPendingLocked, timeOf: timeOf_ };
 })();
+
+/**
+ * Owner diagnostic, run from the Apps Script editor. READ-ONLY: it never writes
+ * the inbox or Render Jobs. Use it to confirm the callback bridge's
+ * RENDER_JOBS_SPREADSHEET_ID equals this project's spreadsheet, and to see the
+ * inbox backlog. See CALLBACK_INBOX_STAGING.md.
+ */
+function diagnoseCallbackInbox() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!spreadsheet) throw new Error("This project has no active (bound) spreadsheet.");
+  const report = {
+    spreadsheetId: spreadsheet.getId(),
+    spreadsheetName: spreadsheet.getName(),
+    inboxSheetPresent: false,
+    headersMatch: null,
+    receipts: 0,
+    pending: 0,
+    pendingWithErrors: 0,
+    oldestPendingReceivedAt: "",
+    results: {}
+  };
+  const sheet = spreadsheet.getSheetByName("Render Callback Inbox");
+  if (sheet) {
+    const expected = ["Receipt ID", "Render ID", "Status", "Payload JSON", "Received At", "Handled At", "Result"];
+    report.inboxSheetPresent = true;
+    report.headersMatch = sheet.getRange(1, 1, 1, expected.length).getDisplayValues()[0].join("|") === expected.join("|");
+    let oldest = 0;
+    if (sheet.getLastRow() >= 2) {
+      sheet.getRange(2, 1, sheet.getLastRow() - 1, expected.length).getValues().forEach(function (row) {
+        report.receipts++;
+        const outcome = row[5] ? String(row[6] || "").split(":")[0] : "PENDING";
+        report.results[outcome] = (report.results[outcome] || 0) + 1;
+        if (!row[5]) {
+          report.pending++;
+          if (/^ERROR \d+:/.test(String(row[6] || ""))) report.pendingWithErrors++;
+          const received = MediaWorkerCallbackInbox.timeOf(row[4]);
+          if (isFinite(received) && (!oldest || received < oldest)) oldest = received;
+        }
+      });
+    }
+    if (oldest) report.oldestPendingReceivedAt = new Date(oldest).toISOString();
+  }
+  Logger.log(JSON.stringify(report, null, 2));
+  return report;
+}
+
+/**
+ * Owner/staging helper, run from the Apps Script editor: drains the inbox once,
+ * exactly as opening the Production page does, without polling any provider.
+ */
+function drainCallbackInboxNow() {
+  const stats = MediaWorkerCallbackInbox.processPending();
+  Logger.log(JSON.stringify(stats));
+  return stats;
+}
