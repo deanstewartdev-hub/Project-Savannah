@@ -1,0 +1,107 @@
+# v1.4 Release Readiness
+
+Audit date: **21 October 2026**. Branch: `integration/v1.4-callback-inbox-and-duration-preflight`
+([PR #15](https://github.com/deanstewartdev-hub/Project-Savannah/pull/15)). Tracked in issue #6.
+
+Everything here was checked against the code, not the README. "Tested" means a CI test exercises
+the real code path with Google services faked. **Nothing has been verified live**, and no
+deployment, merge, callback-URL change, paid render or upload has been made.
+
+## Summary
+
+| Area | State |
+|---|---|
+| Code for v1.4 | Feature-complete for the Cloud Run pipeline; all known safe-to-fix defects fixed |
+| CI | Green: 21 app suites (syntax 81 server files + 9 frontend scripts) and media worker 81/81 |
+| Release blockers left | Owner-only: staging run, worker image, bridge deployment, cut-over, one real render, one private upload |
+
+## 1. Prioritised backlog
+
+### P0: release blockers
+
+| # | Finding | Files | Status |
+|---|---|---|---|
+| P0-1 | This code ships `appsscript.json` with `access: MYSELF`. If it is deployed while `MEDIA_WORKER_CALLBACK_URL` still points at the main app, **every callback fails** (the worker cannot sign in). | `appsscript.json`, `Production/VideoProcessingProvider.js` | **Mitigated:** read-only release readiness check (Settings → Release readiness, `diagnoseReleaseReadiness`) BLOCKS this configuration. Cut-over order in §4. |
+| P0-2 | 25 commits (callback-bridge isolation SAV-15, secret separation, `/jobs/status` reconciliation) sat between #3 and #5 with **no PR**. | `CallbackBridge/`, `Services/Services_Secrets.js`, `media-worker/src/lib/*` | **Fixed:** draft [PR #18](https://github.com/deanstewartdev-hub/Project-Savannah/pull/18) makes them reviewable. |
+| P0-3 | Four sibling PRs (#13, #14, #16, #17) build on #12; two touch `App/ProductionController.js`. | — | **Fixed:** all integrated in #15 with merge commits; one trivial loader-list conflict resolved; combined suite green. Merge order in §3. |
+| P0-4 | The **legacy callback route** (the one production uses today) recorded SUCCEEDED for a `completed` callback with an empty or non-https video URL. | `Production/MediaWorkerCallback_Service.js` | **Fixed** (`eabad3f`), 2 tests. |
+| P0-5 | Live verification not done: staging, one real render, one private upload. | `CALLBACK_INBOX_STAGING.md`, `LIVE_ACCEPTANCE.md` | **Blocked on owner.** Staging is now automated (§5). |
+
+### P1: fix before or soon after release
+
+| # | Finding | Files | Status |
+|---|---|---|---|
+| P1-1 | Signed video links expire after 7 days. After that, uploads failed forever with "HTTP 400", and **there was no recovery**: delivery recovery's re-signed link was ignored because the render was already terminal. The only way out was a paid re-render. | `Production/VideoLink_Service.js`, inbox, legacy route, `publish()` | **Fixed** (`8f38ff6`): publish refuses clearly before recording an attempt; both callback routes accept a same-artifact link refresh; health warns 48 h ahead. |
+| P1-2 | With Cloud Run, scene preparation buys GPT images the render never uses; the server and background queue did not prevent it. | `App/ProductionController.js`, `Production/ProductionQueue_Service.js` | **Fixed** (`a0e45be`). |
+| P1-3 | Analytics stored **0 views for every video** and captured only the first 50 videos. | `Analytics/YouTubeAnalytics_Service.js` | **Fixed** (`4ae3ab1`), first analytics CI tests. Bug is live in production today. |
+| P1-4 | An interrupted render submission is marked FAILED with a "Re-render safely" hint even if the worker accepted it, paying twice; its delivery was only set aside after 48 h. | controller, health | **Fixed** (`a397e70`): critical health finding after 15 min; procedure in `LIVE_ACCEPTANCE.md`. |
+| P1-5 | Callback delivery was a single attempt; any transient error lost the result. | `media-worker/src/lib/callback.js` | **Fixed** (`6b5da59`), **needs a new worker image** to take effect. |
+| P1-6 | A broken inbox sheet could stop the background queue and break the Production page. | controller, queue | **Fixed** (`2cd8eb9`, `21d0d89`). |
+| P1-7 | Background queue cannot be enabled: `script.scriptapp` scope is not in the manifest. Without it, callbacks are processed only when someone opens Production. | `appsscript.json` | **Owner decision.** Adding a scope blocks the whole web app until re-authorised. Readiness check reports the state. |
+| P1-8 | The human approval gate had no CI test. | `App/QueueController.js` | **Fixed** (`3768220`): 8 tests, mutation-checked; no defect found. |
+| P1-9 | Default music track is a silent placeholder. | worker `DEFAULT_MUSIC_TRACK_PATH` | **Owner** (`APPROVALS_REQUIRED.md`). |
+| P1-10 | Almost all tests use mocks; no realistic integration coverage. | `node-tests/` | **Improved:** `StagingFlowEndToEnd_Tests.js` runs the real bridge → inbox → verifier chain; live staging still required. |
+
+### P2: worthwhile, not blocking
+
+| # | Finding | Recommendation |
+|---|---|---|
+| P2-1 | Settings page is Creatomate-centric and shows nothing about the Cloud Run worker. | Replace the Creatomate card once v1.4's success condition allows removal (`ROADMAP.md`). The readiness card covers the worker meanwhile. |
+| P2-2 | Global in-app `test*` functions (e.g. `testLoggingService`) can write real rows; reachable only by the owner (`access: MYSELF`). | Move to `Tests/` or guard behind a property, like `stagingSeedRenderJobs`. |
+| P2-3 | `publish()` holds the script lock for the whole download + upload; other actions report "busy" meanwhile. | Acceptable (it is what prevents duplicates). Revisit only if uploads become slow. |
+| P2-4 | The inbox sheet grows forever; each receipt does a full Render Jobs read. | Archive handled receipts monthly; index Render Jobs once per pass if volume grows. |
+| P2-5 | Bridge secret comparison is not constant-time. | Low risk over HTTPS via Apps Script; harden opportunistically. |
+| P2-6 | Analytics insights are shown on the dashboard but never fed back into idea generation. | Product decision (`FUTURE.md`). |
+| P2-7 | Docs drift: `README.md` and the app header say v1.3; `HANDOFF.md` is from 19 August; `CLAUDE.md` names `sprint-3` as canonical. | Update at release time, after the stack merges. |
+| P2-8 | Creatomate code remains. | Remove only after the v1.4 success condition in `ROADMAP.md`. |
+
+## 2. Workflow trace (verified in code)
+
+| Stage | Entry point → code path | Implemented | CI-tested | Live-verified | Notes |
+|---|---|---|---|---|---|
+| Idea generation | `ideasGenerate` → `Ideas/Idea_Engine.js generateIdeasWorkflow` (OpenAI) | Yes | In-app only | Earlier releases | — |
+| Script generation | `scriptsGenerateScript` → `Scripts/Script_Engine.js` + `Script_Validator.js` | Yes | Yes (prompt alignment, duration, options) | Earlier releases | Narration bounds also enforced at submit |
+| Approval | `scriptsSendForReview` → `queueDecide` → `QueueController.decide` | Yes | **Yes (new)** | Earlier releases | Every render entry point requires APPROVED |
+| SEO | `seoGenerate` → `SEO/Seo_Engine.js` (APPROVED only) | Yes | In-app only | Earlier releases | Feeds YouTube title/description/tags |
+| Video preparation | Cloud Run: none (worker builds visuals). Creatomate: scene preparation | Yes | Yes | — | Preparation now refused under Cloud Run (P1-2) |
+| Rendering | `productionSubmit` → `submitCore_` → dispatcher → Cloud Run job → callback → bridge → inbox → `Render Jobs` | Yes | Yes (inbox, bridge, reconciliation, staging e2e) | One real render (Aug, legacy callback route) | **Blocked:** staging + one render through the bridge |
+| Quality checks | `RenderQualityService` (probe gates) + human review `RenderReviewService` | Yes | Yes | Aug render passed gates | — |
+| YouTube publishing | `productionPublish` → `publish()` → `YouTubeService.upload` | Yes | Yes (48 upload-recovery cases) | **No** | **Blocked:** one private upload |
+| Analytics | `analyticsRefresh` → `YouTubeAnalyticsService.capture/summary` | Yes | **Yes (new)** | Partly (views were wrong) | P1-3 fixed |
+| Monitoring | Production health panel, readiness check, Logs sheet | Yes | Yes | No | — |
+
+## 3. Merge order (owner)
+
+```text
+main ← #2 sprint-3 (fast-forward) ← #3 ← #18 (review gap) ← #5 ← #7 ← #8 ← #9 ← #10 ← #11 ← #12 ← #15
+```
+
+#15 contains #13, #14, #16 and #17 as merge commits. Once #15 merges they become empty: close them
+as "included in #15". Merge bottom-up, re-running CI at each step.
+
+## 4. Production cut-over order (owner, after staging passes)
+
+Do this with **no render in progress** (Production shows no active renders).
+
+1. **Worker first.** Build and deploy the new dispatcher and render-job images. This is safe on its
+   own: the retry change works with today's callback route.
+2. **Production bridge.** Deploy `CallbackBridge/` as its own project with the production
+   `MEDIA_WORKER_SHARED_SECRET` and `RENDER_JOBS_SPREADSHEET_ID`; run `CALLBACK_INBOX_STAGING.md`
+   Part C to prove the spreadsheet identity.
+3. **Callback URL, then main app.** Run `Secrets.setMediaWorkerCallbackUrl("<bridge /exec>")` in
+   the editor, then deploy the merged main app as a new version of the same deployment ID. In
+   between, deliveries wait safely in the inbox, so nothing is sent to an address that rejects it
+   (this matches the order in `CallbackBridge/CallbackBridge.js`).
+4. **Readiness.** Settings → Release readiness must show no BLOCK.
+5. **Live acceptance.** `LIVE_ACCEPTANCE.md`: one real render, review, one private upload.
+6. **Optional.** Background automation (`script.scriptapp` scope) as a separate, planned
+   re-authorisation.
+
+**Rollback:** set `MEDIA_WORKER_CALLBACK_URL` back and redeploy the previous main version (v89).
+Receipts already in the inbox stay safe and are applied once the new version returns.
+
+## 5. Staging readiness
+
+Fully prepared and automated: `CALLBACK_INBOX_STAGING.md` (plain-language guide, three steps,
+checks C1–C12, troubleshooting). Its correctness is proven locally by
+`node node-tests/StagingFlowEndToEnd_Tests.js`. Not yet run against Google.

@@ -103,7 +103,7 @@ Run this before the real worker's callback address is switched to the real bridg
    **Blocked**. In particular, the callback address must **not** point at the main app itself.
 2. In the real main app's editor, run `diagnoseCallbackInbox`, and compare `spreadsheetId` with the
    real bridge's `RENDER_JOBS_SPREADSHEET_ID`. They must match exactly.
-3. The order of the real cut-over is in `RELEASE_READINESS.md`. Do not change it.
+3. The order of the real cut-over is in `RELEASE_READINESS.md` §4. Do not change it.
 
 ## Clean-up
 
