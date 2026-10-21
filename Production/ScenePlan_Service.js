@@ -39,11 +39,11 @@ const ScenePlanService = (() => {
       return total + slot.expectedDurationSeconds;
     }, 0), 2);
 
+    // Speaking rate varies by voice and delivery. Only measured audio can gate a render.
+    const warnings = [];
     if (expectedDurationSeconds < 30 || expectedDurationSeconds > 60) {
-      throw error_(
-        "Planned narration duration is " + expectedDurationSeconds +
-        " seconds; it must be between 30 and 60 seconds."
-      );
+      warnings.push("Estimated narration duration is " + expectedDurationSeconds +
+        " seconds, outside the 30 to 60 second target. Measured audio must be between 30 and 60 seconds.");
     }
 
     return {
@@ -52,6 +52,7 @@ const ScenePlanService = (() => {
       slotCount: slots.length,
       expectedDurationSeconds: expectedDurationSeconds,
       voiceoverWordCount: countWords_(voiceover),
+      warnings: warnings,
       slots: slots,
       modelVersion: "scene-plan-v1.5-model-ready"
     };
@@ -96,12 +97,14 @@ const ScenePlanService = (() => {
     if (!plan || !Array.isArray(plan.slots) || plan.slots.length !== SLOT_COUNT) {
       throw error_("A complete four-slot scene plan is required.");
     }
-    if (duration < 30 || duration > 60) {
+    if (!Number.isFinite(duration) || duration < 30 || duration > 60) {
       throw error_("Measured narration duration is " + duration +
         " seconds; it must be between 30 and 60 seconds.");
     }
     const estimated = Number(plan.expectedDurationSeconds || 0);
-    if (!estimated) throw error_("The scene plan has no estimated duration.");
+    if (!Number.isFinite(estimated) || estimated <= 0) {
+      throw error_("The scene plan has no valid estimated duration.");
+    }
     let allocated = 0;
     const slots = plan.slots.map(function (slot, index) {
       const slotDuration = index === SLOT_COUNT - 1
@@ -127,7 +130,7 @@ const ScenePlanService = (() => {
       throw error_("Four measured scene narration durations are required.");
     }
     const measured = durations.map(function (value) { return round_(Number(value || 0), 2); });
-    if (measured.some(function (value) { return value <= 0; })) {
+    if (measured.some(function (value) { return !Number.isFinite(value) || value <= 0; })) {
       throw error_("Every scene narration must have a measurable duration.");
     }
     const total = round_(measured.reduce(function (sum, value) { return sum + value; }, 0), 2);

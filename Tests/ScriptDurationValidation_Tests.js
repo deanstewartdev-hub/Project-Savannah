@@ -195,6 +195,64 @@ function runScriptDurationValidationTests() {
     }
   });
 
+  // --- ScenePlanService: estimate is a warning, measured audio is the gate ---
+
+  function scenePlanScript(wordCount) {
+    const scene = sceneWithWords(1, wordCount);
+    return {
+      id: "SCR-TEST",
+      voiceoverScript: scene.narration,
+      scenes: [scene, { sceneNumber: 2, narration: "", visualDirection: "x" },
+        { sceneNumber: 3, narration: "", visualDirection: "x" },
+        { sceneNumber: 4, narration: "", visualDirection: "x" }]
+    };
+  }
+
+  function expectThrows(callback, message) {
+    let threw = false;
+    try { callback(); } catch (error) { threw = true; }
+    if (!threw) throw new Error(message);
+  }
+
+  test("14a. ScenePlanService.create warns instead of throwing when the estimate is out of range", function () {
+    const plan = ScenePlanService.create(scenePlanScript(40));
+    if (plan.expectedDurationSeconds >= 30) throw new Error("Fixture should estimate under 30s.");
+    if (!Array.isArray(plan.warnings) || plan.warnings.length !== 1) {
+      throw new Error("Expected exactly one warning, got " + JSON.stringify(plan.warnings));
+    }
+  });
+
+  test("14b. ScenePlanService.create returns no warnings for an in-range estimate", function () {
+    const plan = ScenePlanService.create(scenePlanScript(80));
+    if (plan.expectedDurationSeconds < 30 || plan.expectedDurationSeconds > 60) {
+      throw new Error("Fixture should estimate within 30-60s, got " + plan.expectedDurationSeconds);
+    }
+    if (plan.warnings.length !== 0) throw new Error("Unexpected warnings: " + JSON.stringify(plan.warnings));
+  });
+
+  test("14c. Measured-duration fitting still rejects out-of-range and non-finite values", function () {
+    const plan = ScenePlanService.create(scenePlanScript(80));
+    [29.9, 60.1, NaN, Infinity].forEach(function (value) {
+      expectThrows(function () { ScenePlanService.fitToDuration(plan, value); },
+        "fitToDuration must reject " + value);
+    });
+    [[7.4, 7.4, 7.4, 7.4], [15.1, 15.1, 15.1, 15.1], [10, 10, 10, NaN], [10, 10, 10, Infinity]]
+      .forEach(function (durations) {
+        expectThrows(function () { ScenePlanService.fitToSlotDurations(plan, durations); },
+          "fitToSlotDurations must reject " + JSON.stringify(durations));
+      });
+    ScenePlanService.fitToDuration(plan, 45);
+  });
+
+  test("14d. fitToDuration rejects a plan with no valid estimate", function () {
+    const plan = ScenePlanService.create(scenePlanScript(80));
+    [0, NaN].forEach(function (estimate) {
+      expectThrows(function () {
+        ScenePlanService.fitToDuration(Object.assign({}, plan, { expectedDurationSeconds: estimate }), 45);
+      }, "fitToDuration must reject an estimate of " + estimate);
+    });
+  });
+
   // --- Creatomate path unaffected ---
 
   test("14. Creatomate path is untouched by this fix", function () {
