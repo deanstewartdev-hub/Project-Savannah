@@ -5,6 +5,16 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 19 October 2026 — legacy narration duration preflight
+
+Legacy scene planning now returns an advisory warning when estimated narration is
+outside 30–60 seconds, allowing actual audio timing to determine eligibility.
+Measured duration remains a hard gate before visual preparation and render submission.
+Non-finite measured timing and invalid total estimates are rejected explicitly.
+Added 22 local regression tests for estimates, measured limits, invalid timing,
+narration preservation, and rejection before visual generation. No paid providers
+are called by these fixtures. This change is not yet deployed.
+
 ### 19 October 2026 — publishing reliability on the current Cloud Run baseline
 
 - Block duplicate uploads after ambiguous YouTube insert failures or persistence

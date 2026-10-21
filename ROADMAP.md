@@ -81,8 +81,10 @@ Apps Script adaptation:
       Cloud Run submission path (beats come straight from `script.scenes`)
 - [x] Rewrite `RenderQualityService` to consume real probe results instead of the request
       payload, for jobs that carry one
-- [ ] Downgrade the pre-flight duration estimate from a throw to a warning (only affects
-      `ScenePlanService`, i.e. the legacy Creatomate path)
+- [x] Downgrade the pre-flight duration estimate from a throw to a warning (only affects
+      `ScenePlanService`, i.e. the legacy Creatomate path). Implemented and locally
+      tested on 19 October 2026; deployment pending. Measured audio still must pass
+      the 30–60 second gate, and invalid/non-finite durations are rejected.
 - [x] Move asset delivery from public Drive links to signed GCS URLs, for the worker's own
       render output
 - [ ] Shrink the render queue to job submission + polling; retire per-scene resume,

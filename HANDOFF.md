@@ -1,4 +1,30 @@
-# Project Savannah — Session Handoff (19 August 2026)
+# Project Savannah — Session Handoff
+
+## 19 October 2026 — continuation checkpoint
+
+- Fetched GitHub and found the latest open reliability branch at
+  `fix/render-refresh-stale-write-guard` (`7f8ca0a`, PR #12). The local Documents
+  checkout was still at `chore/post-duration-hardening` (`883e34f`).
+- Continued in a separate clone under the Youtube Automation project workspace,
+  `active-development/`, on `fix/legacy-duration-preflight`.
+- Completed the interrupted ScenePlanService change: estimates are advisory;
+  measured timing retains the 30–60 second gate and rejects non-finite values.
+- Draft review: https://github.com/deanstewartdev-hub/Project-Savannah/pull/13
+  (base: PR #12's branch). The original Documents checkout remains untouched,
+  including its unfinished ScenePlanService edit and local Claude configuration.
+- Verification: 219 app checks passed via `node node-tests/run-local.cjs`;
+  76 server files and nine frontend scripts parsed. The unchanged media-worker
+  passed 68 tests using the existing installed dependencies in Documents.
+- GitHub CLI works in the normal Windows session. A sandbox-only authentication
+  failure was not an expired user login and did not require credential replacement.
+- No deployment, paid render, or YouTube upload was performed. The existing
+  reliability PR stack remains unmerged; review/integration precedes deployment.
+- Follow-up: verify current live deployment against the intended integrated branch,
+  smoke-test production after integration, and revisit music selection and final
+  video review. Historical deployment/authorization details below are August
+  observations, not a new live-state verification.
+
+## Historical checkpoint — 19 August 2026
 
 Compact but complete state dump for a new Claude Code session picking up this work.
 Everything below was verified directly (git/gcloud/clasp/npm commands, live Sheet
