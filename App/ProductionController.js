@@ -194,7 +194,8 @@ const ProductionController = (() => {
         else if (action === "cancel" && ["SUBMITTED", "CANCELLED"].indexOf(task.status) === -1) status = "CANCELLED";
         else throw error_("That preparation action is not valid for the current status.");
         return { task: ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
-          status: status, errorMessage: action === "resume" ? "" : task.errorMessage
+          status: status, errorMessage: action === "resume" ? "" : task.errorMessage,
+          attempts: action === "resume" ? task.preparedScenes.length : task.attempts
         })) };
       });
     });
@@ -202,12 +203,22 @@ const ProductionController = (() => {
 
   function submitPrepared(request) {
     return run_("Prepared Short submitted for rendering.", function () {
-      let task = ProductionTaskRepository.getById(String(request && request.taskId || "").trim());
-      if (!task) throw error_("Production preparation task was not found.");
-      if (task.status !== "READY" || task.preparedScenes.length !== 4) {
-        throw error_("All four scenes must be prepared before rendering.");
-      }
-      task = ProductionTaskRepository.persist(ProductionTaskRepository.update(task, { status: "SUBMITTING" }));
+      const taskId = String(request && request.taskId || "").trim();
+      // Claim the task under the script lock: re-read it and move READY -> SUBMITTING in one
+      // step, so two overlapping callers (queue tick and a click, or two ticks) cannot both
+      // submit it, and a loser can never overwrite the winner's state. The lock is released
+      // before submitCore_, which takes the lock itself.
+      let task = withScriptLock_(function () {
+        const current = ProductionTaskRepository.getById(taskId);
+        if (!current) throw error_("Production preparation task was not found.");
+        if (current.status === "SUBMITTING") {
+          throw error_("This Short is already being submitted. The duplicate submission was prevented.");
+        }
+        if (current.status !== "READY" || current.preparedScenes.length !== 4) {
+          throw error_("All four scenes must be prepared before rendering.");
+        }
+        return ProductionTaskRepository.persist(ProductionTaskRepository.update(current, { status: "SUBMITTING" }));
+      });
       try {
         const result = submitCore_({ scriptId: task.scriptId, forceRerender: !!task.sourceRenderJobId });
         task = ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
@@ -215,11 +226,72 @@ const ProductionController = (() => {
         }));
         return { task: task, job: result.job };
       } catch (caught) {
-        ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+        // If a render row was created and is still alive, the render may be running. Keep the
+        // task linked to it instead of failing it: a failed task invites another submission.
+        const started = renderStartedBy_(task);
+        ProductionTaskRepository.persist(ProductionTaskRepository.update(task, started ? {
+          status: "SUBMITTED", renderJobId: started.id, errorMessage: friendlyError_(caught)
+        } : {
           status: "FAILED", errorMessage: friendlyError_(caught)
         }));
         throw caught;
       }
+    });
+  }
+
+  // The render row (not failed or cancelled) that a submission started at or after the task
+  // entered SUBMITTING, or null. One second of tolerance absorbs clock and Sheets rounding.
+  function renderStartedBy_(task) {
+    const since = new Date(task.updatedAt).getTime() - 1000;
+    return RenderJobRepository.getAll().filter(function (job) {
+      return job.scriptId === task.scriptId && job.id !== task.sourceRenderJobId &&
+        ["FAILED", "CANCELLED"].indexOf(job.status) === -1 && new Date(job.createdAt).getTime() >= since;
+    }).sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); })[0] || null;
+  }
+
+  // An execution lasts at most 6 minutes, so a task still SUBMITTING after this has lost its worker.
+  const SUBMITTING_STALE_MS = 10 * 60 * 1000;
+  // Interrupted attempts at one scene (a timeout or crash records no failure) before the task stops.
+  const MAX_INTERRUPTED_ATTEMPTS = 3;
+  function interruptedAttempts_(task) {
+    return Math.max(0, Number(task.attempts || 0) - (task.preparedScenes || []).length);
+  }
+
+  // Called by the queue tick. Settles tasks whose worker disappeared, so nothing waits forever and
+  // nothing is retried forever. Never starts a render and never prepares a scene.
+  function reviewStalledTasks(nowMs) {
+    const now = Number(nowMs) || Date.now();
+    const outcome = { resumedSubmission: [], adoptedRender: [], stoppedPreparation: [] };
+    return withScriptLock_(function () {
+      ProductionTaskRepository.getAll().forEach(function (task) {
+        const age = now - new Date(task.updatedAt).getTime();
+        if (task.status === "SUBMITTING" && age >= SUBMITTING_STALE_MS) {
+          const started = renderStartedBy_(task);
+          if (started) {
+            ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+              status: "SUBMITTED", renderJobId: started.id, errorMessage: ""
+            }));
+            outcome.adoptedRender.push(task.id);
+            logRecovery_("Task " + task.id + " was stuck submitting. It is now linked to render " + started.id + ", which was already started; nothing was submitted again.");
+          } else {
+            ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+              status: "READY",
+              errorMessage: "A submission was interrupted before any render started. It will be submitted again."
+            }));
+            outcome.resumedSubmission.push(task.id);
+            logRecovery_("Task " + task.id + " was stuck submitting and no render had started, so it was returned to READY for another attempt.");
+          }
+        } else if (task.status === "PREPARING" && interruptedAttempts_(task) >= MAX_INTERRUPTED_ATTEMPTS) {
+          ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+            status: "FAILED",
+            errorMessage: "Scene " + task.nextScene + " was interrupted " + MAX_INTERRUPTED_ATTEMPTS +
+              " times, which usually means it exceeds the Apps Script time limit. Check the Logs sheet, then use Resume to try again."
+          }));
+          outcome.stoppedPreparation.push(task.id);
+          logRecovery_("Task " + task.id + " was stopped after " + MAX_INTERRUPTED_ATTEMPTS + " interrupted attempts at scene " + task.nextScene + ".");
+        }
+      });
+      return outcome;
     });
   }
 
@@ -762,7 +834,7 @@ const ProductionController = (() => {
   function error_(message) { const error = new Error(message); error.name = "ProductionControllerError"; return error; }
 
   return { testConnection: testConnection, listReady: listReady, submit: submit,
-    startPreparation: startPreparation, prepareNextScene: prepareNextScene,
+    startPreparation: startPreparation, prepareNextScene: prepareNextScene, reviewStalledTasks: reviewStalledTasks,
     controlPreparation: controlPreparation, submitPrepared: submitPrepared, refresh: refresh,
     refreshActive: refreshActive, retry: retry, prepareScene: prepareScene, approveRender: approveRender, listJobs: listJobs,
     getYouTubeConnection: getYouTubeConnection, getAutomationStatus: getAutomationStatus,

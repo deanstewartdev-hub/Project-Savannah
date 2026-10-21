@@ -407,6 +407,39 @@ dashboard with ambient background motion (`prefers-reduced-motion` respected thr
 - Tests: `node-tests/ProductionHealth_Tests.js` (20) and 5 controller cases in
   `node-tests/upload-recovery.cjs` (46 total). Not deployed.
 
+### 21 October 2026 — background queue: stuck, poisoned and endlessly retried tasks
+
+Review of the 5-minute queue worker (`processProductionQueue`) and the task state machine found four
+defects, none covered by any test:
+
+- **Stuck in SUBMITTING, forever.** A task is set to SUBMITTING before the render is submitted. If the
+  execution died after that, nothing ever picked the task up again, `startPreparation` kept returning it,
+  and the queue status did not count it. The queue tick now settles any task stuck for 10 minutes (an
+  execution lasts at most 6): if a render was already started for the script it links the task to that
+  render and submits nothing; if none started it returns the task to READY. Both are logged as
+  `PRODUCTION_RECOVERY`.
+- **Poison task at the head of the queue.** A step that failed before it could record its own failure (for
+  example a READY task with three prepared scenes, or a script no longer approved) stayed first in line
+  and threw every 5 minutes, so no task behind it was ever processed. A non-temporary failure now marks
+  that task FAILED ("Stopped by the queue: ...") so the queue moves on. Temporary failures (busy lock,
+  rate limit, timeouts) are left alone.
+- **Interrupted scenes retried forever.** A scene that timed out or crashed recorded no failure, so it
+  was retried every tick with no limit, repeating paid asset generation. Retries now back off 5, 10, 20
+  minutes and stop after 3 interrupted attempts with an explicit message. Resume clears the count.
+- **Submission claimed outside the lock.** `submitPrepared` read the task, then wrote SUBMITTING without
+  the script lock, so overlapping callers could both proceed and a loser could overwrite the winner's
+  state. READY -> SUBMITTING is now a locked compare-and-set, and a second caller is refused as busy
+  (retryable) rather than failing the task. If a submission fails after a render row exists and is not
+  failed or cancelled, the task stays linked to it instead of becoming FAILED, because a failed task
+  invites another paid render.
+- Scope: under the Cloud Run renderer (the live provider) scene preparation is refused and the queue only
+  submits leftover READY tasks, so the SUBMITTING, poison-task and submission-claim fixes apply to both
+  providers, while the retry cap and backoff chiefly protect the Creatomate fallback.
+- Nothing here starts a render or prepares a scene on its own; recovery only settles state.
+- `node-tests/QueueReliability_Tests.js` (17) runs the real task repository, queue service and controller
+  on a fake sheet; 12 of the 17 fail against the previous code (the other 5 pin behaviour that must not
+  change). Not deployed.
+
 ## Earlier history
 
 Prior work (Apps Script foundation through Phase 4 analytics: idea/script/SEO pipeline,
