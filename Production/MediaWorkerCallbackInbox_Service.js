@@ -80,6 +80,15 @@ const MediaWorkerCallbackInbox = (() => {
       stats.rejected++;
       return true;
     }
+    // Synthetic staging callbacks must never change a production render, even if a
+    // staging bridge was pointed at this spreadsheet by mistake. Safe by default:
+    // without the staging guard available, it counts as production.
+    if (body.synthetic === true &&
+        !(typeof isStagingEnvironment_ === "function" && isStagingEnvironment_())) {
+      mark_(sheet, rowNumber, "REJECTED_SYNTHETIC");
+      stats.rejected++;
+      return true;
+    }
     // A "completed" callback with no deliverable video is not proof of success.
     // Never record SUCCEEDED without media evidence; leave the render active so
     // status reconciliation (which inspects the real artifact) decides instead.

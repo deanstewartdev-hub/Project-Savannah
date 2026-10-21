@@ -337,6 +337,29 @@ function runCallbackInboxConsumerTests() {
     assert(report.headersMatch === false && t.sheet.writes.length === 0, "Mismatch not flagged read-only.");
   });
 
+  test("delivery for an ambiguous submission (QUEUED with reserved render ID, PR #19) is applied", () => {
+    const t = setup([receipt(RENDER_A, "completed")], [renderJob({ status: "QUEUED", progress: 0 })]);
+    const stats = t.inbox.processPending();
+    assert(stats.processed === 1 && result(t.sheet, 0) === "APPLIED", "Delivery for a QUEUED reserved render was not applied.");
+    assert(t.store[0].status === "SUCCEEDED" && t.store[0].videoUrl === VIDEO_URL, "QUEUED render did not complete.");
+  });
+
+  test("synthetic staging receipt reaching a production inbox is rejected and never applied", () => {
+    const synthetic = Object.assign(defaultBody(RENDER_A, "completed"), { synthetic: true });
+    const t = setup([receipt(RENDER_A, "completed", synthetic)], [renderJob()]);
+    const stats = t.inbox.processPending();
+    assert(stats.rejected === 1 && result(t.sheet, 0) === "REJECTED_SYNTHETIC", "Synthetic receipt was not rejected.");
+    assert(t.repoWrites.length === 0 && t.store[0].status === "RENDERING", "A synthetic receipt changed a production render.");
+  });
+
+  test("synthetic receipt is applied only where the project is marked staging", () => {
+    const synthetic = Object.assign(defaultBody(RENDER_A, "completed"), { synthetic: true });
+    const t = setup([receipt(RENDER_A, "completed", synthetic)], [renderJob()]);
+    vm.runInContext("function isStagingEnvironment_() { return true; }", t.context);
+    t.inbox.processPending();
+    assert(result(t.sheet, 0) === "APPLIED" && t.store[0].status === "SUCCEEDED", "Staging should apply synthetic receipts.");
+  });
+
   test("recentReceipts returns the latest rows without payloads, read-only", () => {
     const done = receipt(RENDER_A, "failed"); done[5] = new Date(); done[6] = "ORPHANED";
     const t = setup([receipt(RENDER_B, "completed"), done, receipt(RENDER_A, "completed")], [renderJob()]);
