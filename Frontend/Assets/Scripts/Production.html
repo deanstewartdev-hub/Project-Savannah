@@ -247,7 +247,9 @@
           action = '<button class="button button-secondary production-ready-retry" data-job-id="' +
             escapeHtml(state.failed.id) + '">Re-render safely</button>';
         } else {
-          const taskLabel = task ? (task.status === "READY" ? "Submit prepared render" :
+          // Cloud Run never uses scene preparation (the click submits directly), so a
+          // leftover preparation task must not relabel the button as resuming it.
+          const taskLabel = task && currentProvider !== "cloud-run" ? (task.status === "READY" ? "Submit prepared render" :
             (task.status === "FAILED" ? "Retry scene preparation (" + prepared + "/4)" :
             "Resume scene preparation (" + prepared + "/4)")) : "Create Short";
           action = '<button class="button button-primary production-submit" data-script-id="' +

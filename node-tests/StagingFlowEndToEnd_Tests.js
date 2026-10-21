@@ -79,7 +79,8 @@ function world(options) {
       update: j => (jobs[j.id] = JSON.parse(JSON.stringify(j)))
     },
     ProductionTaskRepository: { getAll: () => opts.tasks || [] },
-    ProductionController: {}
+    ProductionController: {},
+    Secrets: { getVideoProvider: () => 'cloud-run' }
   });
   for (const file of ['Models/RenderJob.js', 'Production/VideoLink_Service.js', 'Production/MediaWorkerCallbackInbox_Service.js',
     'Production/ProductionQueue_Service.js', 'Production/StagingVerification_Service.js']) {

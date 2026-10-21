@@ -14,8 +14,11 @@ const ProductionQueueService = (() => {
     } catch (caught) {
       callbacks = { error: String(caught && caught.message || caught) };
     }
+    // Under Cloud Run, scene preparation would only buy images the render ignores
+    // (ProductionController refuses it), so leftover PREPARING tasks are not run.
+    const cloudRun = provider_() === "cloud-run";
     const tasks = rankTasks(ProductionTaskRepository.getAll().filter(function (task) {
-      return ["PREPARING", "READY"].indexOf(task.status) !== -1;
+      return task.status === "READY" || (task.status === "PREPARING" && !cloudRun);
     }));
     if (!tasks.length) return { processed: false, message: "No production tasks are waiting.", callbacks: callbacks };
     const task = tasks[0];
@@ -26,6 +29,10 @@ const ProductionQueueService = (() => {
       throw error_(response && response.error && response.error.message || "The queued production step failed.");
     }
     return { processed: true, taskId: task.id, previousStatus: task.status, result: response.data };
+  }
+
+  function provider_() {
+    return String(Secrets.getVideoProvider() || "cloud-run").toLowerCase();
   }
 
   function rankTasks(tasks) {

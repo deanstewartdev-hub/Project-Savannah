@@ -88,7 +88,7 @@ function sandbox(options) {
     } }) },
     RenderQualityService: {}, RenderReviewService: {}, PublishingJobRepository: {},
     SeoRepository: {}, ScriptsRepository: {}, ProductionTaskRepository: opts.tasks || {},
-    Secrets: {}, SHEETS: {},
+    Secrets: { getVideoProvider: () => opts.provider || 'cloud-run' }, SHEETS: {},
     ProductionController: opts.stubController
   });
   for (const source of ['Models/RenderJob.js', 'Production/VideoLink_Service.js', 'Production/MediaWorkerCallbackInbox_Service.js',
@@ -190,19 +190,20 @@ function shortEstimateScript() {
 }
 
 function queueSandbox(options) {
-  const task = { id: 'TSK-1', scriptId: 'SCR-SHORT', status: 'PREPARING', priority: 3, createdAt: '2026-10-21T00:00:00.000Z' };
+  // Cloud Run (the default) only submits READY tasks; PREPARING is a legacy Creatomate step.
+  const task = { id: 'TSK-1', scriptId: 'SCR-SHORT', status: options && options.taskStatus || 'READY', priority: 3, createdAt: '2026-10-21T00:00:00.000Z' };
   const stub = {};
   const s = sandbox(Object.assign({ tasks: { getAll: () => [clone(task)] }, stubController: stub }, options));
-  const seen = { plans: [], lockHeldDuringStep: null };
+  const seen = { plans: [], steps: [], lockHeldDuringStep: null };
   // Stand-in for the controller step: takes the lock itself and builds the real plan.
-  Object.assign(stub, {
-    prepareNextScene: () => {
-      seen.lockHeldDuringStep = s.lockHeld();
-      s.events.push('step');
-      seen.plans.push(vm.runInContext('ScenePlanService', s.context).create(shortEstimateScript()));
-      return { success: true, data: { complete: false } };
-    }
-  });
+  const step = name => () => {
+    seen.lockHeldDuringStep = s.lockHeld();
+    seen.steps.push(name);
+    s.events.push('step');
+    seen.plans.push(vm.runInContext('ScenePlanService', s.context).create(shortEstimateScript()));
+    return { success: true, data: { complete: false } };
+  };
+  Object.assign(stub, { prepareNextScene: step('prepareNextScene'), submitPrepared: step('submitPrepared') });
   return { s, seen };
 }
 
@@ -242,6 +243,35 @@ test('Queue tick under lock contention skips the drain but still runs the step',
   assert.equal(seen.plans.length, 1);
   assert.equal(s.job().status, 'RENDERING', 'A skipped pass must not touch the render.');
   assert.equal(result(s, 0), '', 'Receipt must remain pending.');
+});
+
+test('Cloud Run: the queue submits a READY task and never runs paid scene preparation', () => {
+  const ready = queueSandbox({});
+  assert.equal(ready.s.call('ProductionQueueService.processNext()').processed, true);
+  assert.deepEqual(ready.seen.steps, ['submitPrepared']);
+  const leftover = queueSandbox({ taskStatus: 'PREPARING' });
+  const outcome = leftover.s.call('ProductionQueueService.processNext()');
+  assert.equal(outcome.processed, false, 'A leftover PREPARING task must not run under Cloud Run.');
+  assert.deepEqual(leftover.seen.steps, []);
+});
+
+test('Creatomate (legacy): the queue still runs scene preparation', () => {
+  const { s, seen } = queueSandbox({ taskStatus: 'PREPARING', provider: 'creatomate' });
+  assert.equal(s.call('ProductionQueueService.processNext()').processed, true);
+  assert.deepEqual(seen.steps, ['prepareNextScene']);
+});
+
+test('Cloud Run: every scene-preparation entry point refuses before spending', () => {
+  // Real controller; anything past the guard would hit these throwing stubs.
+  const s = sandbox({});
+  s.context.ScriptsRepository = { getScriptById() { throw new Error('reached past the guard'); } };
+  for (const call of ['ProductionController.startPreparation({scriptId:"SCR-1"})',
+    'ProductionController.prepareNextScene({taskId:"TSK-1"})',
+    'ProductionController.prepareScene({scriptId:"SCR-1", sceneNumber: 1})']) {
+    const response = s.call(call);
+    assert.equal(response.success, false, call);
+    assert.match(JSON.stringify(response), /not used with the Cloud Run renderer/, call);
+  }
 });
 
 console.log(`Inbox/controller/queue integration: ${passed}/${passed} passed.`);

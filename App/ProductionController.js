@@ -106,6 +106,7 @@ const ProductionController = (() => {
 
   function startPreparation(request) {
     return run_("Persistent production preparation started.", function () {
+      assertScenePreparationUsed_();
       const source = request || {};
       return withScriptLock_(function () {
         let scriptId = String(source.scriptId || "").trim();
@@ -128,6 +129,7 @@ const ProductionController = (() => {
 
   function prepareNextScene(request) {
     return run_("Next scene asset prepared.", function () {
+      assertScenePreparationUsed_();
       return withScriptLock_(function () {
       const taskId = String(request && request.taskId || "").trim();
       let task = ProductionTaskRepository.getById(taskId);
@@ -323,6 +325,7 @@ const ProductionController = (() => {
 
   function prepareScene(request) {
     return run_("High-quality scene asset prepared.", function () {
+      assertScenePreparationUsed_();
       const source = request || {};
       let scriptId = String(source.scriptId || "").trim();
       if (!scriptId && source.jobId) {
@@ -677,6 +680,16 @@ const ProductionController = (() => {
         " was set to uncertain (RECONCILE) after 30 minutes with no result. Check YouTube Studio before uploading again.");
     });
   }
+  // Scene-by-scene preparation exists for the legacy Creatomate renderer, whose
+  // createRender() needs pre-made visuals. The Cloud Run worker builds its own visuals
+  // from the script text, so preparing scenes there only pays for images nothing uses.
+  function assertScenePreparationUsed_() {
+    if (String(Secrets.getVideoProvider() || "cloud-run").toLowerCase() === "cloud-run") {
+      throw error_("Scene preparation is not used with the Cloud Run renderer: it builds its own visuals, so this " +
+        "would pay for images the render ignores. Use Create Short instead.");
+    }
+  }
+
   // Apply queued Cloud Run callbacks before acting. A broken inbox (schema
   // mismatch, unreadable sheet) must not take the Production page or its
   // actions down with it: receipts stay pending, and an unapplied receipt can
