@@ -12,7 +12,7 @@ const MediaWorkerCallbackService = (() => {
         ? event.parameter
         : {};
       const expectedSecret = Secrets.getMediaWorkerSharedSecret();
-      if (!expectedSecret || String(parameters.secret || "") !== expectedSecret) {
+      if (!expectedSecret || !secretsMatch_(String(parameters.secret || ""), String(expectedSecret))) {
         return { success: false, error: "Unauthorized." };
       }
 
@@ -64,6 +64,15 @@ const MediaWorkerCallbackService = (() => {
       Logger.log("MediaWorkerCallbackService failed: " + (caught && caught.message || caught));
       return { success: false, error: "Callback processing failed." };
     }
+  }
+
+  // Constant-time: the time taken must not reveal how much of a guessed secret matched.
+  function secretsMatch_(supplied, expected) {
+    let difference = supplied.length ^ expected.length;
+    for (let i = 0; i < expected.length; i++) {
+      difference |= expected.charCodeAt(i) ^ (i < supplied.length ? supplied.charCodeAt(i) : 0);
+    }
+    return difference === 0;
   }
 
   function videoUrl_(body) {

@@ -110,7 +110,15 @@ function resolveRoute_(parameters) {
 function isAuthorizedCallback_(parameters, expectedSecret) {
   if (!expectedSecret) return false;
   var supplied = String((parameters && parameters.secret) || "");
-  return supplied === expectedSecret;
+  var expected = String(expectedSecret);
+  // Constant-time comparison: the time taken must not reveal how many leading
+  // characters of a guess were right. Kept inline - this project's set of
+  // global functions is fixed (see CallbackBridge_Tests.js).
+  var difference = supplied.length ^ expected.length;
+  for (var i = 0; i < expected.length; i++) {
+    difference |= expected.charCodeAt(i) ^ (i < supplied.length ? supplied.charCodeAt(i) : 0);
+  }
+  return difference === 0;
 }
 
 // Pure (SAV-16). Rejects anything that isn't exactly cr-<UUID> - path separators,

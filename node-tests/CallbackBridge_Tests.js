@@ -79,6 +79,18 @@ function runCallbackBridgeTests() {
     }
   });
 
+  test("SAV-15.4b prefixes, extensions and near-misses of the secret are rejected (constant-time compare)", () => {
+    const real = "synthetic-test-secret";
+    for (const guess of ["synthetic-test-secre", "synthetic-test-secret!", "Synthetic-test-secret", "synthetic-test-secret\u0000", "s"]) {
+      if (sandbox.isAuthorizedCallback_({ secret: guess }, real) !== false) {
+        throw new Error("Accepted a near-miss secret: " + JSON.stringify(guess));
+      }
+    }
+    if (!/charCodeAt/.test(bridgeSource) || /supplied === expectedSecret/.test(bridgeSource)) {
+      throw new Error("Bridge must compare the secret in constant time, not with ===.");
+    }
+  });
+
   test("SAV-15.5 an unknown callback route is rejected", () => {
     if (sandbox.resolveRoute_({ route: "something-else" }) === "media-worker-callback") {
       throw new Error("resolveRoute_ must not treat an unrelated route as the callback route.");

@@ -49,6 +49,10 @@ function fixture(initialStatus, options = {}) {
       sandbox.event = event;
       return vm.runInContext('MediaWorkerCallbackService.handle(event)', sandbox);
     },
+    handleWithSecret: (secret) => {
+      sandbox.event = { parameter: { secret }, postData: { contents: JSON.stringify({ jobId: row.renderId, status: 'completed', video: { url: 'https://example.test/new.mp4' } }) } };
+      return vm.runInContext('MediaWorkerCallbackService.handle(event)', sandbox);
+    },
     writes, getRow: () => row, getLocks: () => locks, getReleases: () => releases
   };
 }
@@ -118,6 +122,15 @@ function runTests() {
         throw new Error('A render with media evidence was overwritten.');
       }
       if (!withVideo.includes('SUCCEEDED')) throw new Error('Control completion failed.');
+    }],
+    ['wrong, truncated or extended secrets are rejected before any lookup', () => {
+      for (const secret of ['synthetic-secre', 'synthetic-secret-x', 'Synthetic-secret', '']) {
+        const f = fixture('RENDERING');
+        const result = f.handleWithSecret(secret);
+        if (result.success || result.error !== 'Unauthorized.' || f.writes.length || f.getLocks()) {
+          throw new Error('Accepted secret ' + JSON.stringify(secret));
+        }
+      }
     }],
     ['lock contention is retryable and writes nothing', () => {
       const f = fixture('RENDERING', { lockAvailable: false });

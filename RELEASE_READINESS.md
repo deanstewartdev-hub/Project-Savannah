@@ -50,7 +50,7 @@ deployment, merge, callback-URL change, paid render or upload has been made.
 | P2-2 | In-app `test*` functions that call paid OpenAI or write real rows (`testIdeaGenerationWithTracking`, `testScriptEngineLiveWorkflow`, `testAIServiceLiveConnection`, `testScriptsRepositoryUpdate`, `testLoggingService`) sat one click away in the editor Run menu. | **Fixed:** they refuse unless `SAVANNAH_ALLOW_LIVE_TESTS=true` (`Utils/LiveTestGuard.js`, 3 tests). |
 | P2-3 | `publish()` holds the script lock for the whole download + upload; other actions report "busy" meanwhile. | Acceptable (it is what prevents duplicates). Revisit only if uploads become slow. |
 | P2-4 | The inbox sheet grows forever; each receipt does a full Render Jobs read. | Archive handled receipts monthly; index Render Jobs once per pass if volume grows. |
-| P2-5 | Bridge secret comparison is not constant-time. | Low risk over HTTPS via Apps Script; harden opportunistically. |
+| P2-5 | Callback secret compared with `===` in the bridge and the legacy route (timing leak). | **Fixed:** constant-time comparison in both, with near-miss tests. |
 | P2-6 | Analytics insights are shown on the dashboard but never fed back into idea generation. | Product decision (`FUTURE.md`). |
 | P2-7 | Docs drift: `README.md` and the app header say v1.3; `HANDOFF.md` is from 19 August; `CLAUDE.md` names `sprint-3` as canonical. | Update at release time, after the stack merges. |
 | P2-8 | Creatomate code remains. | Remove only after the v1.4 success condition in `ROADMAP.md`. |
