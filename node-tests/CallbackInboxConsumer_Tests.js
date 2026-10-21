@@ -337,6 +337,13 @@ function runCallbackInboxConsumerTests() {
     assert(report.headersMatch === false && t.sheet.writes.length === 0, "Mismatch not flagged read-only.");
   });
 
+  test("delivery for an ambiguous submission (QUEUED with reserved render ID, PR #19) is applied", () => {
+    const t = setup([receipt(RENDER_A, "completed")], [renderJob({ status: "QUEUED", progress: 0 })]);
+    const stats = t.inbox.processPending();
+    assert(stats.processed === 1 && result(t.sheet, 0) === "APPLIED", "Delivery for a QUEUED reserved render was not applied.");
+    assert(t.store[0].status === "SUCCEEDED" && t.store[0].videoUrl === VIDEO_URL, "QUEUED render did not complete.");
+  });
+
   test("recentReceipts returns the latest rows without payloads, read-only", () => {
     const done = receipt(RENDER_A, "failed"); done[5] = new Date(); done[6] = "ORPHANED";
     const t = setup([receipt(RENDER_B, "completed"), done, receipt(RENDER_A, "completed")], [renderJob()]);
