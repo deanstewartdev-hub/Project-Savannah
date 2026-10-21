@@ -121,3 +121,66 @@ Receipts already in the inbox stay safe and are applied once the new version ret
 Fully prepared and automated: `CALLBACK_INBOX_STAGING.md` (plain-language guide, three steps,
 checks C1–C12, troubleshooting). Its correctness is proven locally by
 `node node-tests/StagingFlowEndToEnd_Tests.js`. Not yet run against Google.
+
+## 6. Independent verification and later additions
+
+Added 21 October 2026 by a second review session. Each line below was **run or measured**, not read from
+the sections above. Still nothing verified live.
+
+### 6.1 What was re-checked, and how
+
+| Claim above | How it was checked | Result |
+|---|---|---|
+| #13, #14, #16, #17, #19 are inside #15 | `git merge-base --is-ancestor <PR head> <integration head>` for each | Confirmed. #20, #21 and #22 are **not** yet inside it |
+| CI is green, media worker 81/81 | CI run 39684626370 on `3796f38`: both jobs `success`; media-worker log shows 81 tests, 81 pass, 0 fail | Confirmed |
+| P0-1: the main app ships `access: MYSELF` | `appsscript.json` read; `CallbackBridge/appsscript.json` read | Confirmed (`MYSELF` vs `ANYONE_ANONYMOUS`) |
+| P1-7: no `script.scriptapp` scope | Manifest scopes listed | Confirmed: five scopes (sheets current-only, external request, drive, YouTube upload, YouTube read-only) |
+| All sibling PRs combine cleanly | `git merge-tree` of every pair, then a **disposable worktree** of integration head + #20 + #21 + #22 running `node node-tests/run-local.cjs` | Exit 0, 28 suites, 0 failures, no conflict markers in tracked files |
+| Open PRs mergeable | GitHub `mergeStateStatus` for #15, #16, #17, #19, #20 | `CLEAN` for all five when checked |
+
+Not verified here: the media-worker suite on the combined tree (the new PRs do not touch `media-worker/`;
+CI on each PR is the evidence), and anything that needs Google or Cloud Run.
+
+### 6.2 Changes not yet in #15
+
+| PR | What | Base | Why it matters |
+|---|---|---|---|
+| #20 | Background queue: stuck `SUBMITTING` tasks settled, poison tasks contained, interrupted retries capped with backoff, submit claim is a locked compare-and-set | integration | Without it a task that dies mid-submit is stuck forever and one bad task starves the queue |
+| #21 | Tests only: queue x reserved render ID x callback inbox, on real modules (10 tests) | #20 | Proves #19, #20 and the inbox work together, including overlapping work |
+| #22 | Health panel reports stuck/failed/exhausted queue tasks and unconfirmed submissions (read-only) | #20 | Operator sees these states instead of finding them in a sheet |
+| #23 | This addendum and the owner-facing improvements to `LIVE_ACCEPTANCE.md` | #22 | Docs only |
+
+**Merge sequence for these:** #20 into the integration branch first, then #21 and #22 (re-point their base
+to the integration branch if GitHub does not do it), re-run CI, then continue with §3. They can also wait
+until after #15 if you prefer a smaller first merge; nothing in §4 depends on them, but without #20 the
+queue defects above remain.
+
+### 6.3 Remaining risks I found (not fixed, by design)
+
+| # | Risk | Why left | Mitigation now |
+|---|---|---|---|
+| R1 | "Unmatched delivery" recovery (`LIVE_ACCEPTANCE.md` §9) has you edit four cells in Render Jobs by hand. A typo could link a video to the wrong render | A guarded editor function is the right fix but is new behaviour on live data, not a safe autonomous change | Procedure says to stop if more than one render could match; do it only with the Cloud Run execution checked |
+| R2 | Health thresholds (5 / 10 / 45 min, 1 h, 3 h) and the queue limits (10 min, 3 attempts) are reasoned defaults, not measured | Needs real render timings | Tune after the first live acceptance |
+| R3 | `recoverStaleJobs_` still marks a QUEUED render **with no render ID** FAILED after 15 minutes. Since #19 a Cloud Run render always has an ID before the worker is called, so this only affects rows created by the *old* version | Rows from the old version only | Do the cut-over with no render in progress (§4); do not leave old-version renders running across it |
+| R4 | The queue retry cap and backoff mostly protect the Creatomate fallback: Cloud Run refuses scene preparation | Intended | None needed |
+| R5 | Test realism: the new interplay suite uses the real modules but fake sheets, a fake lock and a fake dispatcher. Real Apps Script locking, quotas and Sheets timing are untested | Needs the live run | Section 5 of `LIVE_ACCEPTANCE.md` is the proof |
+| R6 | Rollback is documented but has never been exercised | Needs the live run | Before cut-over, confirm the previous app version (v89) still appears under **Deploy → Manage deployments** and note the old `MEDIA_WORKER_CALLBACK_URL` |
+
+### 6.4 Owner actions still required (in order)
+
+1. Staging check from empty files (`CALLBACK_INBOX_STAGING.md`).
+2. Decide the `script.scriptapp` scope (P1-7); it forces a one-time re-authorisation.
+3. Cut-over in the order of §4 (worker images, bridge, callback URL then app, readiness check).
+4. Live acceptance (`LIVE_ACCEPTANCE.md`): one paid render, review, one private upload, duplicate checks.
+5. Product decisions: licensed music track (P1-9), side-by-side comparison before any Creatomate removal (P2-8).
+
+### 6.5 Deployment dependencies
+
+- The callback retry (P1-5) takes effect only with a **new worker image**; the app changes work without it.
+- Everything in the app is one Apps Script deployment; the bridge is a separate project with its own two properties.
+- Nothing depends on a Sheet schema change. The queue and health changes read existing columns.
+
+### 6.6 Release readiness, plainly
+
+Code and automated tests: ready for the owner-run steps above. Live behaviour: **not demonstrated**. No
+percentage is given because the remaining work is a short list of owner actions, not a quantity of code.
