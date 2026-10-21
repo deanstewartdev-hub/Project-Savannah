@@ -60,9 +60,12 @@ function fixture(options = {}) {
       }
     }
   });
-  for (const file of ['Models/PublishingJob.js', 'Production/PublishingSchedule_Service.js', 'Production/ProductionError_Service.js', 'Production/YouTube_Service.js', 'Production/ProductionHealth_Service.js', 'App/ProductionController.js']) {
+  for (const file of ['Models/PublishingJob.js', 'Production/PublishingSchedule_Service.js', 'Production/ProductionError_Service.js', 'Production/YouTube_Service.js', 'App/ProductionController.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
+  // Loaded separately from the list above; the controller only calls it at request time.
+  vm.runInContext(fs.readFileSync(path.join(root, 'Production/ProductionHealth_Service.js'), 'utf8'), context,
+    { filename: 'Production/ProductionHealth_Service.js' });
   return {
     call: expression => vm.runInContext(expression, context, { timeout: 10000 }),
     job: () => job, history: () => history.slice(), inserts: () => inserts,
