@@ -2031,6 +2031,7 @@ function testScriptEngineUnitTests() {
  * @return {Object} Complete workflow result.
  */
 function testScriptEngineLiveWorkflow() {
+  assertLiveTestAllowed_("testScriptEngineLiveWorkflow");
   const result =
     ScriptEngine.generateScript(
       createScriptEngineIdeaFixture_(),

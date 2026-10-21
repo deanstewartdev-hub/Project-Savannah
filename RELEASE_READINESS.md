@@ -47,7 +47,7 @@ deployment, merge, callback-URL change, paid render or upload has been made.
 | # | Finding | Recommendation |
 |---|---|---|
 | P2-1 | Settings page is Creatomate-centric and shows nothing about the Cloud Run worker. | Replace the Creatomate card once v1.4's success condition allows removal (`ROADMAP.md`). The readiness card covers the worker meanwhile. |
-| P2-2 | Global in-app `test*` functions (e.g. `testLoggingService`) can write real rows; reachable only by the owner (`access: MYSELF`). | Move to `Tests/` or guard behind a property, like `stagingSeedRenderJobs`. |
+| P2-2 | In-app `test*` functions that call paid OpenAI or write real rows (`testIdeaGenerationWithTracking`, `testScriptEngineLiveWorkflow`, `testAIServiceLiveConnection`, `testScriptsRepositoryUpdate`, `testLoggingService`) sat one click away in the editor Run menu. | **Fixed:** they refuse unless `SAVANNAH_ALLOW_LIVE_TESTS=true` (`Utils/LiveTestGuard.js`, 3 tests). |
 | P2-3 | `publish()` holds the script lock for the whole download + upload; other actions report "busy" meanwhile. | Acceptable (it is what prevents duplicates). Revisit only if uploads become slow. |
 | P2-4 | The inbox sheet grows forever; each receipt does a full Render Jobs read. | Archive handled receipts monthly; index Render Jobs once per pass if volume grows. |
 | P2-5 | Bridge secret comparison is not constant-time. | Low risk over HTTPS via Apps Script; harden opportunistically. |

@@ -1071,6 +1071,7 @@ function testScriptsRepositorySaveAndRetrieve() {
  * @return {Object} Updated stored script.
  */
 function testScriptsRepositoryUpdate() {
+  assertLiveTestAllowed_("testScriptsRepositoryUpdate");
   const fixture =
     createScriptsRepositoryFixture_();
 
