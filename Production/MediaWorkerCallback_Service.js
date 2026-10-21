@@ -30,6 +30,12 @@ const MediaWorkerCallbackService = (() => {
       if (body.status !== "completed" && body.status !== "failed") {
         return { success: false, error: "Unknown or missing status." };
       }
+      // Never record SUCCEEDED without a deliverable video. "Malformed" is a permanent
+      // rejection for the worker's retry policy; status reconciliation, which inspects
+      // the real artifact, decides the render instead.
+      if (body.status === "completed" && !videoUrl_(body)) {
+        return { success: false, error: "Malformed callback: completed without an https video URL." };
+      }
 
       // Prevent concurrent delivery callbacks from racing each other's status writes.
       const lock = LockService.getScriptLock();
@@ -40,7 +46,7 @@ const MediaWorkerCallbackService = (() => {
         // Read again under the lock: another callback may have completed the row.
         const current = RenderJobRepository.getByRenderId(String(body.jobId));
         if (!current) return { success: false, error: "Render job was not found." };
-        if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(current.status) !== -1) {
+        if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(current.status) !== -1 || !!current.videoUrl) {
           return { success: true, ignored: true };
         }
         const changes = body.status === "completed" ? completedChanges_(body) : failedChanges_(body);
@@ -55,10 +61,16 @@ const MediaWorkerCallbackService = (() => {
     }
   }
 
+  function videoUrl_(body) {
+    const video = body.video && typeof body.video === "object" ? body.video : {};
+    const url = String(video.url || "").trim();
+    return /^https:\/\/\S+$/i.test(url) ? url : "";
+  }
+
   function completedChanges_(body) {
     const video = body.video || {};
     const probe = body.probe || {};
-    const videoUrl = String(video.url || "");
+    const videoUrl = videoUrl_(body);
     return {
       status: "SUCCEEDED",
       progress: 100,

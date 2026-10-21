@@ -147,4 +147,7 @@ test("classifier: unknown errors are retryable, tagged permanent ones are not", 
   assert.equal(isRetryableCallbackError(Object.assign(new Error("x"), { rejection: "Callback processing failed." })), true);
   assert.equal(isRetryableCallbackError(Object.assign(new Error("x"), { rejection: "Unauthorized." })), false);
   assert.equal(isRetryableCallbackError(null), false);
+  // Contract with Production/MediaWorkerCallback_Service.js: a completed callback without
+  // a deliverable video can never succeed on resend.
+  assert.equal(isRetryableCallbackError(Object.assign(new Error("x"), { rejection: "Malformed callback: completed without an https video URL." })), false);
 });
