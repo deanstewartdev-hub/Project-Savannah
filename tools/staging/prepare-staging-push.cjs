@@ -59,6 +59,22 @@ function selectFiles(repo) {
   return selected.sort();
 }
 
+// The staging project gets a minimal manifest: access to its own spreadsheet only.
+// No YouTube service, no YouTube/Drive scopes and no external requests, so even if a
+// code guard failed, staging could not upload, read the channel or call a paid API.
+// The consent screen will not mention YouTube at all.
+const STAGING_SCOPES = ['https://www.googleapis.com/auth/spreadsheets.currentonly'];
+
+function stagingManifest(repo) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(repo, 'appsscript.json'), 'utf8'));
+  manifest.oauthScopes = STAGING_SCOPES.slice();
+  if (manifest.dependencies) {
+    manifest.dependencies.enabledAdvancedServices =
+      (manifest.dependencies.enabledAdvancedServices || []).filter(s => !/youtube/i.test(s.serviceId || s.userSymbol || ''));
+  }
+  return manifest;
+}
+
 function prepare(stagingScriptId, options) {
   const opts = options || {};
   const repo = opts.repo || REPO;
@@ -86,6 +102,7 @@ function prepare(stagingScriptId, options) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(path.join(repo, relative), target);
   }
+  fs.writeFileSync(path.join(out, 'appsscript.json'), JSON.stringify(stagingManifest(repo), null, 2));
   const clasp = JSON.parse(fs.readFileSync(path.join(repo, '.clasp.json'), 'utf8'));
   clasp.scriptId = id;
   clasp.rootDir = '';
@@ -109,4 +126,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { prepare, selectFiles, Refused };
+module.exports = { prepare, selectFiles, stagingManifest, Refused, STAGING_SCOPES };

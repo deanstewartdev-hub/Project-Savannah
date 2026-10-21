@@ -52,5 +52,15 @@ test('re-running replaces only its own folder, and never deletes a folder it did
   assert.equal(fs.readFileSync(path.join(foreign, 'important.txt'), 'utf8'), 'keep');
 });
 
+test('the staging manifest can only reach its own spreadsheet: no YouTube, Drive or external requests', () => {
+  prepare(STAGING_ID, { out });
+  const manifest = JSON.parse(fs.readFileSync(path.join(out, 'appsscript.json'), 'utf8'));
+  assert.deepEqual(manifest.oauthScopes, ['https://www.googleapis.com/auth/spreadsheets.currentonly']);
+  const services = (manifest.dependencies && manifest.dependencies.enabledAdvancedServices) || [];
+  assert.equal(services.some(s => /youtube/i.test(s.serviceId + s.userSymbol)), false, 'YouTube service must be removed');
+  const production = JSON.parse(fs.readFileSync(path.join(root, 'appsscript.json'), 'utf8'));
+  assert.ok(production.oauthScopes.some(s => /youtube/.test(s)), 'the repository manifest itself must stay unchanged');
+});
+
 fs.rmSync(scratch, { recursive: true, force: true });
 console.log(`Staging push tool: ${passed}/${passed} passed.`);
