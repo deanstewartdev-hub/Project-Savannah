@@ -361,6 +361,21 @@ dashboard with ambient background motion (`prefers-reduced-motion` respected thr
   pause/cancel, and priority levels in `ProductionTaskRepository` now that the worker has
   no six-minute ceiling to work around.
 
+### 21 October 2026 — script-level duplicate-upload guard
+
+- Found by review of the YouTube publishing workflow: every duplicate-upload guard was keyed
+  by render job ID, and a re-render gets a new ID. A script whose render was already
+  PUBLISHED, UPLOADING or RECONCILE could be re-rendered (paid) through `retry` on an older
+  failed render, `submit` with `forceRerender`, or the prepared-render path, and the new
+  render could then be approved and uploaded as a second copy.
+- `publish()`, `retry()` and `submitCore_()` now also refuse when any render of the same script
+  has a protected upload (PUBLISHED, UPLOADING, RECONCILE, or FAILED with YouTube video
+  evidence). A plain FAILED attempt with no video evidence does not block.
+- When YouTube returns a video ID but saving PUBLISHED fails, the RECONCILE record now keeps the
+  video ID and URL instead of discarding them.
+- 13 regression tests added to `node-tests/upload-recovery.cjs` (41 total); confirmed to fail
+  against the unfixed controller. Full local runner passes. Not deployed.
+
 ## Earlier history
 
 Prior work (Apps Script foundation through Phase 4 analytics: idea/script/SEO pipeline,
