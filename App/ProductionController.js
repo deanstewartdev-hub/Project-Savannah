@@ -736,8 +736,12 @@ const ProductionController = (() => {
     try {
       let callbackReceipts = [];
       try { callbackReceipts = MediaWorkerCallbackInbox.recentReceipts(100); } catch (ignored) {}
+      // Queue tasks are advisory input too: an unreadable Production Tasks sheet must not hide
+      // the render and upload findings.
+      let productionTasks = [];
+      try { productionTasks = ProductionTaskRepository.getAll(); } catch (ignored) {}
       return ProductionHealthService.evaluate({ renderJobs: renderJobs, publishingJobs: publishingJobs,
-        callbackReceipts: callbackReceipts });
+        callbackReceipts: callbackReceipts, productionTasks: productionTasks });
     } catch (caught) {
       return { status: "unavailable", generatedAt: new Date().toISOString(),
         counts: { critical: 0, warning: 0, total: 0 }, truncated: 0, findings: [] };

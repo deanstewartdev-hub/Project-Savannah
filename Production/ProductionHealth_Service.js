@@ -23,7 +23,16 @@ const ProductionHealthService = (() => {
     // A delivery normally matches its render within seconds; allow for a slow submit.
     unmatchedDeliveryMs: 15 * 60 * 1000,
     // Warn two days ahead so there is time to renew the link before review/upload.
-    videoLinkWarningMs: 48 * 60 * 60 * 1000
+    videoLinkWarningMs: 48 * 60 * 60 * 1000,
+    // A Cloud Run render still QUEUED this long after submission never got the worker's confirmation.
+    submissionUnconfirmedMs: 5 * 60 * 1000,
+    // The queue settles a task stuck in SUBMITTING after this (an execution lasts at most 6 minutes).
+    taskSubmittingWarningMs: 10 * 60 * 1000,
+    taskSubmittingCriticalMs: 60 * 60 * 1000,
+    // Failed tasks older than this are history, not something to act on.
+    taskFailedWindowMs: 7 * 24 * 60 * 60 * 1000,
+    // Mirrors ProductionController: interrupted attempts at one scene before a task stops.
+    taskMaxInterruptedAttempts: 3
   });
   const MAX_FINDINGS = 50;
   const SEVERITY_RANK = { critical: 0, warning: 1 };
@@ -42,6 +51,7 @@ const ProductionHealthService = (() => {
     uploads.forEach(function (job) { uploadFindings_(job, nowMs).forEach(function (item) { findings.push(item); }); });
     duplicateUploadFindings_(uploads).forEach(function (item) { findings.push(item); });
     unmatchedDeliveryFindings_(array_(source.callbackReceipts), renders, nowMs).forEach(function (item) { findings.push(item); });
+    taskFindings_(array_(source.productionTasks), renders, nowMs).forEach(function (item) { findings.push(item); });
 
     findings.sort(function (a, b) {
       return SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || a.sinceMs - b.sinceMs;
@@ -101,6 +111,21 @@ const ProductionHealthService = (() => {
           "Do not re-render: the video still exists. Ask the owner to run delivery recovery (media-worker recover-delivery) for this render ID to renew the link.",
           { doNotRerender: true, doNotUploadAgain: false }));
       }
+    }
+    // A Cloud Run render is saved QUEUED under its reserved ID before the worker is asked to start,
+    // and becomes RENDERING with the worker's execution details once the worker confirms. Still
+    // QUEUED after a few minutes means the confirmation never arrived: the worker may be rendering
+    // (and billing) this video. Re-rendering would pay for it twice.
+    if (status === "QUEUED" && /^cr-/i.test(String(job.renderId || "")) && createdMs && !hasExecution_(job) &&
+        nowMs - createdMs >= THRESHOLDS.submissionUnconfirmedMs) {
+      const age = nowMs - createdMs;
+      out.push(finding_("RENDER_SUBMISSION_UNCONFIRMED", age >= THRESHOLDS.renderStuckCriticalMs ? "critical" : "warning",
+        subject, createdMs,
+        "The media worker never confirmed this render",
+        "This render was submitted " + minutes_(age) + " minutes ago but the worker has not confirmed it. It may still be running and may still deliver.",
+        "Do not re-render. Savannah is keeping this render and will reconcile it, or apply its callback if the video arrives. Press Refresh status; if it is still unconfirmed after several hours, ask the owner to check the Cloud Run execution for this render ID.",
+        { doNotRerender: true, doNotUploadAgain: false }));
+      return out;
     }
     if (ACTIVE_RENDER.indexOf(status) !== -1 && createdMs) {
       const age = nowMs - createdMs;
@@ -195,6 +220,50 @@ const ProductionHealthService = (() => {
     return out;
   }
 
+  // Background queue tasks (read-only; the queue itself settles state, this only reports it).
+  function taskFindings_(tasks, renders, nowMs) {
+    const renderIds = {};
+    renders.forEach(function (job) { if (job && job.id) renderIds[job.id] = true; });
+    const out = [];
+    tasks.forEach(function (task) {
+      if (!task || !task.id) return;
+      const status = String(task.status || "").toUpperCase();
+      const updatedMs = timeMs_(task.updatedAt);
+      const subject = { taskId: task.id, scriptId: task.scriptId || "" };
+      if (status === "SUBMITTING" && updatedMs && nowMs - updatedMs >= THRESHOLDS.taskSubmittingWarningMs) {
+        const age = nowMs - updatedMs;
+        out.push(finding_("TASK_STUCK_SUBMITTING", age >= THRESHOLDS.taskSubmittingCriticalMs ? "critical" : "warning",
+          subject, updatedMs,
+          "A queued submission never finished",
+          "Task " + task.id + " began submitting " + minutes_(age) + " minutes ago and has not finished, so a render may or may not have started.",
+          "Do not submit it again. The queue links it to the render that started, or returns it to ready, on its next run. If the background queue is switched off, check Render jobs for this script before doing anything.",
+          { doNotRerender: true, doNotUploadAgain: false }));
+      } else if (status === "FAILED" && updatedMs && nowMs - updatedMs <= THRESHOLDS.taskFailedWindowMs) {
+        const interrupted = Math.max(0, Number(task.attempts || 0) - array_(task.preparedScenes).length);
+        if (interrupted >= THRESHOLDS.taskMaxInterruptedAttempts) {
+          out.push(finding_("TASK_RETRIES_EXHAUSTED", "warning", subject, updatedMs,
+            "A queued task stopped after repeated interruptions",
+            "Task " + task.id + " was interrupted " + interrupted + " times and the queue stopped retrying. " + safeText_(task.errorMessage),
+            "Read the Logs sheet (PRODUCTION_RECOVERY), then use Resume once. Do not resume repeatedly: every attempt can cost money.",
+            { doNotRerender: true, doNotUploadAgain: false }));
+        } else {
+          out.push(finding_("TASK_FAILED", "warning", subject, updatedMs,
+            "A queued task failed",
+            "Task " + task.id + " failed. " + safeText_(task.errorMessage),
+            "Fix the cause in the message, then use Resume on the Production page. If no render was started, nothing is lost.",
+            { doNotRerender: false, doNotUploadAgain: false }));
+        }
+      } else if (status === "SUBMITTED" && task.renderJobId && !renderIds[task.renderJobId]) {
+        out.push(finding_("TASK_LINKED_RENDER_MISSING", "warning", subject, updatedMs,
+          "A queued task points at a render that cannot be found",
+          "Task " + task.id + " says it started render " + task.renderJobId + ", but no render job has that ID.",
+          "Do not submit it again. Open Render jobs and look for a render of this script; if there is none, ask the owner to review the Production Tasks and Render Jobs tabs.",
+          { doNotRerender: true, doNotUploadAgain: false }));
+      }
+    });
+    return out;
+  }
+
   function finding_(code, severity, subject, sinceMs, title, message, recovery, flags) {
     return {
       code: code, severity: severity, subject: subject, title: title, message: message,
@@ -206,6 +275,17 @@ const ProductionHealthService = (() => {
   function reconciliationReason_(job) {
     return (job && job.providerResponse && job.providerResponse.reconciliation &&
       job.providerResponse.reconciliation.reason) || "";
+  }
+  // The worker's confirmation (execution details) is saved on the render once it answers.
+  function hasExecution_(job) {
+    const cloudRun = job && job.providerResponse && job.providerResponse.cloudRun;
+    return !!(cloudRun && (cloudRun.executionName || cloudRun.operationName));
+  }
+  // Task messages are already user-facing, but keep findings free of anything key-shaped and short.
+  function safeText_(value) {
+    return String(value || "").replace(/sk-[A-Za-z0-9_-]{8,}/g, "[REDACTED]")
+      .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi, "Bearer [REDACTED]")
+      .replace(/[A-Fa-f0-9]{32,}/g, "[REDACTED]").trim().slice(0, 200);
   }
   function hasVideoEvidence_(job) {
     return !!(String(job.youtubeVideoId || "").trim() || String(job.youtubeUrl || "").trim());

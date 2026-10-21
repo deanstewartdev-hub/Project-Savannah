@@ -458,6 +458,20 @@ defects, none covered by any test:
   on a fake sheet; 12 of the 17 fail against the previous code (the other 5 pin behaviour that must not
   change). Not deployed.
 
+### 21 October 2026 — health panel reports background-queue and uncertain-submission problems
+
+- `ProductionHealthService` now also reads the Production Tasks sheet (read-only) and reports:
+  `TASK_STUCK_SUBMITTING` (10 min warning, 1 h critical), `TASK_FAILED` (last 7 days),
+  `TASK_RETRIES_EXHAUSTED` (3 interrupted attempts), and `TASK_LINKED_RENDER_MISSING` (a task that
+  says it started a render no render job has).
+- New `RENDER_SUBMISSION_UNCONFIRMED`: a Cloud Run render still QUEUED under its reserved ID, with no
+  worker confirmation, 5 minutes after submission. It replaces the generic "stuck" finding for that
+  render and says not to re-render. Creatomate renders, which legitimately wait in QUEUED, are not
+  flagged.
+- Reading the panel never settles, submits or rewrites anything; only the queue tick changes task
+  state. If the Production Tasks sheet cannot be read, the render and upload findings still show.
+- Operator rows for each finding added to `LIVE_ACCEPTANCE.md`. Tests: `node-tests/ProductionHealthQueue_Tests.js` (15).
+
 ## Earlier history
 
 Prior work (Apps Script foundation through Phase 4 analytics: idea/script/SEO pipeline,
