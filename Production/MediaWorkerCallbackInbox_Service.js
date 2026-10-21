@@ -103,6 +103,14 @@ const MediaWorkerCallbackInbox = (() => {
     }
     if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(current.status) !== -1 ||
         !!current.videoUrl) {
+      // The one change allowed after completion: delivery recovery re-signing the
+      // SAME artifact (signed links expire). Status and evidence stay untouched.
+      if (VideoLinkService.isSameArtifactRefresh(current, body)) {
+        RenderJobRepository.update(RenderJobModel.update(current, VideoLinkService.refreshChanges(current, body)));
+        mark_(sheet, rowNumber, "LINK_REFRESHED");
+        stats.processed++;
+        return true;
+      }
       mark_(sheet, rowNumber, "IGNORED_TERMINAL");
       stats.ignored++;
       return true;

@@ -91,7 +91,7 @@ function sandbox(options) {
     Secrets: {}, SHEETS: {},
     ProductionController: opts.stubController
   });
-  for (const source of ['Models/RenderJob.js', 'Production/MediaWorkerCallbackInbox_Service.js',
+  for (const source of ['Models/RenderJob.js', 'Production/VideoLink_Service.js', 'Production/MediaWorkerCallbackInbox_Service.js',
     'Production/ScenePlan_Service.js', 'Production/ProductionQueue_Service.js'].concat(opts.stubController ? [] : ['App/ProductionController.js'])) {
     vm.runInContext(fs.readFileSync(path.join(root, source), 'utf8'), context, { filename: source });
   }

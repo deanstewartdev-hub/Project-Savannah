@@ -433,6 +433,9 @@ const ProductionController = (() => {
       }
       RenderQualityService.assertPublishable(renderJob);
       RenderReviewService.assertApproved(renderJob.id);
+      // Refuse before recording an attempt: an expired signed link can only fail,
+      // and the fix is cheap delivery recovery, not a re-render.
+      VideoLinkService.assertUsable(renderJob.videoUrl);
       // A newer FAILED attempt must never hide an older published, in-progress, or
       // uncertain upload. Inspect every attempt for this render before inserting.
       const publishingJobs = PublishingJobRepository.getAll();

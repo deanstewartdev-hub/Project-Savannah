@@ -96,7 +96,7 @@ function setup(rows, jobs, options) {
       }
     }
   });
-  for (const file of ["Models/RenderJob.js", "Production/MediaWorkerCallbackInbox_Service.js"]) {
+  for (const file of ["Models/RenderJob.js", "Production/VideoLink_Service.js", "Production/MediaWorkerCallbackInbox_Service.js"]) {
     vm.runInContext(fs.readFileSync(path.join(REPO, file), "utf8"), context, { filename: file });
   }
   const inbox = vm.runInContext("MediaWorkerCallbackInbox", context);

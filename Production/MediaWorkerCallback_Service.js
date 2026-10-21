@@ -47,6 +47,11 @@ const MediaWorkerCallbackService = (() => {
         const current = RenderJobRepository.getByRenderId(String(body.jobId));
         if (!current) return { success: false, error: "Render job was not found." };
         if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(current.status) !== -1 || !!current.videoUrl) {
+          // Delivery recovery re-signing the SAME artifact is the only allowed change.
+          if (VideoLinkService.isSameArtifactRefresh(current, body)) {
+            RenderJobRepository.update(RenderJobModel.update(current, VideoLinkService.refreshChanges(current, body)));
+            return { success: true, refreshed: true };
+          }
           return { success: true, ignored: true };
         }
         const changes = body.status === "completed" ? completedChanges_(body) : failedChanges_(body);

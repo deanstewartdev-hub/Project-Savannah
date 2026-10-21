@@ -61,7 +61,7 @@ function fixture(options = {}) {
       }
     }
   });
-  for (const file of ['Models/PublishingJob.js', 'Production/PublishingSchedule_Service.js', 'Production/ProductionError_Service.js', 'Production/YouTube_Service.js', 'App/ProductionController.js']) {
+  for (const file of ['Models/PublishingJob.js', 'Production/VideoLink_Service.js', 'Production/PublishingSchedule_Service.js', 'Production/ProductionError_Service.js', 'Production/YouTube_Service.js', 'App/ProductionController.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   return {

@@ -35,6 +35,7 @@ function fixture(initialStatus, options = {}) {
     Logger: { log: () => {} }
   };
   vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'Production', 'VideoLink_Service.js'), 'utf8'), sandbox, { filename: 'VideoLink_Service.js' });
   vm.runInContext(source, sandbox, { filename: 'MediaWorkerCallback_Service.js' });
   return {
     handle: (status, more = {}) => {
