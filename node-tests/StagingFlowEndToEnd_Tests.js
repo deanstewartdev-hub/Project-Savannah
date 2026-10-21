@@ -91,6 +91,7 @@ function world(options) {
   const model = vm.runInContext('RenderJobModel', main);
   const env = {
     property: n => (n in props ? props[n] : null), setProperty: (n, v) => { props[n] = v; },
+    spreadsheetName: () => opts.spreadsheetName || 'Savannah STAGING', prepareSheets: () => {},
     uuid: randomUUID, now: () => Date.now(),
     createRenderJob: (id, renderId) => {
       if (jobs[id]) throw new Error('Render job already exists.');

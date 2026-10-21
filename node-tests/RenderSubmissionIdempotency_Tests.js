@@ -40,6 +40,8 @@ function providerFixture(options = {}) {
       }
     }
   });
+  if (!context.PropertiesService) context.PropertiesService = { getScriptProperties: () => ({ getProperty: () => null }) };
+  vm.runInContext(read('Utils/EnvironmentGuard.js'), context, { filename: 'Utils/EnvironmentGuard.js' });
   vm.runInContext(read('Production/VideoProcessingProvider.js'), context, { filename: 'Production/VideoProcessingProvider.js' });
   context.script = script;
   const submit = renderId => {

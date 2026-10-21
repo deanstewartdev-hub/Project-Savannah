@@ -114,6 +114,7 @@ const CreatomateService = (() => {
       options.contentType = "application/json";
       options.payload = JSON.stringify(payload);
     }
+    assertNotStaging_("Creatomate rendering");
     const maximumAttempts = String(method).toLowerCase() === "get" ? 3 : 1;
     let lastError = null;
     for (let attempt = 1; attempt <= maximumAttempts; attempt++) {

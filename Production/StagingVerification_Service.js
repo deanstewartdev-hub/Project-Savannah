@@ -16,10 +16,16 @@ const StagingVerificationService = (() => {
   const RUN_PROPERTY = "SAVANNAH_STAGING_RUN";
   const SYNTHETIC_VIDEO_PREFIX = "https://example.invalid/savannah-staging/";
 
+  // Two independent conditions, so one mistake cannot point these tools at production:
+  // the script property AND a spreadsheet whose name says STAGING.
   function assertStaging_(env) {
     if (env.property("SAVANNAH_ENVIRONMENT") !== "staging") {
-      throw new Error("Refused: this is not marked as a staging project. In the STAGING copy only, add the script " +
-        "property SAVANNAH_ENVIRONMENT = staging (see CALLBACK_INBOX_STAGING.md). Never add it to production.");
+      throw new Error("Refused: this is not marked as a staging project. In the STAGING project only, add the script " +
+        "property SAVANNAH_ENVIRONMENT = staging (see STAGING_SETUP_WINDOWS.md). Never add it to production.");
+    }
+    if (!/staging/i.test(String(env.spreadsheetName() || ""))) {
+      throw new Error("Refused: the spreadsheet this project is attached to is named \"" + env.spreadsheetName() +
+        "\". Staging tools only run in a spreadsheet whose name contains STAGING.");
     }
   }
 
@@ -30,6 +36,8 @@ const StagingVerificationService = (() => {
     // A render ID guaranteed to match no render job (T6f).
     const unmatchedId = "cr-00000000-0000-4000-8000-0000" + runId;
     const jobIds = [1, 2, 3, 4].map(function (n) { return "RND-STG" + runId.slice(0, 4).toUpperCase() + "-" + n; });
+    // A fresh, empty staging spreadsheet needs the base tabs the Production page reads.
+    env.prepareSheets();
     // Job 3 is created later by stagingVerifyRun(), after its delivery has arrived (T7).
     [0, 1, 3].forEach(function (i) { env.createRenderJob(jobIds[i], ids[i]); });
     const run = { runId: runId, ids: ids, unmatchedId: unmatchedId, jobIds: jobIds, seededAt: new Date(env.now()).toISOString() };
@@ -161,6 +169,19 @@ const StagingVerificationService = (() => {
     const properties = PropertiesService.getScriptProperties();
     return {
       property: function (name) { return properties.getProperty(name); },
+      spreadsheetName: function () { return SpreadsheetApp.getActiveSpreadsheet().getName(); },
+      prepareSheets: function () {
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        // Only creates missing tabs: Settings/Ideas/Logs/Costs via their setup functions,
+        // the rest through their repositories, which write the current headers.
+        // (setupProjectSavannah() is not used: its closing getUi().alert fails in the editor.)
+        [setupSettingsSheet, setupIdeasSheet, setupLogsSheet, setupCostsSheet].forEach(function (setup) { setup(ss); });
+        ScriptsRepository.getScriptsByStatus("APPROVED");
+        SeoRepository.getAll();
+        RenderJobRepository.getAll();
+        PublishingJobRepository.getAll();
+        ProductionTaskRepository.getAll();
+      },
       setProperty: function (name, value) { properties.setProperty(name, value); },
       uuid: function () { return Utilities.getUuid(); },
       now: function () { return Date.now(); },

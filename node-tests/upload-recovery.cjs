@@ -65,6 +65,9 @@ function fixture(options = {}) {
   for (const file of ['Models/PublishingJob.js', 'Production/VideoLink_Service.js', 'Production/PublishingSchedule_Service.js', 'Production/ProductionError_Service.js', 'Production/YouTube_Service.js', 'App/ProductionController.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
+  // Production-like: no SAVANNAH_ENVIRONMENT property, so the staging guard is a no-op.
+  if (!context.PropertiesService) context.PropertiesService = { getScriptProperties: () => ({ getProperty: () => options.environment || null }) };
+  vm.runInContext(fs.readFileSync(path.join(root, 'Utils/EnvironmentGuard.js'), 'utf8'), context, { filename: 'Utils/EnvironmentGuard.js' });
   // Loaded separately from the list above; the controller only calls it at request time.
   vm.runInContext(fs.readFileSync(path.join(root, 'Production/ProductionHealth_Service.js'), 'utf8'), context,
     { filename: 'Production/ProductionHealth_Service.js' });

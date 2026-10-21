@@ -139,6 +139,7 @@ const CloudRunFFmpegProvider = (() => {
     const reserved = String(options && options.renderId || "");
     const jobId = RESERVED_ID_SHAPE.test(reserved) ? reserved : reserveRenderId();
     const callbackUrl = callbackUrl_();
+    assertNotStaging_("Cloud Run render submission");
     const response = request_("post", "/jobs", {
       jobId: jobId,
       beats: beats,
