@@ -11,7 +11,7 @@
 //
 // Usage:
 //   node node-tests/staging/send-synthetic-callback.cjs --i-am-targeting-staging <scenario> <cr-render-id>
-// Scenarios: completed | failed | no-video | http-video | mismatched-job | bad-secret |
+// Scenarios: completed | link-refresh | failed | no-video | http-video | mismatched-job | bad-secret |
 //            malformed-id | unknown-status
 const { randomUUID } = require('node:crypto');
 
@@ -22,16 +22,25 @@ const PRODUCTION_MARKERS = [
 const RENDER_ID = /^cr-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SYNTHETIC_VIDEO = 'https://example.invalid/savannah-staging/synthetic-callback.mp4';
 
+class Refused extends Error {}
+
 function fail(message) {
   console.error('REFUSED: ' + message);
   process.exit(2);
 }
 
 function payloadFor(scenario, renderId) {
+  const gcsPath = 'renders/' + renderId + '/final.mp4';
   switch (scenario) {
     case 'completed':
+      // gcsPath mirrors media-worker/src/pipeline/deliver.js so a later link refresh can match it.
       return { jobId: renderId, status: 'completed',
-        video: { url: SYNTHETIC_VIDEO, durationSeconds: 40, width: 1080, height: 1920 },
+        video: { url: SYNTHETIC_VIDEO, gcsPath, durationSeconds: 40, width: 1080, height: 1920 },
+        probe: { durationSeconds: 40, width: 1080, height: 1920, synthetic: true } };
+    case 'link-refresh':
+      // What delivery recovery sends: the same artifact, re-signed under a new URL.
+      return { jobId: renderId, status: 'completed',
+        video: { url: SYNTHETIC_VIDEO + '?refreshed=1', gcsPath, durationSeconds: 40, width: 1080, height: 1920 },
         probe: { durationSeconds: 40, width: 1080, height: 1920, synthetic: true } };
     case 'failed':
       return { jobId: renderId, status: 'failed', error: { message: 'Synthetic staging failure callback.' } };
@@ -52,34 +61,59 @@ function payloadFor(scenario, renderId) {
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  if (args[0] !== '--i-am-targeting-staging') fail('first argument must be --i-am-targeting-staging.');
-  const [, scenario, renderId] = args;
-  const base = String(process.env.SAVANNAH_STAGING_BRIDGE_URL || '').trim();
-  const secret = String(process.env.SAVANNAH_STAGING_CALLBACK_SECRET || '');
-  if (!base) fail('SAVANNAH_STAGING_BRIDGE_URL is not set.');
-  if (!secret) fail('SAVANNAH_STAGING_CALLBACK_SECRET is not set.');
+// Throws Refused (never sends) unless the target is clearly a staging bridge.
+function stagingTarget(env) {
+  const base = String(env.SAVANNAH_STAGING_BRIDGE_URL || '').trim();
+  const secret = String(env.SAVANNAH_STAGING_CALLBACK_SECRET || '');
+  if (!base) throw new Refused('SAVANNAH_STAGING_BRIDGE_URL is not set.');
+  if (!secret) throw new Refused('SAVANNAH_STAGING_CALLBACK_SECRET is not set.');
   if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/exec$/.test(base)) {
-    fail('bridge URL must be a bare https://script.google.com/macros/s/<id>/exec URL.');
+    throw new Refused('bridge URL must be a bare https://script.google.com/macros/s/<id>/exec URL.');
   }
-  if (PRODUCTION_MARKERS.some(marker => base.includes(marker))) fail('that is the PRODUCTION deployment.');
-  if (!RENDER_ID.test(String(renderId || ''))) fail('render ID must look like cr-<uuid>.');
-  const payload = payloadFor(scenario, renderId);
-  if (!payload) fail('unknown scenario "' + scenario + '".');
+  if (PRODUCTION_MARKERS.some(marker => base.includes(marker))) throw new Refused('that is the PRODUCTION deployment.');
+  return { base, secret };
+}
 
-  const usedSecret = scenario === 'bad-secret' ? 'wrong-' + randomUUID() : secret;
-  const url = base + '?route=media-worker-callback&secret=' + encodeURIComponent(usedSecret);
+async function send(target, scenario, renderId) {
+  if (!RENDER_ID.test(String(renderId || ''))) throw new Refused('render ID must look like cr-<uuid>.');
+  const payload = payloadFor(scenario, renderId);
+  if (!payload) throw new Refused('unknown scenario "' + scenario + '".');
+  const usedSecret = scenario === 'bad-secret' ? 'wrong-' + randomUUID() : target.secret;
+  const url = target.base + '?route=media-worker-callback&secret=' + encodeURIComponent(usedSecret);
   // Apps Script answers POST with a 302 to a GET echo URL; fetch follows it.
   const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
   const text = await response.text();
   let body = null;
   try { body = JSON.parse(text); } catch (ignored) {}
-  // Never print the URL: it carries the secret.
-  console.log(JSON.stringify({ scenario, renderId: payload.jobId, httpStatus: response.status, response: body || text.slice(0, 300) }, null, 2));
+  // Never return the URL: it carries the secret.
+  return { scenario, renderId: payload.jobId, httpStatus: response.status, response: body || text.slice(0, 300) };
 }
 
-main().catch(error => {
-  console.error('Request failed: ' + String(error && error.message || error).replace(/secret=[^&\s]+/g, 'secret=REDACTED'));
-  process.exit(1);
-});
+function redact(error) {
+  return String(error && error.message || error).replace(/secret=[^&\s]+/g, 'secret=REDACTED');
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  if (args[0] !== '--i-am-targeting-staging') fail('first argument must be --i-am-targeting-staging.');
+  const [, scenario, renderId] = args;
+  let target;
+  try {
+    target = stagingTarget(process.env);
+    if (!RENDER_ID.test(String(renderId || ''))) throw new Refused('render ID must look like cr-<uuid>.');
+    if (!payloadFor(scenario, renderId)) throw new Refused('unknown scenario "' + scenario + '".');
+  } catch (error) {
+    if (error instanceof Refused) fail(error.message);
+    throw error;
+  }
+  console.log(JSON.stringify(await send(target, scenario, renderId), null, 2));
+}
+
+module.exports = { Refused, payloadFor, stagingTarget, send, redact, RENDER_ID };
+
+if (require.main === module) {
+  main().catch(error => {
+    console.error('Request failed: ' + redact(error));
+    process.exit(1);
+  });
+}
