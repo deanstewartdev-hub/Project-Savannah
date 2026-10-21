@@ -507,6 +507,42 @@ function runCallbackBridgeTests() {
     if (payload.jobId !== VALID_RENDER_ID || payload.video.url !== "https://example.test/final.mp4") {
       throw new Error("Queued receipt lost the finished video's payload.");
     }
+    if (payload.synthetic !== false) throw new Error("A real callback must be stored as synthetic: false.");
+  });
+
+  test("SAV-17.5 synthetic test callbacks are refused unless this bridge is marked staging", () => {
+    function bridge(environment) {
+      const received = [];
+      const script = {
+        PropertiesService: { getScriptProperties: () => ({ getProperty: name => ({
+          MEDIA_WORKER_SHARED_SECRET: "synthetic-secret", RENDER_JOBS_SPREADSHEET_ID: "test-id",
+          SAVANNAH_ENVIRONMENT: environment
+        })[name] }) },
+        SpreadsheetApp: { openById: () => ({ getSheetByName: () => ({
+          getLastRow: () => 1 + received.length,
+          getRange: () => ({ getDisplayValues: () => [sandbox.CALLBACK_INBOX_HEADERS.slice()], setValues: v => received.push(v[0]) })
+        }) }) },
+        Utilities: { getUuid: () => "RECEIPT-TEST" },
+        LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
+        Logger: { log: () => {} }
+      };
+      vm.createContext(script);
+      vm.runInContext(bridgeSource, script);
+      const result = script.handleCallback_({ postData: { contents: JSON.stringify({
+        jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.invalid/x.mp4" }, synthetic: true
+      }) } }, { secret: "synthetic-secret" });
+      return { result, received };
+    }
+    for (const environment of [undefined, "production", "Staging"]) {
+      const prod = bridge(environment);
+      if (prod.result.success || !/only accepted by a staging bridge/.test(prod.result.error) || prod.received.length) {
+        throw new Error("Non-staging bridge accepted a synthetic callback (" + environment + ").");
+      }
+    }
+    const staging = bridge("staging");
+    if (!staging.result.queued || JSON.parse(staging.received[0][3]).synthetic !== true) {
+      throw new Error("Staging bridge must queue a synthetic callback and keep its marker.");
+    }
   });
 
   const failures = results.filter((r) => !r.passed);

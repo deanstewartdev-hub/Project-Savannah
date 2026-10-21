@@ -160,6 +160,13 @@ function handleCallback_(event, parameters) {
     if (!body || !body.jobId) return { success: false, error: "A jobId is required." };
     if (!isValidRenderId_(String(body.jobId))) return { success: false, error: "Malformed render ID." };
     if (!isValidCallbackStatus_(body.status)) return { success: false, error: "Unknown or missing status." };
+    // Synthetic test callbacks (node-tests/staging) are accepted only by a bridge
+    // explicitly marked as staging, so a test run aimed at the production bridge
+    // is refused before anything is written.
+    if (body.synthetic === true &&
+        PropertiesService.getScriptProperties().getProperty("SAVANNAH_ENVIRONMENT") !== "staging") {
+      return { success: false, error: "Synthetic test callbacks are only accepted by a staging bridge." };
+    }
 
     // Serialise concurrent callbacks from the media worker: a delayed failure must
     // never race a successful completion and replace its output.
@@ -194,7 +201,8 @@ function appendCallbackReceipt_(renderId, body) {
   if (!spreadsheetId) throw new Error("RENDER_JOBS_SPREADSHEET_ID is not configured.");
   var payload = JSON.stringify({
     jobId: renderId, status: body.status,
-    video: body.video || {}, probe: body.probe || {}, error: body.error || {}
+    video: body.video || {}, probe: body.probe || {}, error: body.error || {},
+    synthetic: body.synthetic === true
   });
   // A Google Sheets cell is limited to 50,000 characters.
   if (payload.length > 45000) throw new Error("Callback payload exceeds the receipt size limit.");

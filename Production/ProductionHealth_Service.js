@@ -180,7 +180,7 @@ const ProductionHealthService = (() => {
     receipts.forEach(function (receipt) {
       const renderId = String(receipt && receipt.renderId || "");
       if (!renderId || receipt.status !== "completed" || known[renderId] || seen[renderId]) return;
-      if (receipt.result === "REJECTED" || receipt.result === "REJECTED_NO_VIDEO") return;
+      if (/^REJECTED/.test(String(receipt.result || ""))) return;
       const receivedMs = timeMs_(receipt.receivedAt);
       if (!receivedMs || nowMs - receivedMs < THRESHOLDS.unmatchedDeliveryMs) return;
       seen[renderId] = true;

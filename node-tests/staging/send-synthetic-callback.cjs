@@ -29,7 +29,14 @@ function fail(message) {
   process.exit(2);
 }
 
+// Every staging payload is marked synthetic: a bridge not marked staging refuses it,
+// and a main app not marked staging never applies it.
 function payloadFor(scenario, renderId) {
+  const body = scenarioBody_(scenario, renderId);
+  return body && Object.assign(body, { synthetic: true });
+}
+
+function scenarioBody_(scenario, renderId) {
   const gcsPath = 'renders/' + renderId + '/final.mp4';
   switch (scenario) {
     case 'completed':

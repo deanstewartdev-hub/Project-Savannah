@@ -53,7 +53,7 @@ function world(options) {
   // --- the standalone bridge project, real code ---
   const bridge = vm.createContext({
     Logger: { log() {} }, Utilities: { getUuid: randomUUID },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: n => ({ MEDIA_WORKER_SHARED_SECRET: SECRET, RENDER_JOBS_SPREADSHEET_ID: 'sheet-id' })[n] || null }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: n => ({ MEDIA_WORKER_SHARED_SECRET: SECRET, RENDER_JOBS_SPREADSHEET_ID: 'sheet-id', SAVANNAH_ENVIRONMENT: opts.bridgeEnvironment === undefined ? 'staging' : opts.bridgeEnvironment })[n] || null }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     SpreadsheetApp: { openById: () => bridgeTarget },
     ContentService: { MimeType: { JSON: 'json' }, createTextOutput: text => ({ setMimeType: () => ({ text }) }) }
@@ -73,6 +73,7 @@ function world(options) {
     Logger: { log() {} }, Utilities: { getUuid: randomUUID },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     SpreadsheetApp: { getActiveSpreadsheet: () => mainSheet },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: n => (n in props ? props[n] : null) }) },
     RenderJobRepository: {
       getByRenderId: id => Object.values(jobs).find(j => j.renderId === id) || null,
       getById: id => jobs[id] || null,
@@ -82,7 +83,7 @@ function world(options) {
     ProductionController: {},
     Secrets: { getVideoProvider: () => 'cloud-run' }
   });
-  for (const file of ['Models/RenderJob.js', 'Production/VideoLink_Service.js', 'Production/MediaWorkerCallbackInbox_Service.js',
+  for (const file of ['Utils/EnvironmentGuard.js', 'Models/RenderJob.js', 'Production/VideoLink_Service.js', 'Production/MediaWorkerCallbackInbox_Service.js',
     'Production/ProductionQueue_Service.js', 'Production/StagingVerification_Service.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), main, { filename: file });
   }
@@ -170,6 +171,19 @@ const results = report => Object.fromEntries(report.checks.map(c => [c.id, c.res
     const report = w.verify();
     assert.equal(results(report).C10, 'SKIP');
     assert.equal(report.status, 'PASSED');
+  });
+
+  await test('A bridge not marked staging (e.g. the production bridge) refuses every synthetic callback and writes nothing', async () => {
+    const w = world({ bridgeEnvironment: null });
+    const seeded = w.seed();
+    const checks = await w.runCallbacks(argvFrom(seeded.command));
+    const shouldQueue = checks.filter(c => /is accepted/.test(c.label));
+    assert.ok(shouldQueue.length >= 8);
+    for (const c of shouldQueue) {
+      assert.equal(c.ok, false, c.label);
+      assert.match(JSON.stringify(c.response), /only accepted by a staging bridge/);
+    }
+    assert.equal(w.mainSheet.getSheetByName('Render Callback Inbox'), null, 'The inbox must not even be created.');
   });
 
   await test('Runner refuses bad input before sending anything', async () => {
