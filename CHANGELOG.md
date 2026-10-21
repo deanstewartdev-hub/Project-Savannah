@@ -371,6 +371,24 @@ dashboard with ambient background motion (`prefers-reduced-motion` respected thr
   pause/cancel, and priority levels in `ProductionTaskRepository` now that the worker has
   no six-minute ceiling to work around.
 
+### 21 October 2026 — an interrupted render submission can no longer look like a failed one
+
+- Found by review: the Cloud Run render ID is chosen before the request to the worker, but was only
+  saved on the row after the request returned. If Apps Script timed out or died after the worker
+  accepted the job, the row had no render ID, `recoverStaleJobs_` marked it FAILED after 15 minutes,
+  and the page offered "Re-render safely": a second paid render, with the first render's callback
+  arriving for an ID Savannah no longer linked to anything.
+- `CloudRunFFmpegProvider.reserveRenderId()` now chooses the ID first; `submitCore_` saves it on the
+  QUEUED row before asking the worker to start, and `submitRender` uses that ID. A callback or a
+  status check can always find the row, and existing stale-job reconciliation applies to it.
+- If the request fails with no confirmation (network error or timeout, a 5xx that is not the
+  dispatcher's own "Failed to start render job" 502, or a 2xx that does not echo the job ID), the job
+  stays active under its ID with an explicit "do not re-render" message, so a second render of the
+  script is refused until the callback or reconciliation settles it. Definite failures (4xx, the
+  dispatcher's JSON 502, validation and configuration errors) still mark the job FAILED and drop the
+  unused ID. Creatomate, which cannot pre-assign IDs, is unchanged.
+- `node-tests/RenderSubmissionIdempotency_Tests.js` (15). Mutation-checked. Not deployed.
+
 ### 21 October 2026 — script-level duplicate-upload guard
 
 - Found by review of the YouTube publishing workflow: every duplicate-upload guard was keyed
