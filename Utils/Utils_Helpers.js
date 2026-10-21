@@ -79,82 +79,28 @@ function setupIdeasSheet(ss) {
   sheet.setFrozenRows(1);
 }
 
+// The Scripts, SEO Pack and Approval Queue tabs belong to their repositories
+// (ScriptsRepository, SeoRepository, ApprovalRepository), which create them with
+// the CURRENT headers on first use. These v1.0 setup functions used to clear the
+// tab (resetSheet) and write obsolete headers, so running "Setup v1.0 Sheet" on a
+// live spreadsheet would have erased every script, SEO pack and approval. They
+// now never touch these tabs.
 function setupScriptsSheet(ss) {
-  const sheet = getOrCreateSheet(ss, SHEETS.SCRIPTS);
-  resetSheet(sheet);
-
-  const headers = [
-    "Script ID",
-    "Idea ID",
-    "Created At",
-    "Video Title",
-    "Voiceover Script",
-    "On-Screen Text",
-    "CTA",
-    "Word Count",
-    "Status"
-  ];
-
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  formatHeaderRow(sheet, 1, headers.length);
-  sheet.setFrozenRows(1);
+  return { sheet: ss.getSheetByName(SHEETS.SCRIPTS), created: false };
 }
 
 function setupSeoPackSheet(ss) {
-  const sheet = getOrCreateSheet(ss, SHEETS.SEO_PACK);
-  resetSheet(sheet);
-
-  const headers = [
-    "SEO ID",
-    "Idea ID",
-    "Created At",
-    "Title Option 1",
-    "Title Option 2",
-    "Description",
-    "Tags",
-    "Hashtags",
-    "Keywords"
-  ];
-
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  formatHeaderRow(sheet, 1, headers.length);
-  sheet.setFrozenRows(1);
+  return { sheet: ss.getSheetByName(SHEETS.SEO_PACK), created: false };
 }
 
 function setupApprovalQueueSheet(ss) {
-  const sheet = getOrCreateSheet(ss, SHEETS.APPROVAL_QUEUE);
-  resetSheet(sheet);
-
-  const headers = [
-    "Approval ID",
-    "Script ID",
-    "Idea ID",
-    "Script Version",
-    "Script Title",
-    "Approval Status",
-    "Submitted At",
-    "Submitted By",
-    "Reviewed At",
-    "Reviewed By",
-    "Review Notes",
-    "Decision Reason",
-    "Metadata JSON",
-    "Created At",
-    "Updated At",
-    "Version",
-    "Model Version"
-  ];
-
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  formatHeaderRow(sheet, 1, headers.length);
-  sheet.setFrozenRows(1);
+  return { sheet: ss.getSheetByName(SHEETS.APPROVAL_QUEUE), created: false };
 }
 
+// Logs and Costs are not created by their services, so set them up only when
+// missing. An existing tab, and the history in it, is never cleared.
 function setupLogsSheet(ss) {
-  const sheet = getOrCreateSheet(ss, SHEETS.LOGS);
-  resetSheet(sheet);
-
-  const headers = [
+  return createHeaderSheetIfMissing_(ss, SHEETS.LOGS, [
     "Log ID",
     "Timestamp",
     "Run ID",
@@ -162,18 +108,11 @@ function setupLogsSheet(ss) {
     "Status",
     "Message",
     "Error Details"
-  ];
-
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  formatHeaderRow(sheet, 1, headers.length);
-  sheet.setFrozenRows(1);
+  ]);
 }
 
 function setupCostsSheet(ss) {
-  const sheet = getOrCreateSheet(ss, SHEETS.COSTS);
-  resetSheet(sheet);
-
-  const headers = [
+  return createHeaderSheetIfMissing_(ss, SHEETS.COSTS, [
     "Cost ID",
     "Timestamp",
     "Run ID",
@@ -182,11 +121,17 @@ function setupCostsSheet(ss) {
     "Output Tokens",
     "Estimated Cost",
     "Action"
-  ];
+  ]);
+}
 
+function createHeaderSheetIfMissing_(ss, sheetName, headers) {
+  const result = getOrCreateSheet(ss, sheetName);
+  if (!result.created) return result;
+  const sheet = result.sheet;
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   formatHeaderRow(sheet, 1, headers.length);
   sheet.setFrozenRows(1);
+  return result;
 }
 
 function getOrCreateSheet(ss, sheetName) {
