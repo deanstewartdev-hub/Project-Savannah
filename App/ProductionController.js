@@ -350,7 +350,8 @@ const ProductionController = (() => {
       recoverStaleJobs_();
       recoverStalePublishingJobs_();
       const publishingJobs = PublishingJobRepository.getAll();
-      return { jobs: RenderJobRepository.getAll().sort(function (a, b) {
+      const renderJobs = RenderJobRepository.getAll();
+      return { health: productionHealth_(renderJobs, publishingJobs), jobs: renderJobs.slice().sort(function (a, b) {
         return new Date(b.updatedAt) - new Date(a.updatedAt);
       }).map(function (job) {
         const result = Object.assign({}, job);
@@ -623,6 +624,20 @@ const ProductionController = (() => {
     delete clone.metadata;
     return clone;
   }
+  // Operator-visible diagnostics for state changes that otherwise leave no trace. A logging
+  // failure must never undo or block the recovery it describes.
+  function logRecovery_(message) {
+    try { LoggingService.log({ runId: "", action: "PRODUCTION_RECOVERY", status: "Warning", message: message }); } catch (ignored) {}
+  }
+  // Health findings are advisory. If they cannot be computed the page must still load.
+  function productionHealth_(renderJobs, publishingJobs) {
+    try {
+      return ProductionHealthService.evaluate({ renderJobs: renderJobs, publishingJobs: publishingJobs });
+    } catch (caught) {
+      return { status: "unavailable", generatedAt: new Date().toISOString(),
+        counts: { critical: 0, warning: 0, total: 0 }, truncated: 0, findings: [] };
+    }
+  }
   function recoverStaleJobs_() {
     const cutoff = Date.now() - 15 * 60 * 1000;
     RenderJobRepository.getAll().filter(function (job) {
@@ -632,6 +647,7 @@ const ProductionController = (() => {
         status: "FAILED",
         errorMessage: "Render submission was interrupted before Creatomate returned an ID. Resume with Re-render safely."
       }));
+      logRecovery_("Render " + job.id + " was marked FAILED: submission was interrupted before the provider returned an ID.");
     });
   }
   function recoverStalePublishingJobs_() {
@@ -643,6 +659,8 @@ const ProductionController = (() => {
         status: "RECONCILE",
         errorMessage: "Upload completion is unknown. Check YouTube Studio before allowing another upload."
       }));
+      logRecovery_("Upload attempt " + job.id + " for render " + job.renderJobId +
+        " was set to uncertain (RECONCILE) after 30 minutes with no result. Check YouTube Studio before uploading again.");
     });
   }
   function withScriptLock_(callback) {
