@@ -8,8 +8,10 @@ const root = path.resolve(__dirname, '..');
 let passed = 0;
 function test(name, run) { run(); passed++; console.log('PASS ' + name); }
 function fixture(options = {}) {
-  let job = options.initialJob || null, inserts = 0, pages = 0, releases = 0, updateFailed = false;
+  let job = options.initialJob || null, inserts = 0, pages = 0, releases = 0, updateFailed = false, providerCalls = 0;
   const history = options.history || [];
+  const renderJobs = options.renderJobs || [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
+    status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }];
   const blob = { getBytes: () => [1], setName() { return this; }, setContentType() { return this; } };
   const context = vm.createContext({
     Logger: { log() {} },
@@ -18,14 +20,14 @@ function fixture(options = {}) {
     Utilities: { getUuid: randomUUID },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => releases++ }) },
     RenderJobRepository: {
-      getById: () => ({ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
-        status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }),
-      getAll: () => [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
-        status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }]
+      getById: id => renderJobs.find(entry => entry.id === id) || renderJobs[0],
+      getAll: () => renderJobs
     },
+    ScriptsRepository: { getScriptById: id => ({ id, status: 'APPROVED' }) },
+    VideoProcessingProvider: { get() { providerCalls++; throw new Error('provider reached'); } },
     RenderQualityService: { assertPublishable() {}, evaluate: () => ({ passed: true }) },
     RenderReviewService: { assertApproved() {}, get: () => ({ approved: true }) },
-    SeoRepository: { getById: () => ({ titleOptions: ['Test Short'], description: 'Description', tags: options.tags || [], hashtags: [] }) },
+    SeoRepository: { getByScriptId: () => ({ id: 'SEO-TEST' }), getById: () => ({ titleOptions: ['Test Short'], description: 'Description', tags: options.tags || [], hashtags: [] }) },
     PublishingJobRepository: {
       getByRenderJobId: () => job, getAll: () => history.concat(job ? [job] : []),
       save(value) { job = value; return value; },
@@ -65,7 +67,7 @@ function fixture(options = {}) {
   return {
     call: expression => vm.runInContext(expression, context, { timeout: 10000 }),
     job: () => job, history: () => history.slice(), inserts: () => inserts,
-    pages: () => pages, releases: () => releases
+    pages: () => pages, releases: () => releases, providerCalls: () => providerCalls
   };
 }
 const publish = 'ProductionController.publish({renderJobId:"RND-TEST"})';
@@ -318,5 +320,76 @@ test('Successful scheduled upload stays private and retains its schedule', () =>
   assert.equal(f.call(`ProductionController.publish({renderJobId:"RND-TEST",privacyStatus:"public",publishAt:${JSON.stringify(when)}})`).success, true);
   assert.equal(f.job().status, 'PUBLISHED'); assert.equal(f.job().privacyStatus, 'private');
   assert.equal(f.job().providerResponse.publishAt, when);
+});
+
+// A re-render has a new render job ID, so uploads must also be guarded by script.
+const otherRender = { id: 'RND-OTHER', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
+  status: 'SUCCEEDED', videoUrl: 'https://example.com/other.mp4', updatedAt: new Date().toISOString() };
+const bothRenders = () => [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
+  status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }, otherRender];
+for (const state of ['PUBLISHED', 'UPLOADING', 'RECONCILE']) {
+  test('Another render of the same script with a ' + state + ' upload blocks upload', () => {
+    const f = fixture({ renderJobs: bothRenders(),
+      history: [historicalJob('PUB-OTHER', state, new Date().toISOString(), { renderJobId: 'RND-OTHER' })] });
+    const result = f.call(publish);
+    assert.equal(result.success, false);
+    assert.match(result.error.message, /Another render of this script/);
+    assert.equal(f.inserts(), 0);
+    assert.equal(f.job(), null, 'No new publishing record may be created when the guard fires');
+  });
+}
+test('Another render of the same script with failed-upload video evidence blocks upload', () => {
+  const f = fixture({ renderJobs: bothRenders(),
+    history: [historicalJob('PUB-OTHER', 'FAILED', new Date().toISOString(),
+      { renderJobId: 'RND-OTHER', youtubeVideoId: 'REMOTE' })] });
+  assert.equal(f.call(publish).success, false);
+  assert.equal(f.inserts(), 0);
+});
+test('A plain FAILED upload of another render of the script does not block upload', () => {
+  const f = fixture({ renderJobs: bothRenders(),
+    history: [historicalJob('PUB-OTHER', 'FAILED', new Date().toISOString(), { renderJobId: 'RND-OTHER' })] });
+  assert.equal(f.call(publish).success, true);
+  assert.equal(f.inserts(), 1);
+});
+test('An upload of a different script never blocks upload', () => {
+  const f = fixture({ history: [historicalJob('PUB-ELSE', 'PUBLISHED', new Date().toISOString(),
+    { renderJobId: 'RND-ELSE', scriptId: 'SCR-ELSE' })] });
+  assert.equal(f.call(publish).success, true);
+  assert.equal(f.inserts(), 1);
+});
+test('Retrying an unpublished render is blocked when another render of the script is published', () => {
+  const failedOlder = Object.assign({}, otherRender, { id: 'RND-OLDER', status: 'FAILED', videoUrl: '' });
+  const f = fixture({ renderJobs: [failedOlder].concat(bothRenders()),
+    history: [historicalJob('PUB-OTHER', 'PUBLISHED', new Date().toISOString(),
+      { renderJobId: 'RND-OTHER', youtubeVideoId: 'LIVE', youtubeUrl: 'https://youtu.be/LIVE' })] });
+  const result = f.call('ProductionController.retry({jobId:"RND-OLDER"})');
+  assert.equal(result.success, false);
+  assert.match(result.error.message, /cannot be re-rendered/);
+  assert.equal(f.providerCalls(), 0, 'No paid render may be started');
+});
+for (const state of ['PUBLISHED', 'UPLOADING', 'RECONCILE']) {
+  test('Direct re-render submission is blocked when the script has a ' + state + ' upload', () => {
+    const f = fixture({ history: [historicalJob('PUB-OLD', state, new Date().toISOString())] });
+    const result = f.call('ProductionController.submit({scriptId:"SCR-TEST",forceRerender:true})');
+    assert.equal(result.success, false);
+    assert.match(result.error.message, /already has a YouTube upload/);
+    assert.equal(f.providerCalls(), 0, 'No paid render may be started');
+  });
+}
+test('Re-render submission is not blocked by a plain FAILED upload with no video evidence', () => {
+  const f = fixture({ history: [historicalJob('PUB-OLD', 'FAILED', new Date().toISOString())] });
+  f.call('ProductionController.submit({scriptId:"SCR-TEST",forceRerender:true})');
+  assert.equal(f.providerCalls(), 1, 'The guard must not fire, so the provider is reached');
+});
+test('A returned video ID is kept on the RECONCILE record when saving PUBLISHED fails', () => {
+  const f = fixture({ persistenceFailure: true }); f.call(publish);
+  assert.equal(f.job().status, 'RECONCILE');
+  assert.equal(f.job().youtubeVideoId, 'VIDEO');
+  assert.equal(f.job().youtubeUrl, 'https://youtu.be/VIDEO');
+  assert.equal(f.call(publish).success, false); assert.equal(f.inserts(), 1);
+});
+test('An upload that timed out before returning an ID has no video ID to record', () => {
+  const f = fixture({ insertFailure: true }); f.call(publish);
+  assert.equal(f.job().status, 'RECONCILE'); assert.equal(f.job().youtubeVideoId, '');
 });
 console.log(`Upload recovery: ${passed}/${passed} passed.`);

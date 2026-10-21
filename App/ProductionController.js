@@ -65,6 +65,14 @@ const ProductionController = (() => {
       if (completed && !(request && request.forceRerender === true)) {
         throw error_("This script already has a completed render. Use an explicit re-render action to replace it.");
       }
+      // A new render gets a new render job ID, so a render that was already uploaded must be
+      // checked by script. Otherwise the same content could be rendered, approved and uploaded
+      // a second time. A script with no earlier render cannot have an upload.
+      if (existingJobs.length && PublishingJobRepository.getAll().some(function (upload) {
+        return upload.scriptId === scriptId && isProtectedUpload_(upload);
+      })) {
+        throw error_("This script already has a YouTube upload that is published, in progress or uncertain. Resolve it in YouTube Studio before rendering again.");
+      }
       const provider = VideoProcessingProvider.get();
       let job = RenderJobRepository.save(RenderJobModel.create({
         scriptId: script.id,
@@ -289,9 +297,10 @@ const ProductionController = (() => {
     const jobId = String(request && request.jobId || "").trim();
     const job = RenderJobRepository.getById(jobId);
     if (!job) return failure_("Render job was not found.");
-    // Retry must respect older upload attempts, not only the latest sheet row.
+    // Retry must respect older upload attempts, not only the latest sheet row, and uploads of
+    // any other render of the same script (a re-render has a different render job ID).
     const uploadHistory = PublishingJobRepository.getAll().filter(function (upload) {
-      return upload.renderJobId === job.id;
+      return upload.renderJobId === job.id || upload.scriptId === job.scriptId;
     });
     if (uploadHistory.some(function (upload) { return upload.status === "PUBLISHED"; })) {
       return failure_("Published videos cannot be re-rendered from the retry action.");
@@ -442,6 +451,13 @@ const ProductionController = (() => {
       if (history.some(needsUploadEvidenceReview_)) {
         throw error_("A failed upload attempt still contains YouTube video evidence. Reconcile it or verify in YouTube Studio before retrying.");
       }
+      // Another render of the same script may already be on YouTube (or be uploading, or be
+      // uncertain). Uploading this render too would publish the same content twice.
+      if (publishingJobs.some(function (job) {
+        return job.scriptId === renderJob.scriptId && isProtectedUpload_(job);
+      })) {
+        throw error_("Another render of this script already has a YouTube upload that is published, in progress or uncertain. Resolve it in YouTube Studio before uploading this render.");
+      }
       const scheduleCheck = PublishingScheduleService.assertAvailable(
         source.publishAt,
         publishingJobs,
@@ -479,12 +495,16 @@ const ProductionController = (() => {
           }
         }));
       } catch (caught) {
-        PublishingJobRepository.update(PublishingJobModel.update(job, {
+        // If YouTube already returned a video ID, keep it on the record even though saving the
+        // PUBLISHED state failed, so the evidence survives for reconciliation and audit.
+        const returned = upload && upload.videoId ?
+          { youtubeVideoId: upload.videoId, youtubeUrl: upload.videoUrl || "" } : {};
+        PublishingJobRepository.update(PublishingJobModel.update(job, Object.assign({
           status: caught.uploadUncertain || upload ? "RECONCILE" : "FAILED",
           errorMessage: caught.uploadUncertain || upload ?
             "YouTube upload completion is unknown. Reconcile the upload or check YouTube Studio before retrying." :
             friendlyError_(caught)
-        }));
+        }, returned)));
         if (upload) throw error_("YouTube upload completion is unknown. Reconcile the upload before retrying.");
         throw caught;
       }
@@ -561,6 +581,12 @@ const ProductionController = (() => {
         })) };
       });
     });
+  }
+
+  // An upload that must stop any further upload of the same content.
+  function isProtectedUpload_(job) {
+    return !!job && (job.status === "PUBLISHED" || job.status === "UPLOADING" ||
+      job.status === "RECONCILE" || needsUploadEvidenceReview_(job));
   }
 
   function needsUploadEvidenceReview_(job) {
