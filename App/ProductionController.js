@@ -643,7 +643,10 @@ const ProductionController = (() => {
   // Health findings are advisory. If they cannot be computed the page must still load.
   function productionHealth_(renderJobs, publishingJobs) {
     try {
-      return ProductionHealthService.evaluate({ renderJobs: renderJobs, publishingJobs: publishingJobs });
+      let callbackReceipts = [];
+      try { callbackReceipts = MediaWorkerCallbackInbox.recentReceipts(100); } catch (ignored) {}
+      return ProductionHealthService.evaluate({ renderJobs: renderJobs, publishingJobs: publishingJobs,
+        callbackReceipts: callbackReceipts });
     } catch (caught) {
       return { status: "unavailable", generatedAt: new Date().toISOString(),
         counts: { critical: 0, warning: 0, total: 0 }, truncated: 0, findings: [] };
@@ -656,7 +659,7 @@ const ProductionController = (() => {
     }).forEach(function (job) {
       RenderJobRepository.update(RenderJobModel.update(job, {
         status: "FAILED",
-        errorMessage: "Render submission was interrupted before Creatomate returned an ID. Resume with Re-render safely."
+        errorMessage: "Render submission was interrupted before the provider returned an ID. The worker may still have made this video: check Production > Needs attention for an unmatched delivery before using Re-render safely."
       }));
       logRecovery_("Render " + job.id + " was marked FAILED: submission was interrupted before the provider returned an ID.");
     });

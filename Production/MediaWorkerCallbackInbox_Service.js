@@ -189,7 +189,27 @@ const MediaWorkerCallbackInbox = (() => {
     };
   }
 
-  return { processPending: processPending, processPendingLocked: processPendingLocked, timeOf: timeOf_ };
+  // READ-ONLY summary of the most recent receipts for health checks (no payloads,
+  // no lock). Advisory: a missing or mismatched sheet returns [] instead of throwing.
+  function recentReceipts(limit) {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = spreadsheet && spreadsheet.getSheetByName(SHEET_NAME);
+    if (!sheet || sheet.getLastRow() < 2) return [];
+    const headers = sheet.getRange(1, 1, 1, HEADERS.length).getDisplayValues()[0];
+    if (headers.join("|") !== HEADERS.join("|")) return [];
+    const count = Math.min(Math.max(1, Number(limit) || 100), sheet.getLastRow() - 1);
+    return sheet.getRange(sheet.getLastRow() - count + 1, 1, count, HEADERS.length).getValues().map(function (row) {
+      const received = timeOf_(row[4]);
+      return {
+        renderId: String(row[1] || "").trim(), status: String(row[2] || ""),
+        receivedAt: isFinite(received) ? new Date(received).toISOString() : "",
+        handled: !!row[5], result: String(row[6] || "").split(":")[0]
+      };
+    });
+  }
+
+  return { processPending: processPending, processPendingLocked: processPendingLocked,
+    recentReceipts: recentReceipts, timeOf: timeOf_ };
 })();
 
 /**

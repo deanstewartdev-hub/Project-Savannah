@@ -19,7 +19,11 @@ const ProductionHealthService = (() => {
     renderStuckWarningMs: 45 * 60 * 1000,
     renderStuckCriticalMs: 3 * 60 * 60 * 1000,
     // A web app execution is capped at 6 minutes, so a longer UPLOADING row has lost its worker.
-    uploadStuckWarningMs: 10 * 60 * 1000
+    uploadStuckWarningMs: 10 * 60 * 1000,
+    // A delivery normally matches its render within seconds; allow for a slow submit.
+    unmatchedDeliveryMs: 15 * 60 * 1000,
+    // Warn two days ahead so there is time to renew the link before review/upload.
+    videoLinkWarningMs: 48 * 60 * 60 * 1000
   });
   const MAX_FINDINGS = 50;
   const SEVERITY_RANK = { critical: 0, warning: 1 };
@@ -30,9 +34,14 @@ const ProductionHealthService = (() => {
     const renders = array_(source.renderJobs), uploads = array_(source.publishingJobs);
     const findings = [];
 
-    renders.forEach(function (job) { renderFindings_(job, nowMs).forEach(function (item) { findings.push(item); }); });
+    const onYouTube = {};
+    uploads.forEach(function (job) {
+      if (job && ["PUBLISHED", "UPLOADING", "RECONCILE"].indexOf(String(job.status || "").toUpperCase()) !== -1) onYouTube[job.renderJobId] = true;
+    });
+    renders.forEach(function (job) { renderFindings_(job, nowMs, onYouTube).forEach(function (item) { findings.push(item); }); });
     uploads.forEach(function (job) { uploadFindings_(job, nowMs).forEach(function (item) { findings.push(item); }); });
     duplicateUploadFindings_(uploads).forEach(function (item) { findings.push(item); });
+    unmatchedDeliveryFindings_(array_(source.callbackReceipts), renders, nowMs).forEach(function (item) { findings.push(item); });
 
     findings.sort(function (a, b) {
       return SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] || a.sinceMs - b.sinceMs;
@@ -53,7 +62,7 @@ const ProductionHealthService = (() => {
     };
   }
 
-  function renderFindings_(job, nowMs) {
+  function renderFindings_(job, nowMs, onYouTube) {
     if (!job || !job.id) return [];
     const status = String(job.status || "").toUpperCase();
     const createdMs = timeMs_(job.createdAt);
@@ -78,6 +87,20 @@ const ProductionHealthService = (() => {
         "Press Refresh status. Do not re-render until the render artifact has been checked.",
         { doNotRerender: true, doNotUploadAgain: false }));
       return out;
+    }
+    // Signed video links expire (7 days at most). An expired link blocks review and
+    // upload, and the tempting wrong fix is a paid re-render of a video that exists.
+    if (delivered && !(onYouTube && onYouTube[job.id]) && typeof VideoLinkService !== "undefined") {
+      const expiry = VideoLinkService.expiresAt(job.videoUrl);
+      if (expiry !== null && expiry - nowMs < THRESHOLDS.videoLinkWarningMs) {
+        const expired = expiry <= nowMs;
+        out.push(finding_(expired ? "RENDER_VIDEO_LINK_EXPIRED" : "RENDER_VIDEO_LINK_EXPIRING", "warning", subject, createdMs,
+          expired ? "Video link has expired" : "Video link expires soon",
+          "This render's download link " + (expired ? "expired on " : "expires on ") + new Date(expiry).toISOString() +
+            ". It cannot be viewed or uploaded " + (expired ? "until it is renewed." : "after that."),
+          "Do not re-render: the video still exists. Ask the owner to run delivery recovery (media-worker recover-delivery) for this render ID to renew the link.",
+          { doNotRerender: true, doNotUploadAgain: false }));
+      }
     }
     if (ACTIVE_RENDER.indexOf(status) !== -1 && createdMs) {
       const age = nowMs - createdMs;
@@ -144,6 +167,32 @@ const ProductionHealthService = (() => {
         "Review them in YouTube Studio and remove the unwanted copy there. Savannah has not deleted anything. Do not upload again.",
         { doNotRerender: true, doNotUploadAgain: true });
     });
+  }
+
+  // A completed delivery whose render ID matches no render job: usually a submission
+  // interrupted after the worker accepted it. That render is then marked FAILED with a
+  // re-render option, which would pay for a video that already exists.
+  function unmatchedDeliveryFindings_(receipts, renders, nowMs) {
+    const known = {};
+    renders.forEach(function (job) { if (job && job.renderId) known[String(job.renderId)] = true; });
+    const seen = {};
+    const out = [];
+    receipts.forEach(function (receipt) {
+      const renderId = String(receipt && receipt.renderId || "");
+      if (!renderId || receipt.status !== "completed" || known[renderId] || seen[renderId]) return;
+      if (receipt.result === "REJECTED" || receipt.result === "REJECTED_NO_VIDEO") return;
+      const receivedMs = timeMs_(receipt.receivedAt);
+      if (!receivedMs || nowMs - receivedMs < THRESHOLDS.unmatchedDeliveryMs) return;
+      seen[renderId] = true;
+      out.push(finding_("RENDER_DELIVERY_UNMATCHED", "critical", { renderId: renderId }, receivedMs,
+        "A finished video arrived for an unknown render",
+        "The worker delivered a video for render ID " + renderId + ", but no render job has that ID. This usually " +
+          "means a render submission was interrupted after the worker had already accepted it.",
+        "Do not re-render the interrupted (FAILED) render from around " + new Date(receivedMs).toISOString() +
+          " yet: this video already exists. Open the 'Render Callback Inbox' tab, find this render ID and follow 'Unmatched delivery' in LIVE_ACCEPTANCE.md.",
+        { doNotRerender: true, doNotUploadAgain: false }));
+    });
+    return out;
   }
 
   function finding_(code, severity, subject, sinceMs, title, message, recovery, flags) {

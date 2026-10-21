@@ -175,4 +175,63 @@ test('Findings never contain credentials or provider response bodies', () => {
   assert.doesNotMatch(JSON.stringify(result), /secret_value|X-Goog-Signature|signed\.example/);
 });
 
+// ---------- video link lifetime (with VideoLinkService loaded, as in Apps Script) ----------
+const linkContext = vm.createContext({});
+for (const file of ['Production/VideoLink_Service.js', 'Production/ProductionHealth_Service.js']) {
+  vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), linkContext, { filename: file });
+}
+const runWithLinks = (renderJobs, publishingJobs) => JSON.parse(JSON.stringify(vm.runInContext(
+  'ProductionHealthService.evaluate(' + JSON.stringify({ now: NOW, renderJobs, publishingJobs: publishingJobs || [] }) + ')', linkContext)));
+const signedUrl = (date) => 'https://storage.googleapis.com/b/renders/x/final.mp4?X-Goog-Date=' + date + '&X-Goog-Expires=604800&X-Goog-Signature=s';
+
+test('Expired link on an unpublished render warns, and says not to re-render', () => {
+  const result = runWithLinks([render({ status: 'SUCCEEDED', videoUrl: signedUrl('20261010T120000Z') })]);
+  assert.deepEqual(codes(result), ['RENDER_VIDEO_LINK_EXPIRED']);
+  assert.equal(result.findings[0].severity, 'warning');
+  assert.equal(result.findings[0].doNotRerender, true);
+  assert.match(result.findings[0].recovery, /delivery recovery/);
+});
+test('Link expiring within 48 hours warns; a fresh link does not', () => {
+  assert.deepEqual(codes(runWithLinks([render({ status: 'SUCCEEDED', videoUrl: signedUrl('20261015T120000Z') })])), ['RENDER_VIDEO_LINK_EXPIRING']);
+  assert.deepEqual(codes(runWithLinks([render({ status: 'SUCCEEDED', videoUrl: signedUrl('20261021T110000Z') })])), []);
+});
+test('Expired link is not flagged once the render is on YouTube or uploading', () => {
+  for (const status of ['PUBLISHED', 'UPLOADING', 'RECONCILE']) {
+    const result = runWithLinks([render({ status: 'SUCCEEDED', videoUrl: signedUrl('20261010T120000Z') })], [upload({ status, createdAt: ago(MIN) })]);
+    assert.equal(codes(result).includes('RENDER_VIDEO_LINK_EXPIRED'), false, status);
+  }
+});
+test('Unsigned video URLs and missing VideoLinkService produce no link findings', () => {
+  assert.deepEqual(codes(runWithLinks([render({ status: 'SUCCEEDED', videoUrl: 'https://example.com/v.mp4' })])), []);
+  assert.deepEqual(codes(run([render({ status: 'SUCCEEDED', videoUrl: signedUrl('20261010T120000Z') })])), []);
+});
+
+// ---------- deliveries for render IDs no render job has ----------
+const runReceipts = (renderJobs, callbackReceipts) => evaluate({ now: NOW, renderJobs, publishingJobs: [], callbackReceipts });
+const UNKNOWN = 'cr-99999999-9999-4999-8999-999999999999';
+const receiptRow = (overrides) => Object.assign({ renderId: UNKNOWN, status: 'completed', receivedAt: ago(20 * MIN), handled: false, result: '' }, overrides);
+
+test('Completed delivery for an unknown render ID is critical and says not to re-render', () => {
+  const result = runReceipts([render({ status: 'FAILED', renderId: '' })], [receiptRow()]);
+  assert.deepEqual(codes(result), ['RENDER_DELIVERY_UNMATCHED']);
+  const finding = result.findings[0];
+  assert.equal(finding.severity, 'critical');
+  assert.equal(finding.doNotRerender, true);
+  assert.equal(finding.subject.renderId, UNKNOWN);
+  assert.match(finding.recovery, /Unmatched delivery/);
+});
+test('Unmatched delivery is also flagged once the receipt is ORPHANED', () => {
+  assert.deepEqual(codes(runReceipts([], [receiptRow({ handled: true, result: 'ORPHANED', receivedAt: ago(50 * HOUR) })])), ['RENDER_DELIVERY_UNMATCHED']);
+});
+test('Matched, recent, failed-status, rejected or duplicate receipts are not flagged twice or wrongly', () => {
+  assert.deepEqual(codes(runReceipts([render({ renderId: UNKNOWN, status: 'SUCCEEDED', videoUrl: 'https://example.com/v.mp4' })], [receiptRow()])), []);
+  assert.deepEqual(codes(runReceipts([], [receiptRow({ receivedAt: ago(5 * MIN) })])), [], 'normal fast-callback window');
+  assert.deepEqual(codes(runReceipts([], [receiptRow({ status: 'failed' })])), []);
+  assert.deepEqual(codes(runReceipts([], [receiptRow({ result: 'REJECTED_NO_VIDEO', handled: true })])), []);
+  assert.equal(codes(runReceipts([], [receiptRow(), receiptRow()])).length, 1, 'one finding per render ID');
+});
+test('No receipts input keeps earlier behaviour', () => {
+  assert.deepEqual(codes(evaluate({ now: NOW, renderJobs: [], publishingJobs: [] })), []);
+});
+
 console.log(`Production health: ${passed}/${passed} passed.`);

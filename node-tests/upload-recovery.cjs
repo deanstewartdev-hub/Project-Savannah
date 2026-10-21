@@ -413,6 +413,22 @@ test('Production listing still loads when health evaluation fails', () => {
   assert.equal(response.data.health.status, 'unavailable');
   assert.equal(response.data.jobs.length, 1);
 });
+test('Production listing passes recent callback receipts to health (unmatched delivery)', () => {
+  const f = fixture();
+  f.call('MediaWorkerCallbackInbox.recentReceipts = function (limit) { return [{ renderId: "cr-99999999-9999-4999-8999-999999999999", ' +
+    'status: "completed", receivedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(), handled: false, result: "" }]; }');
+  const response = f.call('ProductionController.listJobs()');
+  assert.equal(response.success, true);
+  assert.equal(response.data.health.findings[0].code, 'RENDER_DELIVERY_UNMATCHED');
+  assert.equal(response.data.health.findings[0].doNotRerender, true);
+});
+test('Production listing still computes health when reading receipts fails', () => {
+  const f = fixture({ history: [historicalJob('PUB-UNSURE', 'RECONCILE', new Date().toISOString())] });
+  f.call('MediaWorkerCallbackInbox.recentReceipts = function () { throw new Error("sheet unavailable"); }');
+  const response = f.call('ProductionController.listJobs()');
+  assert.equal(response.success, true);
+  assert.equal(response.data.health.findings[0].code, 'UPLOAD_UNCERTAIN');
+});
 test('A stale UPLOADING attempt becomes RECONCILE and the change is logged for the operator', () => {
   const f = fixture({ history: [historicalJob('PUB-LOST', 'UPLOADING', new Date(Date.now() - 2 * 3600000).toISOString())] });
   assert.equal(f.call('ProductionController.listJobs()').success, true);

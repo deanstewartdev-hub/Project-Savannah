@@ -337,6 +337,23 @@ function runCallbackInboxConsumerTests() {
     assert(report.headersMatch === false && t.sheet.writes.length === 0, "Mismatch not flagged read-only.");
   });
 
+  test("recentReceipts returns the latest rows without payloads, read-only", () => {
+    const done = receipt(RENDER_A, "failed"); done[5] = new Date(); done[6] = "ORPHANED";
+    const t = setup([receipt(RENDER_B, "completed"), done, receipt(RENDER_A, "completed")], [renderJob()]);
+    const rows = JSON.parse(JSON.stringify(t.inbox.recentReceipts(2)));
+    assert(rows.length === 2, "Expected the last 2 rows.");
+    assert(rows[0].renderId === RENDER_A && rows[0].handled === true && rows[0].result === "ORPHANED", "Row summary wrong: " + JSON.stringify(rows[0]));
+    assert(rows[1].status === "completed" && rows[1].handled === false && rows[1].receivedAt, "Pending row summary wrong.");
+    assert(!JSON.stringify(rows).includes("video"), "Payloads must not be returned.");
+    assert(t.sheet.writes.length === 0 && t.lock.released === 0, "recentReceipts must not write or lock.");
+  });
+
+  test("recentReceipts is advisory: missing sheet or schema mismatch returns []", () => {
+    assert(setup([], [], { noSheet: true }).inbox.recentReceipts(10).length === 0, "Missing sheet should give [].");
+    const wrong = HEADERS.slice(); wrong[2] = "State";
+    assert(setup([receipt(RENDER_A, "completed")], [], { headers: wrong }).inbox.recentReceipts(10).length === 0, "Mismatch should give [].");
+  });
+
   test("consumer source makes no network calls under the lock", () => {
     const source = fs.readFileSync(path.join(REPO, "Production/MediaWorkerCallbackInbox_Service.js"), "utf8");
     assert(!/UrlFetchApp|fetch\(/.test(source), "Inbox consumer must not make external requests.");

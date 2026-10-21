@@ -121,6 +121,25 @@ what to check and what not to do. In short:
 | Upload appears to have stopped | In progress longer than one execution can run | Check Studio. Savannah marks it uncertain by itself | Upload again |
 | Failed upload still points at a video | A video ID was recorded | Verify in Studio, then reconcile | Upload again |
 | Same script on YouTube more than once | A duplicate already exists | Remove the unwanted copy in Studio. Savannah deletes nothing | Upload again |
+| Video link has expired / expires soon | The signed download link (7 days at most) has run out | Owner runs the delivery-recovery tool for that render ID; Savannah accepts the renewed link for the same video and keeps its approval | Re-render (the video still exists) |
+| A finished video arrived for an unknown render | A submission was interrupted after the worker accepted it | Follow **Unmatched delivery** below | Press Re-render safely on the interrupted render |
+
+### Unmatched delivery
+
+Savannah received a finished video for a render ID (`cr-…`) that no row in **Render Jobs** has. A render
+submission was interrupted (the Production page shows a FAILED render saying "interrupted before the
+provider returned an ID") after the worker had already started. The video exists and was paid for.
+
+1. Open the spreadsheet's **Render Callback Inbox** tab and find the row with that render ID. Note its
+   **Received At** time.
+2. In **Render Jobs**, find the FAILED render with the "interrupted" message whose **Created At** is a
+   few minutes earlier, for the script you expect. If more than one could match, stop and check the Cloud
+   Run execution for the render ID first.
+3. On that Render Jobs row, set **Render ID** to the `cr-…` value, set **Status** to `RENDERING`, and
+   clear **Error Message**.
+4. If the inbox row's **Result** says `ORPHANED`, clear its **Handled At** and **Result** cells.
+5. In the Apps Script editor, run `drainCallbackInboxNow`. The inbox row should change to `APPLIED`,
+   and the render to SUCCEEDED with its video. Then review and approve it as normal.
 
 Recovery actions cannot bypass the script-level upload guard: while any render of a script has a
 published, in-progress, uncertain or evidence-bearing upload, re-rendering and uploading that script
