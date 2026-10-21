@@ -5,16 +5,6 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
-### 21 October 2026 — scene-plan duration estimate is a warning, not a gate
-
-- `ScenePlanService.create()` no longer throws when its words-per-second estimate falls
-  outside 30–60s. It returns the plan with a `warnings` array instead. Speaking rate varies
-  by voice, so only measured audio gates a render.
-- `fitToDuration()` and `fitToSlotDurations()` still reject measured durations outside
-  30–60s, and now also reject NaN/non-finite durations and an invalid plan estimate.
-- Tests 14a–14d added to `Tests/ScriptDurationValidation_Tests.js`. `plan.warnings` is not
-  yet surfaced in the UI.
-
 ### 11 August 2026 (late night) — post-migration security/cleanup pass
 
 **Migration status: functionally validated end to end** — a real render survived
@@ -352,8 +342,8 @@ dashboard with ambient background motion (`prefers-reduced-motion` respected thr
 
 - Deploy the worker, wire up real API keys, and run one verified end-to-end render
   compared side by side against Creatomate before deleting `CreatomateProviderAdapter`.
-- ~~Downgrade `ScenePlanService`'s pre-flight duration estimate from a throw to a
-  warning~~ — done, see the 21 October 2026 entry.
+- Downgrade `ScenePlanService`'s pre-flight duration estimate from a throw to a warning
+  (legacy Creatomate path only).
 - Shrink the render queue to job submission + polling; retire per-scene resume,
   pause/cancel, and priority levels in `ProductionTaskRepository` now that the worker has
   no six-minute ceiling to work around.
