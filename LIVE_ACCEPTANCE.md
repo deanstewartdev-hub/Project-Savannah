@@ -126,6 +126,11 @@ what to check and what not to do. In short:
 | Task "interrupted 3 times" | A scene kept timing out or crashing; the queue stopped retrying | Check the Logs sheet (`PRODUCTION_RECOVERY`), then **Resume** once | Resume in a loop. Each attempt can cost money |
 | Log: "stuck submitting ... linked to render" | A submission died after the render started; Savannah linked the task to that render | Watch that render; use Refresh status | Submit or re-render again |
 | Log: "stuck submitting ... returned to READY" | A submission died before any render started | Nothing. The queue submits it once | Submit it by hand as well |
+| The media worker never confirmed this render | A render was submitted but the worker's confirmation never arrived; it may be running and billing | Press Refresh status and wait. It resolves by the callback or by reconciliation | Re-render. Ask the owner to check the Cloud Run execution only if it is still unconfirmed after several hours |
+| A queued submission never finished | A task began submitting and did not finish; a render may or may not have started | Wait for the queue's next run (it links or resets the task). If the queue is off, check Render jobs for this script | Submit it again |
+| A queued task failed | The queue stopped a step; the message says why | Fix the cause, then **Resume** | Re-render by hand while it is unexplained |
+| A queued task stopped after repeated interruptions | A step kept timing out or crashing | Read Logs (`PRODUCTION_RECOVERY`), then **Resume** once | Resume in a loop. Each attempt can cost money |
+| A queued task points at a render that cannot be found | Task and render records disagree | Look for a render of this script in Render jobs; if none, ask the owner to review the Production Tasks and Render Jobs tabs | Submit it again |
 | Video link has expired / expires soon | The signed download link (7 days at most) has run out | Owner runs the delivery-recovery tool for that render ID; Savannah accepts the renewed link for the same video and keeps its approval | Re-render (the video still exists) |
 | A finished video arrived for an unknown render | A submission was interrupted after the worker accepted it | Follow **Unmatched delivery** below | Press Re-render safely on the interrupted render |
 
