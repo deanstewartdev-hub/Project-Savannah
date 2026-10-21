@@ -24,6 +24,13 @@
   // as it lands. Only matters for the brief window before the first list loads.
   let currentProvider = "cloud-run";
 
+  // An immediate Public upload is irreversible, so it needs a second, deliberate click.
+  // Private, unlisted and scheduled uploads (which YouTube keeps private until the
+  // scheduled time) go straight through.
+  function publishNeedsConfirmation_(privacyStatus, publishAt, alreadyConfirming) {
+    return privacyStatus === "public" && !publishAt && alreadyConfirming !== true;
+  }
+
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -619,11 +626,25 @@
       const scheduleValue = panel.querySelector(".production-youtube-schedule").value;
       const publishAt = scheduleValue ? new Date(scheduleValue).toISOString() : "";
       if (!title) return showError(jobList, { error: { message: "A YouTube title is required." } });
+      if (publishNeedsConfirmation_(privacyStatus, publishAt, publish.dataset.confirming === "yes")) {
+        publish.dataset.confirming = "yes";
+        publish.textContent = "Click again to publish PUBLICLY now";
+        setTimeout(function () {
+          if (publish.dataset.confirming === "yes") {
+            publish.dataset.confirming = "";
+            publish.textContent = "Upload to YouTube";
+          }
+        }, 8000);
+        return;
+      }
+      publish.dataset.confirming = "";
       publish.disabled = true; publish.textContent = "Uploading...";
+      // On any failure, reload the list: the server may have recorded an uncertain
+      // attempt, and the card must show that state instead of a stale upload button.
       google.script.run.withSuccessHandler(function (response) {
-        if (!response || !response.success) return showError(jobList, response);
+        if (!response || !response.success) { showError(jobList, response); loadJobs(); return; }
         loadJobs(); loadPublishingSchedule();
-      }).withFailureHandler(function (error) { showError(jobList, { error: error }); })
+      }).withFailureHandler(function (error) { showError(jobList, { error: error }); loadJobs(); })
         .productionPublish({ renderJobId: publish.dataset.jobId, title: title,
           privacyStatus: privacyStatus, publishAt: publishAt,
           timezoneOffsetMinutes: new Date().getTimezoneOffset() });

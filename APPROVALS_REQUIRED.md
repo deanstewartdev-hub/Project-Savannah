@@ -115,7 +115,8 @@ Before the media worker's callback URL is switched to the append-only callback b
 1. Confirm the bridge's `RENDER_JOBS_SPREADSHEET_ID` equals the main app's bound
    spreadsheet. Run the read-only `diagnoseCallbackInbox` in the main project's editor and
    compare it with the bridge's script property.
-2. Run the synthetic staging test (T1–T8) against a staging copy, never production.
+2. Run the automated staging check against a separate staging spreadsheet built from empty files
+   (never a copy of production), following `CALLBACK_INBOX_STAGING.md`.
 
 The full procedure is in `CALLBACK_INBOX_STAGING.md`. It needs new Apps Script projects,
 OAuth consent and a staging deployment, so it was not done automatically. The media worker's

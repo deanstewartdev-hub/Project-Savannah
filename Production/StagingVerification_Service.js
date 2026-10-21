@@ -21,7 +21,7 @@ const StagingVerificationService = (() => {
   function assertStaging_(env) {
     if (env.property("SAVANNAH_ENVIRONMENT") !== "staging") {
       throw new Error("Refused: this is not marked as a staging project. In the STAGING project only, add the script " +
-        "property SAVANNAH_ENVIRONMENT = staging (see STAGING_SETUP_WINDOWS.md). Never add it to production.");
+        "property SAVANNAH_ENVIRONMENT = staging (see CALLBACK_INBOX_STAGING.md). Never add it to production.");
     }
     if (!/staging/i.test(String(env.spreadsheetName() || ""))) {
       throw new Error("Refused: the spreadsheet this project is attached to is named \"" + env.spreadsheetName() +

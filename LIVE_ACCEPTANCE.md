@@ -42,9 +42,10 @@ The standalone callback bridge writes to the spreadsheet named in its own `RENDE
 script property. The main app reads the spreadsheet it is bound to. If they differ, callbacks are
 accepted but land where the app never looks, and nothing errors. This is the easiest failure to miss.
 
-- [ ] Follow section 1 of `CALLBACK_INBOX_STAGING.md` (added by PR #15) and confirm the two spreadsheet IDs
-      match character for character. Do the end-to-end proof with a **staging copy**, never by sending a
-      synthetic callback to the production bridge.
+- [ ] Confirm the production bridge's `RENDER_JOBS_SPREADSHEET_ID` matches the production spreadsheet ID
+      character for character (`RELEASE_READINESS.md` §4 steps 2 and 4). The end-to-end proof is the
+      separate staging check in `CALLBACK_INBOX_STAGING.md`, built from empty files; never send a synthetic
+      callback to the production bridge (it refuses them anyway).
 
 ## 3. One authoritative callback writer
 
