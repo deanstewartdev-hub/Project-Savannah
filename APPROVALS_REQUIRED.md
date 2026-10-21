@@ -104,3 +104,19 @@ here, in `HANDOFF.md`, in logs, or in tests.
 (Reconciled 19 August 2026 — this section previously still said "waiting for
 one-time manual action," which had drifted out of sync with `HANDOFF.md`'s own
 "completed" status from two days earlier.)
+
+## Callback inbox staging verification (v1.4)
+
+Status: **prepared, waiting for Dean.** Code and tests are in PR #15
+(`integration/v1.4-callback-inbox-and-duration-preflight`).
+
+Before the media worker's callback URL is switched to the append-only callback bridge:
+
+1. Confirm the bridge's `RENDER_JOBS_SPREADSHEET_ID` equals the main app's bound
+   spreadsheet. Run the read-only `diagnoseCallbackInbox` in the main project's editor and
+   compare it with the bridge's script property.
+2. Run the synthetic staging test (T1–T8) against a staging copy, never production.
+
+The full procedure is in `CALLBACK_INBOX_STAGING.md`. It needs new Apps Script projects,
+OAuth consent and a staging deployment, so it was not done automatically. The media worker's
+new bounded callback retry also needs a new worker image before it takes effect.
