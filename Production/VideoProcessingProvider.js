@@ -18,6 +18,18 @@
  *
  * `job.renderId` doubles as the provider tag so no render-job schema change is
  * needed: CloudRunFFmpegProvider renderIds are always prefixed "cr-".
+ *
+ * CloudRunFFmpegProvider's render/getRender shape carries two extra, Cloud-Run-only
+ * fields that ProductionController stores verbatim as providerResponse (see
+ * RenderJobRepository — no Sheet schema change, this all lives inside the existing
+ * "Response JSON" column):
+ *   cloudRun: { executionName, operationName, lastObservedState, lastExternalProgressAt }
+ *   reconciliation: { reason, reconciledAt, evidence } | null
+ * getRender() calls the dispatcher's real POST /jobs/status (Increment 1) and turns its
+ * factual response into a status/reconciliation decision via reconcileStatus_() — see that
+ * function for the full up-to-date rulebook (FAILED/SUCCEEDED-with-artifact never auto-
+ * expose a re-render, UNKNOWN/NOT_FOUND never terminally transition, createdAt-only
+ * staleness for identifier-less historical rows).
  ****************************************************/
 const VideoProcessingProvider = (() => {
   const RENDER_ID_PREFIX = "cr-";
@@ -99,6 +111,23 @@ const CloudRunFFmpegProvider = (() => {
       };
     });
 
+    // Redundant with ScriptValidator's word-count check by design: existing approved
+    // scripts may predate that fix, and this is also the only check that runs on the
+    // EXACT text about to be sent (beats[].text), so it must run before request_() -
+    // no Cloud Run Job, ElevenLabs, Pexels, OpenAI image fallback, or FFmpeg work can be
+    // triggered for a script outside Savannah's narration-length bounds. Bounds/rate
+    // calibrated 2026-08-14 from two real Cloud Run renders (2.21-2.30 words/sec measured).
+    const narrationWordCount = beats.reduce(function (total, beat) {
+      return total + countNarrationWords_(beat.text);
+    }, 0);
+    if (narrationWordCount < MINIMUM_NARRATION_WORDS || narrationWordCount > MAXIMUM_NARRATION_WORDS) {
+      throw error_(
+        "This script's rendered narration is " + narrationWordCount + " words; Savannah requires between " +
+        MINIMUM_NARRATION_WORDS + " and " + MAXIMUM_NARRATION_WORDS +
+        " words before submitting a Cloud Run render."
+      );
+    }
+
     const jobId = VideoProcessingProvider.RENDER_ID_PREFIX + Utilities.getUuid();
     const callbackUrl = callbackUrl_();
     const response = request_("post", "/jobs", {
@@ -117,7 +146,16 @@ const CloudRunFFmpegProvider = (() => {
         progress: 5,
         url: "",
         snapshot_url: "",
-        error_message: ""
+        error_message: "",
+        // operationName/executionName are non-secret GCP resource identifiers, both returned
+        // immediately in the /jobs 202 response (before the task even starts) - persisted here
+        // so getRender() can look the execution up later without guessing from elapsed time.
+        cloudRun: {
+          executionName: response.executionName || "",
+          operationName: response.operationName || "",
+          lastObservedState: "PENDING",
+          lastExternalProgressAt: new Date().toISOString()
+        }
       },
       payload: {
         provider: "cloud-run",
@@ -129,18 +167,141 @@ const CloudRunFFmpegProvider = (() => {
     };
   }
 
-  // There is no polling endpoint on the worker (see media-worker/README.md) — the job's
-  // true state only changes when handleMediaWorkerCallback_ in App/App.js writes it to
-  // the sheet directly. This just reflects back whatever was last stored, so calling it
-  // before the callback arrives is a harmless no-op rather than a wasted network call.
+  // Mirrors Scripts/Script_Validator.js's DEFAULT_RULES.minimumWordCount/maximumWordCount -
+  // kept as separate literal constants rather than a shared reference because Apps Script
+  // has no cross-file import; the two are intentionally redundant (see submitRender()).
+  const MINIMUM_NARRATION_WORDS = 90;
+  const MAXIMUM_NARRATION_WORDS = 130;
+  function countNarrationWords_(text) {
+    return String(text || "").trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  // A historical row with no execution identifiers at all is only judged stale after this
+  // long from createdAt (never updatedAt — see reconcileStatus_).
+  const STALE_NO_OPERATION_MS = 30 * 60 * 1000;
+
+  // Reconciliation Increment 1 (dispatcher) is done; this is the Apps Script side of it.
+  // Real authenticated status lookup via the same request_()/MEDIA_WORKER_JOB_SUBMIT_SECRET
+  // path used for submission - the dispatcher reports facts only (state, artifact/probe
+  // existence), never an inferred verdict; reconcileStatus_() below is where that verdict
+  // is decided, kept as a pure function (no UrlFetchApp call) so it's directly testable.
   function getRender(job) {
     const stored = job.providerResponse || {};
+    const cloudRun = stored.cloudRun || {};
+    const statusResponse = request_("post", "/jobs/status", {
+      jobId: job.renderId,
+      executionName: cloudRun.executionName || "",
+      operationName: cloudRun.operationName || ""
+    });
+    return reconcileStatus_(job, statusResponse);
+  }
+
+  // Pure decision logic, deliberately separate from getRender()'s network call (mirrors
+  // media-worker/src/lib/jobStatus.js's own buildStatusResponse() split) so every branch
+  // below is unit-testable with a fixture statusResponse, no UrlFetchApp/mocking required.
+  //
+  // Design constraints (carried from HANDOFF.md / the reconciliation increment plan, all
+  // still binding):
+  //   - Callback remains the primary success path; this is a fallback only.
+  //   - createdAt is the only staleness clock — never updatedAt (polling itself must not
+  //     reset it).
+  //   - FAILED + artifact, or SUCCEEDED-while-still-active + artifact, must never auto-expose
+  //     a paid re-render — represented as providerResponse.reconciliation only, the job's own
+  //     `status` stays exactly as it was (retry()/submitCore_() gate re-render purely off
+  //     job.status === "FAILED" / an active row, so leaving status untouched is what actually
+  //     keeps "Re-render safely"/"Create Short" from appearing — no new status enum value
+  //     needed, no Sheet schema change).
+  //   - UNKNOWN and NOT_FOUND never cause a terminal transition by themselves.
+  //   - No special-casing of any specific jobId anywhere in this function.
+  function reconcileStatus_(job, statusResponse) {
+    const stored = job.providerResponse || {};
+    const priorCloudRun = stored.cloudRun || {};
+    const priorReconciliation = stored.reconciliation || null;
+    const isActive = ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+    const hadIdentifiers = !!(priorCloudRun.executionName || priorCloudRun.operationName);
+    const state = String(statusResponse.state || "UNKNOWN").toUpperCase();
+    const artifactExists = !!statusResponse.artifactExists;
+    const nowIso = new Date().toISOString();
+
+    const cloudRun = {
+      executionName: statusResponse.executionName || priorCloudRun.executionName || "",
+      operationName: statusResponse.operationName || priorCloudRun.operationName || "",
+      lastObservedState: priorCloudRun.lastObservedState || "",
+      lastExternalProgressAt: priorCloudRun.lastExternalProgressAt || ""
+    };
+    // Only a genuinely different external state moves the progress clock — polling alone,
+    // seeing the same state again, must never touch it.
+    if (state !== cloudRun.lastObservedState) {
+      cloudRun.lastObservedState = state;
+      cloudRun.lastExternalProgressAt = nowIso;
+    }
+
+    let statusOut = String(job.status).toLowerCase(); // default: no terminal transition
+    let errorMessage = "";
+    let reconciliation = priorReconciliation;
+
+    function recovery_(reason, evidence) {
+      return { reason: reason, reconciledAt: nowIso, evidence: evidence };
+    }
+
+    if (state === "FAILED") {
+      if (artifactExists) {
+        errorMessage = "Cloud Run execution failed but a video artifact already exists — delivery recovery required, not an automatic re-render.";
+        reconciliation = recovery_("DELIVERY_RECOVERY_REQUIRED", {
+          state: state, artifactExists: artifactExists, probeExists: statusResponse.probeExists,
+          probePassed: statusResponse.probePassed, failureDetail: statusResponse.failureDetail || ""
+        });
+      } else {
+        statusOut = "failed";
+        errorMessage = statusResponse.failureDetail || "Cloud Run execution failed.";
+        reconciliation = recovery_("CLOUD_RUN_EXECUTION_FAILED", { state: state, failureDetail: statusResponse.failureDetail || "" });
+      }
+    } else if (state === "SUCCEEDED") {
+      // Already SUCCEEDED locally: leave it exactly as-is, don't regress it.
+      // Still active: an Execution success is not proof of callback delivery.
+      if (isActive && artifactExists) {
+        errorMessage = "Cloud Run execution succeeded and a video artifact exists, but no delivery callback has been recorded — delivery recovery required.";
+        reconciliation = recovery_("DELIVERY_RECOVERY_REQUIRED", {
+          state: state, artifactExists: artifactExists, probeExists: statusResponse.probeExists, probePassed: statusResponse.probePassed
+        });
+      }
+    } else if (state === "NOT_FOUND") {
+      // Never a terminal transition on one observation — just persist the observation for
+      // later repeated-not-found logic.
+      const priorEvidence = (priorReconciliation && priorReconciliation.evidence) || {};
+      reconciliation = recovery_("NOT_FOUND_OBSERVED", {
+        state: state,
+        notFoundCount: Number(priorEvidence.notFoundCount || 0) + 1,
+        firstObservedAt: priorEvidence.firstObservedAt || nowIso
+      });
+    } else if (state !== "RUNNING" && state !== "PENDING") {
+      // UNKNOWN (or any other value — fails closed to the same handling). The only case
+      // this function will ever promote to a terminal state on its own: a historical row
+      // with no execution identifiers at all, stale by createdAt, with no artifact.
+      if (!hadIdentifiers && isActive) {
+        const ageMs = Date.now() - new Date(job.createdAt).getTime();
+        if (ageMs > STALE_NO_OPERATION_MS) {
+          if (artifactExists) {
+            errorMessage = "This historical row has no execution identifiers but a video artifact exists — delivery recovery required, not an automatic re-render.";
+            reconciliation = recovery_("DELIVERY_RECOVERY_REQUIRED", { state: state, artifactExists: artifactExists, ageMs: ageMs });
+          } else {
+            statusOut = "failed";
+            errorMessage = "No execution identifiers and no artifact " + Math.round(ageMs / 60000) + " minutes after submission; treated as a stale, never-started job.";
+            reconciliation = recovery_("STALE_NO_OPERATION", { state: state, ageMs: ageMs });
+          }
+        }
+      }
+    }
+    // RUNNING/PENDING: stays active, nothing further beyond the progress-clock update above.
+
     return {
-      status: stored.status || job.status || "RENDERING",
-      progress: stored.progress || job.progress || 0,
-      url: stored.url || job.videoUrl || "",
-      snapshot_url: stored.snapshot_url || job.snapshotUrl || "",
-      error_message: stored.error_message || job.errorMessage || ""
+      status: statusOut,
+      progress: job.progress,
+      url: job.videoUrl,
+      snapshot_url: job.snapshotUrl,
+      error_message: errorMessage,
+      cloudRun: cloudRun,
+      reconciliation: reconciliation
     };
   }
 
@@ -149,7 +310,7 @@ const CloudRunFFmpegProvider = (() => {
       method: method,
       muteHttpExceptions: true,
       contentType: "application/json",
-      headers: { Authorization: "Bearer " + sharedSecret_() },
+      headers: { Authorization: "Bearer " + submitSecret_() },
       payload: JSON.stringify(payload)
     };
     const response = UrlFetchApp.fetch(workerUrl_() + path, options);
@@ -164,8 +325,8 @@ const CloudRunFFmpegProvider = (() => {
 
   function callbackUrl_() {
     // Apps Script doPost cannot read custom request headers, only the query string and
-    // body, so the shared secret has to travel in the URL itself. handleMediaWorkerCallback_
-    // in App/App.js re-checks it against Secrets.getMediaWorkerSharedSecret() on the way in.
+    // body, so the callback secret has to travel in the URL itself. MediaWorkerCallback_Service
+    // re-checks it against Secrets.getMediaWorkerSharedSecret() on the way in.
     //
     // Deliberately NOT ScriptApp.getService().getUrl(): that returns whichever URL the
     // current execution happens to be running under, which is the /dev URL during
@@ -175,14 +336,25 @@ const CloudRunFFmpegProvider = (() => {
     // independent of where the render was submitted from.
     const webAppUrl = Secrets.getMediaWorkerCallbackUrl();
     if (!webAppUrl) throw error_("MEDIA_WORKER_CALLBACK_URL is not configured - set it to the production /exec URL before submitting Cloud Run render jobs.");
-    return webAppUrl + "?route=media-worker-callback&secret=" + encodeURIComponent(sharedSecret_());
+    return webAppUrl + "?route=media-worker-callback&secret=" + encodeURIComponent(callbackSecret_());
   }
   function workerUrl_() {
     const value = Secrets.getMediaWorkerUrl();
     if (!value) throw error_("The media worker URL is not configured.");
     return value;
   }
-  function sharedSecret_() {
+  // Dispatcher Bearer auth (POST /jobs, POST /jobs/status) - a separate trust boundary from
+  // the callback secret below. Must match the dispatcher's own JOB_SUBMIT_SECRET. Deliberately
+  // no fallback to the callback secret if this is unset: the two credentials must stay
+  // independently rotatable.
+  function submitSecret_() {
+    const value = Secrets.getMediaWorkerJobSubmitSecret();
+    if (!value) throw error_("The media worker job submission secret is not configured.");
+    return value;
+  }
+  // Callback authentication only (the secret MediaWorkerCallback_Service validates on inbound
+  // requests) - never used for dispatcher Bearer auth.
+  function callbackSecret_() {
     const value = Secrets.getMediaWorkerSharedSecret();
     if (!value) throw error_("The media worker shared secret is not configured.");
     return value;
@@ -193,5 +365,10 @@ const CloudRunFFmpegProvider = (() => {
     return error;
   }
 
-  return { testConnection: testConnection, submitRender: submitRender, getRender: getRender };
+  return {
+    testConnection: testConnection, submitRender: submitRender, getRender: getRender,
+    // Exposed only so Tests/CloudRunReconciliation_Tests.js can exercise the pure decision
+    // logic with fixture responses, with no UrlFetchApp/mocking involved.
+    reconcileStatus: reconcileStatus_
+  };
 })();

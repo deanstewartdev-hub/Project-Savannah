@@ -89,12 +89,18 @@ work - not done here to keep this cleanup pass scoped to what was asked.
 
 ## Media worker callback secret rotation
 
-Status: **waiting for one-time manual action.**
+Status: **completed.**
 
 `MEDIA_WORKER_SHARED_SECRET` (the Apps Script Script Property that authenticates the
 media worker's callback, embedded in `callbackUrl_()`'s query string) had a copy of its
 value pass through a command transcript during the Cloud Run migration's delivery
-recovery work on 11 August 2026. Treat that value as compromised. Rotation needs a
-manual step in the Apps Script editor since no Execution API deployment exists to do it
-programmatically - see the current session for the exact function to run.
-paused without losing the ability to render at all.
+recovery work on 11 August 2026. That value was treated as compromised. Per
+`HANDOFF.md`'s 11–13 August entry, a new random value was generated locally and the
+corresponding Apps Script Script Property was updated and saved manually the same
+session; `MEDIA_WORKER_CALLBACK_URL` was separately confirmed to still point at the
+production `/exec` URL. Neither the old nor the current secret value is reproduced
+here, in `HANDOFF.md`, in logs, or in tests.
+
+(Reconciled 19 August 2026 — this section previously still said "waiting for
+one-time manual action," which had drifted out of sync with `HANDOFF.md`'s own
+"completed" status from two days earlier.)

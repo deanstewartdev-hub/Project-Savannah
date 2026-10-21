@@ -219,14 +219,6 @@ function formatHeaderRow(sheet, rowNumber, numberOfColumns) {
   sheet.autoResizeColumns(1, numberOfColumns);
 }
 
-function deleteSheetIfExists(ss, sheetName) {
-  const sheet = ss.getSheetByName(sheetName);
-
-  if (sheet) {
-    ss.deleteSheet(sheet);
-  }
-}
-
 function getSettingValue(ss, settingName) {
   const sheet = ss.getSheetByName(SHEETS.SETTINGS);
   const values = sheet.getDataRange().getValues();

@@ -21,9 +21,19 @@
  ****************************************************/
 
 const ScriptValidator = (() => {
+  // Cloud Run renders scenes[].narration directly (Production/VideoProcessingProvider.js) -
+  // that is the only narration ElevenLabs ever receives, so word-count validation below is
+  // gated on the sum of scenes[].narration, not the AI's separately-written voiceoverScript
+  // field (see canonicalNarrationFromScenes_). Bounds calibrated 2026-08-14 from two real
+  // Cloud Run renders' measured ElevenLabs rates (2.21-2.30 words/sec): 90 words is the
+  // observed-safe floor for a 30s minimum; 130 keeps the ceiling under 60s even at the
+  // slower observed rate. 100-120 is the preferred (advisory-only) target - see
+  // PREFERRED_MINIMUM_WORD_COUNT/PREFERRED_MAXIMUM_WORD_COUNT below.
+  const PREFERRED_MINIMUM_WORD_COUNT = 100;
+  const PREFERRED_MAXIMUM_WORD_COUNT = 120;
   const DEFAULT_RULES = Object.freeze({
     minimumWordCount: 90,
-    maximumWordCount: 150,
+    maximumWordCount: 130,
     minimumSceneCount: 4,
     maximumSceneCount: 6,
     minimumDurationSeconds: 30,
@@ -108,8 +118,17 @@ const ScriptValidator = (() => {
       );
     }
 
+    // The AI writes voiceoverScript and scenes[].narration as two separate fields (the
+    // prompt only asks it to keep them in sync - see Script_PromptLibrary.js - nothing
+    // programmatically enforced that). Cloud Run only ever renders scenes[].narration, so
+    // that - not the AI's own voiceoverScript copy - is treated as the single canonical
+    // narration from here on: it is what gets validated, and it is what gets stored back
+    // as voiceoverScript below. This removes the divergence risk entirely rather than
+    // trying to detect it after the fact.
+    const canonicalNarration = canonicalNarrationFromScenes_(script.scenes);
+
     validateNoMarkdown_(
-      script.voiceoverScript,
+      canonicalNarration,
       errors
     );
 
@@ -119,7 +138,7 @@ const ScriptValidator = (() => {
     );
 
     const wordCount = countWords_(
-      script.voiceoverScript
+      canonicalNarration
     );
 
     validateWordCount_(
@@ -129,7 +148,7 @@ const ScriptValidator = (() => {
     );
 
     const cadenceResult = validateNarrationCadence_(
-      script.voiceoverScript,
+      canonicalNarration,
       rules,
       errors
     );
@@ -156,7 +175,7 @@ const ScriptValidator = (() => {
 
     validateHookPlacement_(
       script.hook,
-      script.voiceoverScript,
+      canonicalNarration,
       errors
     );
 
@@ -183,7 +202,7 @@ const ScriptValidator = (() => {
         title: script.title.trim(),
         hook: script.hook.trim(),
         voiceoverScript:
-          script.voiceoverScript.trim(),
+          canonicalNarration,
 
         scenes: script.scenes.map(
           normaliseScene_
@@ -203,6 +222,9 @@ const ScriptValidator = (() => {
 
       metadata: {
         wordCount: wordCount,
+        withinPreferredWordRange:
+          wordCount >= PREFERRED_MINIMUM_WORD_COUNT &&
+          wordCount <= PREFERRED_MAXIMUM_WORD_COUNT,
         sceneCount: script.scenes.length,
         sceneDurationSeconds:
           scenesResult.totalDurationSeconds,
@@ -910,6 +932,26 @@ const ScriptValidator = (() => {
       .split(/\s+/)
       .filter(Boolean)
       .length;
+  }
+
+  /**
+   * Joins scenes[].narration in order into the single canonical narration - the same
+   * text Cloud Run's CloudRunFFmpegProvider.submitRender() sends to ElevenLabs as one
+   * concatenated beats[].text string. Deliberately not the AI's separate voiceoverScript
+   * field, which nothing enforces staying in sync with the actual scene narration.
+   *
+   * @param {*} scenes Scene collection.
+   * @return {string} Canonical narration text.
+   */
+  function canonicalNarrationFromScenes_(scenes) {
+    if (!Array.isArray(scenes)) return "";
+
+    return scenes
+      .map(function (scene) {
+        return scene && typeof scene.narration === "string" ? scene.narration.trim() : "";
+      })
+      .filter(Boolean)
+      .join(" ");
   }
 
   /**

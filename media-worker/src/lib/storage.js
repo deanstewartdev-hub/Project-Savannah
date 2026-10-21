@@ -53,3 +53,11 @@ export async function downloadJson(sourcePath) {
 export async function deleteObject(destination) {
   await bucket.file(destination).delete({ ignoreNotFound: true });
 }
+
+// Metadata-only existence check - never downloads the object body. Used by the
+// dispatcher's /jobs/status endpoint to check for a finished render's final.mp4
+// without pulling megabytes of video through the request.
+export async function objectExists(destination) {
+  const [exists] = await bucket.file(destination).exists();
+  return exists;
+}

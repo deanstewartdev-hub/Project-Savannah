@@ -163,69 +163,6 @@ const ScriptEngine = (() => {
   }
 
   /**
-   * Creates a script but does not save it.
-   *
-   * Useful for previews and future regeneration flows.
-   * This still performs a real AI request and records
-   * neither repository data nor AI cost.
-   *
-   * @param {Object} idea Source idea.
-   * @param {Object=} options Workflow overrides.
-   * @return {Object} Generated canonical ScriptModel.
-   */
-  function generatePreview(idea, options) {
-    const runId = createScriptRunId_();
-    const workflowOptions = resolveOptions_(options);
-    const normalisedIdea = normaliseIdea_(idea);
-
-    const promptResult = buildPrompt_(
-      normalisedIdea,
-      workflowOptions
-    );
-
-    const aiResponse = requestScript_(
-      promptResult.prompt,
-      normalisedIdea,
-      workflowOptions,
-      runId
-    );
-
-    const validationResult =
-      ScriptValidator.validate(
-        aiResponse.data,
-        {
-          minimumWordCount:
-            workflowOptions.minimumWordCount,
-
-          maximumWordCount:
-            workflowOptions.maximumWordCount,
-
-          minimumDurationSeconds:
-            workflowOptions.minimumDurationSeconds,
-
-          maximumDurationSeconds:
-            workflowOptions.maximumDurationSeconds,
-
-          durationToleranceSeconds:
-            workflowOptions.durationToleranceSeconds
-        }
-      );
-
-    const formattingResult =
-      ScriptFormatter.format(
-        validationResult
-      );
-
-    return createScriptModel_(
-      normalisedIdea,
-      promptResult,
-      aiResponse,
-      validationResult,
-      formattingResult,
-      workflowOptions,
-      runId
-    );
-  }  /**
    * Generates and validates a script without saving it.
    *
    * This performs a real AI request but does not write a
@@ -382,7 +319,7 @@ const ScriptEngine = (() => {
     generatedScript,
     options
   ) {
-    normaliseGeneratedTiming_(generatedScript, options.targetDurationSeconds);
+    normaliseGeneratedTiming_(generatedScript);
     return ScriptValidator.validate(
       generatedScript,
       {
@@ -404,17 +341,40 @@ const ScriptEngine = (() => {
     );
   }
 
-  function normaliseGeneratedTiming_(generatedScript, targetDurationSeconds) {
+  // Real Cloud Run renders (2026-08-14 calibration, jobs cr-5ff223a6.../cr-06a28788...)
+  // measured 2.2981 and 2.2097 words/second of actual ElevenLabs narration audio. This uses
+  // the faster of the two so the estimate is conservative: a script that clears a duration
+  // floor against this rate will, if real narration speaks slightly slower, run LONGER once
+  // measured - never shorter. This is only ever a pre-render estimate to let ScriptValidator's
+  // duration check mean something; the post-TTS probe result remains the authoritative
+  // duration (see RenderQuality_Service.js's evaluateProbe_).
+  const NARRATION_WORDS_PER_SECOND_ESTIMATE = 2.3;
+
+  // Previously this forced estimatedDurationSeconds to an even split of a 30-60s target
+  // regardless of what the AI actually wrote, which meant ScriptValidator's duration check
+  // was validating a fabricated number that could never fail - see the 2026-08-14 forensic
+  // audit (two real renders, both far under 30s, both still carried a fabricated 50s
+  // estimate). This now derives an honest estimate from each scene's own narration word
+  // count, so a genuinely too-short script produces a genuinely-too-short estimate.
+  function normaliseGeneratedTiming_(generatedScript) {
     if (!generatedScript || !Array.isArray(generatedScript.scenes) || !generatedScript.scenes.length) return;
-    const target = Math.max(30, Math.min(60, Math.round(Number(targetDurationSeconds) || 50)));
-    const sceneCount = generatedScript.scenes.length;
-    const baseSeconds = Math.floor(target / sceneCount);
-    let remainder = target - baseSeconds * sceneCount;
-    generatedScript.scenes.forEach(function (scene) {
-      scene.estimatedSeconds = baseSeconds + (remainder > 0 ? 1 : 0);
-      if (remainder > 0) remainder -= 1;
+    let totalWords = 0;
+    const sceneWordCounts = generatedScript.scenes.map(function (scene) {
+      const words = countTimingWords_(scene && scene.narration);
+      totalWords += words;
+      return words;
     });
-    generatedScript.estimatedDurationSeconds = target;
+    generatedScript.scenes.forEach(function (scene, index) {
+      scene.estimatedSeconds = roundTiming_(sceneWordCounts[index] / NARRATION_WORDS_PER_SECOND_ESTIMATE, 2);
+    });
+    generatedScript.estimatedDurationSeconds = roundTiming_(totalWords / NARRATION_WORDS_PER_SECOND_ESTIMATE, 2);
+  }
+  function countTimingWords_(text) {
+    return String(text || "").trim().split(/\s+/).filter(Boolean).length;
+  }
+  function roundTiming_(value, places) {
+    const factor = Math.pow(10, places);
+    return Math.round(value * factor) / factor;
   }
 
   /**
@@ -444,6 +404,65 @@ const ScriptEngine = (() => {
         ? validationError.validationErrors
         : [validationError.message];
 
+    const rejectedScenes = Array.isArray(rejectedScript && rejectedScript.scenes) ? rejectedScript.scenes : [];
+    const currentCanonicalWords = rejectedScenes.reduce(function (total, scene) {
+      return total + countTimingWords_(scene && scene.narration);
+    }, 0);
+    const currentHookWords = countTimingWords_(rejectedScript && rejectedScript.hook);
+    const currentSceneCount = rejectedScenes.length;
+    const HOOK_MAXIMUM_WORDS = 18;
+    const MINIMUM_SCENE_COUNT = 4;
+    const MAXIMUM_SCENE_COUNT = 6;
+    const sceneCountTooHigh = currentSceneCount > MAXIMUM_SCENE_COUNT;
+    const sceneCountTooLow = currentSceneCount > 0 && currentSceneCount < MINIMUM_SCENE_COUNT;
+    const sceneCountInvalid = sceneCountTooHigh || sceneCountTooLow;
+
+    // When the rejected script's own scene count is already invalid, fixing it must come
+    // first and every later instruction (narration total, "preserve structure") has to defer
+    // to the repaired count - not the rejected one. See the 2026-08-17 v88 live proof: a
+    // 7-scene rejection was previously told to "preserve the same number of scenes", which
+    // directly told the model to keep the invalid count.
+    const priorityFixes = [];
+    if (sceneCountTooHigh) {
+      priorityFixes.push(
+        "Reduce the scene count from " + currentSceneCount + " to at most " + MAXIMUM_SCENE_COUNT + " scenes."
+      );
+      priorityFixes.push(
+        "Merge the excess scene(s)' narration and visual content into the remaining scenes rather than deleting information."
+      );
+      priorityFixes.push(
+        "Preserve the important information from the merged scenes while redistributing their narration across the repaired scene set."
+      );
+      priorityFixes.push(
+        "Bring the combined scenes[].narration into " + options.minimumWordCount + " to " + options.maximumWordCount +
+          " words (currently " + currentCanonicalWords + ") by adding narration within your repaired, valid scene set."
+      );
+      priorityFixes.push(
+        "Do NOT add scenes to solve a narration-length shortage; add words to existing scene narration instead."
+      );
+    } else if (sceneCountTooLow) {
+      priorityFixes.push(
+        "Restructure the script from " + currentSceneCount + " scenes into at least " + MINIMUM_SCENE_COUNT + " scenes."
+      );
+      priorityFixes.push(
+        "Bring the combined scenes[].narration into " + options.minimumWordCount + " to " + options.maximumWordCount +
+          " words (currently " + currentCanonicalWords + ") across that repaired, valid scene set."
+      );
+    } else {
+      priorityFixes.push(
+        "Combined scenes[].narration currently totals " + currentCanonicalWords +
+          " words; it must total between " + options.minimumWordCount + " and " + options.maximumWordCount +
+          " words. Expand or reduce the scenes[].narration text itself into that range; do not just edit voiceoverScript."
+      );
+    }
+    priorityFixes.push(
+      "script.hook is currently " + currentHookWords + " words; it must be at most " + HOOK_MAXIMUM_WORDS +
+        " words (aim for 8 to 15). Rewrite it shorter if it exceeds " + HOOK_MAXIMUM_WORDS + "."
+    );
+    priorityFixes.push(
+      "Scene 1's narration must begin with that corrected hook text, word for word, with no paraphrase and no separate spoken hook."
+    );
+
     return [
       "Revise the rejected YouTube Shorts script below.",
       "",
@@ -462,16 +481,26 @@ const ScriptEngine = (() => {
         })
         .join("\n"),
       "",
+      "FIX THESE IN PRIORITY ORDER:",
+      priorityFixes
+        .map(function (message, index) {
+          return (index + 1) + ". " + message;
+        })
+        .join("\n"),
+      "",
       "STRICT REQUIREMENTS:",
-      "- The voiceover must contain between " +
-        options.minimumWordCount +
-        " and " +
-        options.maximumWordCount +
-        " words.",
-      "- Aim for " + Math.round((options.minimumWordCount + options.maximumWordCount) / 2) + " voiceover words. Count them before returning JSON.",
-      "- Write the final hook first, then copy that exact hook text to the beginning of voiceoverScript.",
-      "- The hook field must be the exact opening words of voiceoverScript; do not paraphrase it in either location.",
-      "- Rewrite weak source-hook wording into an 8 to 15 word curiosity gap.",
+      "- scenes[].narration is the canonical field being measured and rendered, not voiceoverScript.",
+      "- The final script must contain between " + MINIMUM_SCENE_COUNT + " and " + MAXIMUM_SCENE_COUNT +
+        " scenes; never create an extra scene merely to add narration length.",
+      sceneCountInvalid
+        ? "- The rejected script's scene count (" + currentSceneCount + ") is itself invalid - do not preserve it. " +
+          "Once repaired to " + MINIMUM_SCENE_COUNT + "-" + MAXIMUM_SCENE_COUNT + " scenes, keep that corrected " +
+          "scene count and structure stable while adjusting narration length."
+        : "- Preserve the same number of scenes and the same scene structure while adjusting narration length.",
+      "- Redistribute narration across scenes as needed to reach the required total; do not concentrate all the added or removed words in a single scene.",
+      "- Once scene narration is corrected, regenerate voiceoverScript as that exact scene narration joined in order, word for word.",
+      "- Changing voiceoverScript alone will NOT fix this validation failure; only scenes[].narration is checked.",
+      "- Aim for approximately " + Math.round((options.minimumWordCount + options.maximumWordCount) / 2) + " combined scene-narration words. Count the words in scenes[].narration only, not voiceoverScript, before returning JSON.",
       "- Never begin with 'Did you know', 'Here are', 'Welcome', 'Today', or 'In this video'.",
       "- Keep most spoken sentences below 14 words.",
       "- Add a new reveal, consequence or pattern interrupt every one or two sentences.",
@@ -485,7 +514,7 @@ const ScriptEngine = (() => {
       "- Make every shot usable as both a strong still and a future image-to-video prompt without naming a generator.",
       "- Do not request stock footage, logos, celebrities, copyrighted characters or another creator's style.",
       "- Keep every scene at 15 seconds or less so visuals change with the narration.",
-      "- Scene narration joined in order must reproduce the complete voiceoverScript in the same order without omissions.",
+      "- voiceoverScript must exactly reproduce the corrected scenes[].narration joined in order, word for word.",
       "- Keep estimated duration between " +
         options.minimumDurationSeconds +
         " and " +
@@ -1277,148 +1306,6 @@ const ScriptEngine = (() => {
   }
 
   /**
-   * Resolves workflow options.
-   *
-   * @param {Object=} options Supplied options.
-   * @return {Object} Normalised options.
-   */
-  function resolveOptions_(options) {
-    const supplied = options || {};
-
-    if (
-      typeof supplied !== "object" ||
-      Array.isArray(supplied)
-    ) {
-      throw new Error(
-        "Script Engine options must be an object."
-      );
-    }
-
-    const validatorDefaults = ScriptValidator.getDefaultRules();
-    const targetDurationSeconds = resolvePositiveNumber_(
-      supplied.targetDurationSeconds,
-      DEFAULT_OPTIONS.targetDurationSeconds
-    );
-    const durationWordRange = wordRangeForDuration_(targetDurationSeconds);
-
-    const resolved = {
-      temperature:
-        resolveOptionalNumber_(
-          supplied.temperature,
-          safeSetting_(
-            "getTemperature",
-            DEFAULT_OPTIONS.temperature
-          )
-        ),
-
-      maxTokens:
-        resolveOptionalNumber_(
-          supplied.maxTokens,
-          safeSetting_(
-            "getMaxTokens",
-            DEFAULT_OPTIONS.maxTokens
-          )
-        ),
-
-      targetDurationSeconds: targetDurationSeconds,
-
-      minimumWordCount:
-        resolvePositiveNumber_(
-          supplied.minimumWordCount,
-          durationWordRange.minimumWordCount
-        ),
-
-      maximumWordCount:
-        resolvePositiveNumber_(
-          supplied.maximumWordCount,
-          durationWordRange.maximumWordCount
-        ),
-
-      minimumDurationSeconds:
-        resolvePositiveNumber_(
-          supplied.minimumDurationSeconds,
-          validatorDefaults
-            .minimumDurationSeconds
-        ),
-
-      maximumDurationSeconds:
-        resolvePositiveNumber_(
-          supplied.maximumDurationSeconds,
-          validatorDefaults
-            .maximumDurationSeconds
-        ),
-
-      durationToleranceSeconds:
-        resolveNonNegativeNumber_(
-          supplied.durationToleranceSeconds,
-          validatorDefaults
-            .durationToleranceSeconds
-        ),
-
-      tone:
-        normaliseString_(
-          supplied.tone
-        ),
-
-      language:
-        normaliseString_(
-          supplied.language
-        ),
-
-      callToActionStyle:
-        normaliseString_(
-          supplied.callToActionStyle
-        ),
-
-      status:
-        normaliseString_(
-          supplied.status ||
-          DEFAULT_OPTIONS.status
-        ).toUpperCase()
-    };
-
-    if (
-      resolved.maximumWordCount <
-      resolved.minimumWordCount
-    ) {
-      throw new Error(
-        "Maximum word count cannot be lower than minimum word count."
-      );
-    }
-
-    if (
-      resolved.maximumDurationSeconds <
-      resolved.minimumDurationSeconds
-    ) {
-      throw new Error(
-        "Maximum duration cannot be lower than minimum duration."
-      );
-    }
-
-    const statuses =
-      ScriptModel.getStatuses();
-
-    const allowedStatuses =
-      Object.keys(statuses).map(
-        function (key) {
-          return statuses[key];
-        }
-      );
-
-    if (
-      allowedStatuses.indexOf(
-        resolved.status
-      ) === -1
-    ) {
-      throw new Error(
-        "Unsupported Script Engine status: " +
-          resolved.status +
-          "."
-      );
-    }
-
-    return resolved;
-  }  /**
    * Resolves and validates Script Engine options.
    *
    * @param {Object=} options Supplied options.
@@ -1982,7 +1869,19 @@ const ScriptEngine = (() => {
 
     getEngineVersion: function () {
       return ENGINE_VERSION;
-    }
+    },
+
+    // Exposed only so Tests/ScriptDurationValidation_Tests.js can exercise the honest
+    // duration-estimate logic directly with fixture data, with no AI call involved.
+    __test_normaliseGeneratedTiming: normaliseGeneratedTiming_,
+
+    // Exposed only so Tests/PromptAlignment_Tests.js can exercise correction-prompt text
+    // with a synthetic validation error, with no AI call involved.
+    __test_buildCorrectionPrompt: buildCorrectionPrompt_,
+
+    // Exposed only so Tests/ScriptEngineOptionsResolution_Tests.js can exercise option
+    // resolution directly, with no AI call involved.
+    __test_resolveOptions: resolveOptions_
   };
 })();
 

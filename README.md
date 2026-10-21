@@ -13,14 +13,14 @@ GitHub branch `sprint-3` is the source of truth. Google Apps Script is deployed 
 | Runtime | Google Apps Script V8 |
 | Persistence | Google Sheets and Google Drive |
 | AI | OpenAI through the provider service layer |
-| Rendering | Creatomate (being replaced by a self-hosted Cloud Run FFmpeg worker, see below) |
+| Rendering | Self-hosted Cloud Run FFmpeg worker (primary, proven end-to-end); Creatomate retired but not yet removed, see below |
 | Publishing | YouTube Data API |
 | Channel | Savannah Atlas |
-| Live deployment | Apps Script version 78 |
+| Live deployment | Apps Script version 89 |
 | Deployment ID | `AKfycbzfD4HhW82TJyrdl5wteB1L84uiQJqb_hANd106zLDOOpY4HKqclGv67noe-kpQn2vDDw` |
-| Last verified | 3 August 2026 |
+| Last verified | 19 August 2026 |
 
-Current direction: Creatomate is not being upgraded. Its trial clamp to 270×480 is a symptom, not the real problem — the output shape (four static images, hard cuts, no motion) is what actually limits watch time, and Creatomate's fixed four-slot template is what keeps that shape locked in. v1.4 replaces it entirely with a self-hosted FFmpeg worker on Cloud Run. See [ROADMAP.md](ROADMAP.md) for the release plan and [FUTURE.md](FUTURE.md) for parked longer-term phases.
+Current direction: Creatomate is not being upgraded and is no longer the active renderer. Its trial clamp to 270×480 was a symptom, not the real problem — the output shape (four static images, hard cuts, no motion) is what actually limited watch time, and Creatomate's fixed four-slot template is what kept that shape locked in. v1.4's self-hosted FFmpeg worker on Cloud Run has replaced it and produced a real, quality-gate-passing, delivered video end to end. Creatomate's credential has been retired; its code remains in the repo pending a separate removal pass. See [ROADMAP.md](ROADMAP.md) for the release plan and [FUTURE.md](FUTURE.md) for parked longer-term phases.
 
 The full roadmap and release plan are maintained in [ROADMAP.md](ROADMAP.md). Items that require Dean's authorization are maintained in [APPROVALS_REQUIRED.md](APPROVALS_REQUIRED.md). Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
