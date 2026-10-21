@@ -2,7 +2,7 @@ import { Router } from "express";
 import { v4 as uuid } from "uuid";
 import { config } from "../config.js";
 import { runJob } from "../pipeline/runJob.js";
-import { postCallback } from "../lib/callback.js";
+import { postCallbackWithRetry } from "../lib/callback.js";
 import { requireAuth } from "../lib/auth.js";
 import { validateBeats } from "../lib/validateBeats.js";
 
@@ -49,13 +49,13 @@ jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
   // (see media-worker/README.md "What isn't here yet").
   runSerialized(() => runJob({ jobId, beats, musicTrackPath })).then(
     (result) => {
-      postCallback(callbackUrl, result).catch((callbackError) => {
+      postCallbackWithRetry(callbackUrl, result).catch((callbackError) => {
         console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);
       });
     },
     (renderError) => {
       console.error(`Job ${jobId} failed:`, renderError);
-      postCallback(callbackUrl, {
+      postCallbackWithRetry(callbackUrl, {
         jobId,
         status: "failed",
         error: { message: renderError.message }
