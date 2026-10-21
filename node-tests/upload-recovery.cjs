@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 let passed = 0;
 function test(name, run) { run(); passed++; console.log('PASS ' + name); }
 function fixture(options = {}) {
-  let job = options.initialJob || null, inserts = 0, pages = 0, releases = 0, updateFailed = false, providerCalls = 0;
+  let job = options.initialJob || null, inserts = 0, pages = 0, releases = 0, updateFailed = false, providerCalls = 0, logs = [];
   const history = options.history || [];
   const renderJobs = options.renderJobs || [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
     status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }];
@@ -24,6 +24,7 @@ function fixture(options = {}) {
       getAll: () => renderJobs
     },
     ScriptsRepository: { getScriptById: id => ({ id, status: 'APPROVED' }) },
+    LoggingService: { log(entry) { if (options.loggingFails) throw new Error('Logs sheet unavailable'); logs.push(entry); } },
     VideoProcessingProvider: { get() { providerCalls++; throw new Error('provider reached'); } },
     RenderQualityService: { assertPublishable() {}, evaluate: () => ({ passed: true }) },
     RenderReviewService: { assertApproved() {}, get: () => ({ approved: true }) },
@@ -61,13 +62,13 @@ function fixture(options = {}) {
       }
     }
   });
-  for (const file of ['Models/PublishingJob.js', 'Production/VideoLink_Service.js', 'Production/PublishingSchedule_Service.js', 'Production/ProductionError_Service.js', 'Production/YouTube_Service.js', 'App/ProductionController.js']) {
+  for (const file of ['Models/PublishingJob.js', 'Production/VideoLink_Service.js', 'Production/PublishingSchedule_Service.js', 'Production/ProductionError_Service.js', 'Production/YouTube_Service.js', 'Production/ProductionHealth_Service.js', 'App/ProductionController.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   return {
     call: expression => vm.runInContext(expression, context, { timeout: 10000 }),
     job: () => job, history: () => history.slice(), inserts: () => inserts,
-    pages: () => pages, releases: () => releases, providerCalls: () => providerCalls
+    pages: () => pages, releases: () => releases, providerCalls: () => providerCalls, logs: () => logs.slice()
   };
 }
 const publish = 'ProductionController.publish({renderJobId:"RND-TEST"})';
@@ -391,5 +392,49 @@ test('A returned video ID is kept on the RECONCILE record when saving PUBLISHED 
 test('An upload that timed out before returning an ID has no video ID to record', () => {
   const f = fixture({ insertFailure: true }); f.call(publish);
   assert.equal(f.job().status, 'RECONCILE'); assert.equal(f.job().youtubeVideoId, '');
+});
+
+// Monitoring: the Production listing carries health findings and recovery leaves a trace.
+test('Production listing reports an uncertain upload as a critical health finding', () => {
+  const f = fixture({ history: [historicalJob('PUB-UNSURE', 'RECONCILE', new Date().toISOString())] });
+  const response = f.call('ProductionController.listJobs()');
+  assert.equal(response.success, true);
+  assert.equal(response.data.health.status, 'critical');
+  assert.equal(response.data.health.findings[0].code, 'UPLOAD_UNCERTAIN');
+  assert.equal(response.data.health.findings[0].subject.publishingJobId, 'PUB-UNSURE');
+  assert.equal(response.data.health.findings[0].doNotUploadAgain, true);
+  assert.equal(f.inserts(), 0);
+});
+test('Production listing still loads when health evaluation fails', () => {
+  const f = fixture({ history: [historicalJob('PUB-UNSURE', 'RECONCILE', new Date().toISOString())] });
+  f.call('ProductionHealthService.evaluate = function () { throw new Error("boom"); }');
+  const response = f.call('ProductionController.listJobs()');
+  assert.equal(response.success, true);
+  assert.equal(response.data.health.status, 'unavailable');
+  assert.equal(response.data.jobs.length, 1);
+});
+test('A stale UPLOADING attempt becomes RECONCILE and the change is logged for the operator', () => {
+  const f = fixture({ history: [historicalJob('PUB-LOST', 'UPLOADING', new Date(Date.now() - 2 * 3600000).toISOString())] });
+  assert.equal(f.call('ProductionController.listJobs()').success, true);
+  assert.equal(f.history()[0].status, 'RECONCILE');
+  const warnings = f.logs().filter(entry => entry.action === 'PRODUCTION_RECOVERY');
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].status, 'Warning');
+  assert.match(warnings[0].message, /PUB-LOST/);
+  assert.match(warnings[0].message, /YouTube Studio/);
+  assert.equal(f.call(publish).success, false);
+  assert.equal(f.inserts(), 0);
+});
+test('A logging failure never blocks or undoes the stale-upload recovery', () => {
+  const f = fixture({ loggingFails: true,
+    history: [historicalJob('PUB-LOST', 'UPLOADING', new Date(Date.now() - 2 * 3600000).toISOString())] });
+  assert.equal(f.call('ProductionController.listJobs()').success, true);
+  assert.equal(f.history()[0].status, 'RECONCILE');
+});
+test('A fresh UPLOADING attempt is left alone and nothing is logged', () => {
+  const f = fixture({ history: [historicalJob('PUB-LIVE', 'UPLOADING', new Date().toISOString())] });
+  assert.equal(f.call('ProductionController.listJobs()').success, true);
+  assert.equal(f.history()[0].status, 'UPLOADING');
+  assert.equal(f.logs().length, 0);
 });
 console.log(`Upload recovery: ${passed}/${passed} passed.`);

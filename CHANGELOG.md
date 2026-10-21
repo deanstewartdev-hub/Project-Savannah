@@ -386,6 +386,27 @@ dashboard with ambient background motion (`prefers-reduced-motion` respected thr
 - 13 regression tests added to `node-tests/upload-recovery.cjs` (41 total); confirmed to fail
   against the unfixed controller. Full local runner passes. Not deployed.
 
+### 21 October 2026 — production health monitoring and live acceptance checklist
+
+- New `Production/ProductionHealth_Service.js`: a pure, read-only evaluator that turns Render Jobs and
+  Publishing Jobs into operator findings. NotificationService only sees problems that logged a
+  failure; this covers states that are stuck or uncertain without logging one: renders active for
+  45 minutes / 3 hours (aged from `createdAt`, since polling rewrites `updatedAt`), delivery recovery
+  required, SUCCEEDED with no video, uncertain uploads, uploads that outlived an execution, failed
+  uploads that recorded a YouTube video, and the same script recorded on YouTube more than once.
+- Every finding states what to check and what not to do (`doNotRerender`, `doNotUploadAgain`), so a
+  recovery step cannot suggest a paid re-render of an existing video or a second upload.
+- `ProductionController.listJobs` returns `health` with the jobs and the Production page shows a
+  "Needs attention" panel. Health is advisory: if it cannot be computed the page still loads.
+- The two silent recovery transitions (interrupted render submission -> FAILED, stale UPLOADING ->
+  RECONCILE) now write a `PRODUCTION_RECOVERY` warning to the Logs sheet naming the IDs. A logging
+  failure never blocks the recovery.
+- Added `LIVE_ACCEPTANCE.md`: the ordered owner checklist for Apps Script authorisation, same-spreadsheet
+  and single-writer checks, one genuine callback, 1080x1920 quality review, one private upload,
+  duplicate-prevention verification and recovery. Prepared only; nothing in it has been run.
+- Tests: `node-tests/ProductionHealth_Tests.js` (20) and 5 controller cases in
+  `node-tests/upload-recovery.cjs` (46 total). Not deployed.
+
 ## Earlier history
 
 Prior work (Apps Script foundation through Phase 4 analytics: idea/script/SEO pipeline,
