@@ -73,15 +73,20 @@ const ProductionController = (() => {
         throw error_("This script already has a YouTube upload that is published, in progress or uncertain. Resolve it in YouTube Studio before rendering again.");
       }
       const provider = VideoProcessingProvider.get();
+      // Save the render ID before asking the worker to start. If this execution dies after the
+      // worker accepts the job, the row already carries the ID that status checks and the
+      // callback use, so it can be reconciled instead of looking like a failed submit.
+      const reservedRenderId = typeof provider.reserveRenderId === "function" ? provider.reserveRenderId() : "";
       let job = RenderJobRepository.save(RenderJobModel.create({
         scriptId: script.id,
         seoPackId: seoPack.id,
         templateId: resolveTemplateId_(),
         status: "QUEUED",
+        renderId: reservedRenderId,
         requestPayload: { preparationStatus: "assets-ready" }
       }));
       try {
-        const result = provider.submitRender(script, seoPack);
+        const result = provider.submitRender(script, seoPack, { renderId: reservedRenderId });
         const render = result.render;
         job = RenderJobRepository.update(RenderJobModel.update(job, {
           renderId: render.id,
@@ -93,10 +98,21 @@ const ProductionController = (() => {
           providerResponse: sanitise_(render)
         }));
       } catch (caught) {
-        RenderJobRepository.update(RenderJobModel.update(job, {
+        // No confirmation either way (timeout, 5xx): the worker may be rendering this job and
+        // billing for it. Keep the job active under its saved ID so the callback or status
+        // reconciliation decides. Marking it FAILED would invite a second paid render.
+        if (reservedRenderId && caught && caught.outcomeUnknown === true) {
+          RenderJobRepository.update(RenderJobModel.update(job, {
+            errorMessage: "The media worker did not confirm this render, so it may still be running. Savannah is keeping the job and will reconcile it. Do not re-render."
+          }));
+          throw error_("The media worker did not confirm this render. It may still be running, so Savannah is keeping the job and will reconcile it. Do not re-render.");
+        }
+        // A definite failure means nothing started, so the reserved ID is unused: drop it, as a
+        // failed submission has always had no render ID.
+        RenderJobRepository.update(RenderJobModel.update(job, Object.assign({
           status: "FAILED",
           errorMessage: friendlyError_(caught)
-        }));
+        }, reservedRenderId ? { renderId: "" } : {})));
         throw caught;
       }
       return { job: job };

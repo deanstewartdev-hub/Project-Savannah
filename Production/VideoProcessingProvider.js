@@ -95,7 +95,15 @@ const CloudRunFFmpegProvider = (() => {
   // not a padded-or-truncated four. This is what retires the hard-coded four-slot
   // constraint described in section 2.5 of SAVANNAH_AUDIT_AND_PLAN.md for the render
   // path — the worker has no fixed template to satisfy.
-  function submitRender(script, seoPack) {
+  // Choosing the render ID before the network call lets the caller save it first. If Apps Script
+  // dies after the worker accepts the job, the row already carries the ID that the status lookup
+  // and the callback will use, instead of being an unlinked row that looks like a failed submit.
+  function reserveRenderId() {
+    return VideoProcessingProvider.RENDER_ID_PREFIX + Utilities.getUuid();
+  }
+  const RESERVED_ID_SHAPE = /^cr-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  function submitRender(script, seoPack, options) {
     if (!script || !script.id) throw error_("A valid script is required.");
     const scenes = Array.isArray(script.scenes) ? script.scenes : [];
     if (!scenes.length) throw error_("The script has no scenes.");
@@ -128,7 +136,8 @@ const CloudRunFFmpegProvider = (() => {
       );
     }
 
-    const jobId = VideoProcessingProvider.RENDER_ID_PREFIX + Utilities.getUuid();
+    const reserved = String(options && options.renderId || "");
+    const jobId = RESERVED_ID_SHAPE.test(reserved) ? reserved : reserveRenderId();
     const callbackUrl = callbackUrl_();
     const response = request_("post", "/jobs", {
       jobId: jobId,
@@ -136,7 +145,9 @@ const CloudRunFFmpegProvider = (() => {
       callbackUrl: callbackUrl
     });
     if (!response || response.jobId !== jobId) {
-      throw error_("Media worker did not accept the render job.");
+      const unclear = error_("Media worker did not accept the render job.");
+      unclear.outcomeUnknown = true;
+      throw unclear;
     }
 
     return {
@@ -313,14 +324,30 @@ const CloudRunFFmpegProvider = (() => {
       headers: { Authorization: "Bearer " + submitSecret_() },
       payload: JSON.stringify(payload)
     };
-    const response = UrlFetchApp.fetch(workerUrl_() + path, options);
+    // Resolved outside the try: a missing setting fails before any request is made.
+    const url = workerUrl_() + path;
+    let response;
+    try {
+      response = UrlFetchApp.fetch(url, options);
+    } catch (caught) {
+      // Timeout, DNS or connection failure: the request may or may not have reached the worker.
+      // Annotate the same error object, so its message and type are unchanged.
+      if (caught && typeof caught === "object") caught.outcomeUnknown = true;
+      throw caught;
+    }
     const status = response.getResponseCode();
     const body = response.getContentText();
     let parsed = {};
     try { parsed = body ? JSON.parse(body) : {}; } catch (parseError) { parsed = {}; }
     if (status >= 200 && status < 300) return parsed;
     const detail = String(parsed.error || body || "HTTP " + status).slice(0, 300);
-    throw error_("Media worker request failed (HTTP " + status + "): " + detail);
+    const failure = error_("Media worker request failed (HTTP " + status + "): " + detail);
+    failure.httpStatus = status;
+    // The dispatcher awaits job creation before answering, so its own JSON 502 means nothing
+    // started. Any other 5xx (infrastructure, timeout, crash mid-request) is ambiguous.
+    failure.outcomeUnknown = status >= 500 &&
+      !(status === 502 && parsed && parsed.error === "Failed to start render job");
+    throw failure;
   }
 
   function callbackUrl_() {
@@ -367,6 +394,7 @@ const CloudRunFFmpegProvider = (() => {
 
   return {
     testConnection: testConnection, submitRender: submitRender, getRender: getRender,
+    reserveRenderId: reserveRenderId,
     // Exposed only so Tests/CloudRunReconciliation_Tests.js can exercise the pure decision
     // logic with fixture responses, with no UrlFetchApp/mocking involved.
     reconcileStatus: reconcileStatus_
