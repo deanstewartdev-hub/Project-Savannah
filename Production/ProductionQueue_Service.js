@@ -6,8 +6,14 @@ const ProductionQueueService = (() => {
 
   function processNext() {
     // The existing 5-minute automation also drains render callbacks even if
-    // there are no queued scene-preparation tasks.
-    const callbacks = MediaWorkerCallbackInbox.processPending();
+    // there are no queued scene-preparation tasks. A broken inbox (e.g. schema
+    // mismatch) must not stop scene preparation; receipts stay pending.
+    let callbacks;
+    try {
+      callbacks = MediaWorkerCallbackInbox.processPending();
+    } catch (caught) {
+      callbacks = { error: String(caught && caught.message || caught) };
+    }
     const tasks = rankTasks(ProductionTaskRepository.getAll().filter(function (task) {
       return ["PREPARING", "READY"].indexOf(task.status) !== -1;
     }));

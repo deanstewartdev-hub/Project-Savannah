@@ -12,7 +12,7 @@ const ProductionController = (() => {
 
   function listReady() {
     return run_("Production-ready Shorts loaded.", function () {
-      MediaWorkerCallbackInbox.processPending();
+      drainCallbacks_(false);
       recoverStaleJobs_();
       const items = SeoRepository.getAll().filter(function (pack) {
           return pack.status === "GENERATED" || pack.status === "READY_FOR_PRODUCTION";
@@ -215,7 +215,7 @@ const ProductionController = (() => {
 
   function refresh(request) {
     return run_("Render status refreshed.", function () {
-      MediaWorkerCallbackInbox.processPending();
+      drainCallbacks_(false);
       const jobId = String(request && request.jobId || "").trim();
       const job = RenderJobRepository.getById(jobId);
       if (!job) throw error_("Render job was not found.");
@@ -228,7 +228,7 @@ const ProductionController = (() => {
 
   function refreshActive() {
     return run_("Active render statuses refreshed.", function () {
-      MediaWorkerCallbackInbox.processPending();
+      drainCallbacks_(false);
       recoverStaleJobs_();
       const active = RenderJobRepository.getAll().filter(function (job) {
         return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
@@ -259,7 +259,7 @@ const ProductionController = (() => {
   function persistRenderRefresh_(observed, render, providerError) {
     return withScriptLock_(function () {
       // An inbox event may have arrived while the remote status request ran.
-      MediaWorkerCallbackInbox.processPendingLocked();
+      drainCallbacks_(true);
       const current = RenderJobRepository.getById(observed.id);
       if (!current) throw error_("Render job was not found.");
       // A callback may have finished the render while the network request ran.
@@ -285,7 +285,7 @@ const ProductionController = (() => {
   }
 
   function retry(request) {
-    MediaWorkerCallbackInbox.processPending();
+    drainCallbacks_(false);
     const jobId = String(request && request.jobId || "").trim();
     const job = RenderJobRepository.getById(jobId);
     if (!job) return failure_("Render job was not found.");
@@ -344,7 +344,7 @@ const ProductionController = (() => {
 
   function listJobs() {
     return run_("Render jobs loaded.", function () {
-      MediaWorkerCallbackInbox.processPending();
+      drainCallbacks_(false);
       recoverStaleJobs_();
       recoverStalePublishingJobs_();
       const publishingJobs = PublishingJobRepository.getAll();
@@ -414,7 +414,7 @@ const ProductionController = (() => {
   function publish(request) {
     return run_("Short uploaded to YouTube.", function () {
       return withScriptLock_(function () {
-      MediaWorkerCallbackInbox.processPendingLocked();
+      drainCallbacks_(true);
       const source = request || {};
       const renderJobId = String(source.renderJobId || "").trim();
       const renderJob = RenderJobRepository.getById(renderJobId);
@@ -627,6 +627,26 @@ const ProductionController = (() => {
       }));
     });
   }
+  // Apply queued Cloud Run callbacks before acting. A broken inbox (schema
+  // mismatch, unreadable sheet) must not take the Production page or its
+  // actions down with it: receipts stay pending, and an unapplied receipt can
+  // only move an active render to a terminal state, so no action here becomes
+  // unsafe by running without it. Pass locked=true when the script lock is held.
+  function drainCallbacks_(locked) {
+    try {
+      return locked ? MediaWorkerCallbackInbox.processPendingLocked() : MediaWorkerCallbackInbox.processPending();
+    } catch (caught) {
+      try {
+        LoggingService.log({
+          action: "PRODUCTION_CALLBACK_INBOX", status: LoggingService.STATUS.WARNING,
+          message: "Render callback inbox could not be processed; receipts remain pending.",
+          errorDetails: String(caught && caught.message || caught)
+        });
+      } catch (ignored) {}
+      return { error: String(caught && caught.message || caught) };
+    }
+  }
+
   function withScriptLock_(callback) {
     const lock = LockService.getScriptLock();
     if (!lock.tryLock(5000)) throw error_("Another production action is running. Wait a few seconds and try again.");
