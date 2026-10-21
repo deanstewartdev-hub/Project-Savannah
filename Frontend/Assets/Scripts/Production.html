@@ -4,6 +4,7 @@
   if (!root) return;
   const readyList = document.getElementById("production-ready-list");
   const jobList = document.getElementById("production-job-list");
+  const healthPanel = document.getElementById("production-health");
   const readyCount = document.getElementById("production-ready-count");
   const activeCount = document.getElementById("production-active-count");
   const completeCount = document.getElementById("production-complete-count");
@@ -362,9 +363,33 @@
     }
   }
 
+  // Advisory findings from ProductionHealthService: stuck renders, uncertain uploads and
+  // duplicates. Each says what to check and what not to do (never re-render or re-upload blindly).
+  function renderHealth(health) {
+    if (!healthPanel) return;
+    const findings = health && Array.isArray(health.findings) ? health.findings : [];
+    if (!findings.length) { healthPanel.innerHTML = ""; return; }
+    const total = health.counts && health.counts.total || findings.length;
+    healthPanel.innerHTML = '<div class="production-health-panel" role="status">' +
+      '<h3>Needs attention (' + escapeHtml(total) + ')</h3>' +
+      findings.map(function (item) {
+        const subject = item.subject || {};
+        const ids = [subject.renderJobId, subject.publishingJobId, subject.scriptId].filter(Boolean).join(" / ");
+        return '<div class="production-health-item" data-severity="' + escapeHtml(item.severity) + '">' +
+          '<p><span class="badge ' + (item.severity === "critical" ? "badge-danger" : "badge-info") + '">' +
+          (item.severity === "critical" ? "Critical" : "Warning") + '</span> <strong>' + escapeHtml(item.title) + '</strong></p>' +
+          '<p>' + escapeHtml(item.message) + '</p>' +
+          '<p><strong>What to do:</strong> ' + escapeHtml(item.recovery) + '</p>' +
+          (ids ? '<p class="form-help">' + escapeHtml(ids) + '</p>' : '') + '</div>';
+      }).join("") +
+      (health.truncated ? '<p class="form-help">' + escapeHtml(health.truncated) + ' more not shown.</p>' : '') +
+      '</div>';
+  }
+
   function loadJobs() {
     google.script.run.withSuccessHandler(function (response) {
       if (!response || !response.success) return showError(jobList, response);
+      renderHealth(response.data.health);
       const jobs = response.data.jobs || [];
       // Delivery-recovery-required jobs are deliberately left in an active-looking status by
       // reconcileStatus_ (see VideoProcessingProvider.js), so they must be excluded here
