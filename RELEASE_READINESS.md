@@ -26,6 +26,8 @@ deployment, merge, callback-URL change, paid render or upload has been made.
 | P0-3 | Four sibling PRs (#13, #14, #16, #17) build on #12; two touch `App/ProductionController.js`. | — | **Fixed:** all integrated in #15 with merge commits; one trivial loader-list conflict resolved; combined suite green. Merge order in §3. |
 | P0-4 | The **legacy callback route** (the one production uses today) recorded SUCCEEDED for a `completed` callback with an empty or non-https video URL. | `Production/MediaWorkerCallback_Service.js` | **Fixed** (`eabad3f`), 2 tests. |
 | P0-5 | Live verification not done: staging, one real render, one private upload. | `CALLBACK_INBOX_STAGING.md`, `LIVE_ACCEPTANCE.md` | **Blocked on owner.** Staging is now automated (§5). |
+| P0-6 | The live spreadsheet menu item **Project Savannah → Setup v1.0 Sheet** ran setup functions that clear the Scripts, SEO Pack, Approval Queue, Logs and Costs tabs. It only crashes before clearing by accident. | `Utils/Utils_Helpers.js`, `Main.js` | **Fixed** (`e023dc6`): setup never clears an existing tab; 4 tests. |
+| P0-7 | Staging as first written copied the production spreadsheet (production data, possibly API keys, and YouTube access to the real channel). | staging docs and tools | **Fixed:** staging starts from empty files; spreadsheet-only permissions; paid/publishing calls refused in staging; two-condition staging guard; synthetic-message marker; push tool refuses the production script ID (`0bcabd3`, `d9efff8`, `6e4e17e`). |
 
 ### P1: fix before or soon after release
 
@@ -41,6 +43,8 @@ deployment, merge, callback-URL change, paid render or upload has been made.
 | P1-8 | The human approval gate had no CI test. | `App/QueueController.js` | **Fixed** (`3768220`): 8 tests, mutation-checked; no defect found. |
 | P1-9 | Default music track is a silent placeholder. | worker `DEFAULT_MUSIC_TRACK_PATH` | **Owner** (`APPROVALS_REQUIRED.md`). |
 | P1-10 | Almost all tests use mocks; no realistic integration coverage. | `node-tests/` | **Improved:** `StagingFlowEndToEnd_Tests.js` runs the real bridge → inbox → verifier chain; live staging still required. |
+| P1-11 | An immediate **Public** YouTube upload needed only one click; after a failed upload the card kept a stale upload button. | `Frontend/Assets/Scripts/Production.html` | **Fixed** (`7a8d75b`): second click required for public-now; list reloads on failure. |
+| P1-12 | Render ID saved only after the worker request, so an interrupted submission could pay twice. | controller, provider | **Fixed in PR #19**, integrated (`67ab6cc`). |
 
 ### P2: worthwhile, not blocking
 
@@ -76,7 +80,7 @@ deployment, merge, callback-URL change, paid render or upload has been made.
 main ← #2 sprint-3 (fast-forward) ← #3 ← #18 (review gap) ← #5 ← #7 ← #8 ← #9 ← #10 ← #11 ← #12 ← #15
 ```
 
-#15 contains #13, #14, #16 and #17 as merge commits. Once #15 merges they become empty: close them
+#15 contains #13, #14, #16, #17 and #19 as merge commits. Once #15 merges they become empty: close them
 as "included in #15". Merge bottom-up, re-running CI at each step.
 
 ## 4. Production cut-over order (owner, after staging passes)
@@ -85,14 +89,26 @@ Do this with **no render in progress** (Production shows no active renders).
 
 1. **Worker first.** Build and deploy the new dispatcher and render-job images. This is safe on its
    own: the retry change works with today's callback route.
-2. **Production bridge.** Deploy `CallbackBridge/` as its own project with the production
-   `MEDIA_WORKER_SHARED_SECRET` and `RENDER_JOBS_SPREADSHEET_ID`; run `CALLBACK_INBOX_STAGING.md`
-   Part C to prove the spreadsheet identity.
-3. **Callback URL, then main app.** Run `Secrets.setMediaWorkerCallbackUrl("<bridge /exec>")` in
-   the editor, then deploy the merged main app as a new version of the same deployment ID. In
-   between, deliveries wait safely in the inbox, so nothing is sent to an address that rejects it
+2. **Production bridge.** Create it the same way as the staging bridge (`CALLBACK_INBOX_STAGING.md`
+   Part 4), with these differences:
+   - Name it `Savannah bridge`.
+   - Set **only** two script properties: `MEDIA_WORKER_SHARED_SECRET` equal to the **production**
+     main app's value, and `RENDER_JOBS_SPREADSHEET_ID` equal to the **production** spreadsheet ID.
+   - **Never** add `SAVANNAH_ENVIRONMENT`: without it, the bridge refuses every synthetic test message.
+
+   Before going on, compare `RENDER_JOBS_SPREADSHEET_ID` with the production spreadsheet's address.
+   They must match exactly.
+3. **Callback URL, then main app.** In the production project: **Project Settings → Script
+   Properties → Edit** `MEDIA_WORKER_CALLBACK_URL`. Set it to the production bridge's `/exec` URL
+   exactly, with nothing after `/exec`. Then deploy the merged main app as a new version of the
+   **same** deployment (**Deploy → Manage deployments → edit (pencil) → Version: New version → Deploy**).
+   In between, deliveries wait safely in the inbox, so nothing is sent to an address that rejects it
    (this matches the order in `CallbackBridge/CallbackBridge.js`).
-4. **Readiness.** Settings → Release readiness must show no BLOCK.
+4. **Readiness and identity.** Open the app → **Settings → Release readiness → Run readiness check**:
+   - There must be no BLOCK.
+   - Its "spreadsheet" line shows the last 6 characters of the main app's spreadsheet ID, and they must
+     match the end of the bridge's `RENDER_JOBS_SPREADSHEET_ID`.
+   - In the editor, run `diagnoseCallbackInbox` (read-only) for the full ID if needed.
 5. **Live acceptance.** `LIVE_ACCEPTANCE.md`: one real render, review, one private upload.
 6. **Optional.** Background automation (`script.scriptapp` scope) as a separate, planned
    re-authorisation.
