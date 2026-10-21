@@ -13,6 +13,8 @@ function fixture(options = {}) {
   const blob = { getBytes: () => [1], setName() { return this; }, setContentType() { return this; } };
   const context = vm.createContext({
     Logger: { log() {} },
+    // Callback inbox is tested separately; no pending receipts in upload fixtures.
+    MediaWorkerCallbackInbox: { processPending: () => ({ processed: 0 }), processPendingLocked: () => ({ processed: 0 }) },
     Utilities: { getUuid: randomUUID },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => releases++ }) },
     RenderJobRepository: {

@@ -12,6 +12,7 @@ const ProductionController = (() => {
 
   function listReady() {
     return run_("Production-ready Shorts loaded.", function () {
+      MediaWorkerCallbackInbox.processPending();
       recoverStaleJobs_();
       const items = SeoRepository.getAll().filter(function (pack) {
           return pack.status === "GENERATED" || pack.status === "READY_FOR_PRODUCTION";
@@ -214,6 +215,7 @@ const ProductionController = (() => {
 
   function refresh(request) {
     return run_("Render status refreshed.", function () {
+      MediaWorkerCallbackInbox.processPending();
       const jobId = String(request && request.jobId || "").trim();
       const job = RenderJobRepository.getById(jobId);
       if (!job) throw error_("Render job was not found.");
@@ -226,6 +228,7 @@ const ProductionController = (() => {
 
   function refreshActive() {
     return run_("Active render statuses refreshed.", function () {
+      MediaWorkerCallbackInbox.processPending();
       recoverStaleJobs_();
       const active = RenderJobRepository.getAll().filter(function (job) {
         return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
@@ -255,6 +258,8 @@ const ProductionController = (() => {
   // Callback receivers in this Apps Script project use the same script lock.
   function persistRenderRefresh_(observed, render, providerError) {
     return withScriptLock_(function () {
+      // An inbox event may have arrived while the remote status request ran.
+      MediaWorkerCallbackInbox.processPendingLocked();
       const current = RenderJobRepository.getById(observed.id);
       if (!current) throw error_("Render job was not found.");
       // A callback may have finished the render while the network request ran.
@@ -280,6 +285,7 @@ const ProductionController = (() => {
   }
 
   function retry(request) {
+    MediaWorkerCallbackInbox.processPending();
     const jobId = String(request && request.jobId || "").trim();
     const job = RenderJobRepository.getById(jobId);
     if (!job) return failure_("Render job was not found.");
@@ -338,6 +344,7 @@ const ProductionController = (() => {
 
   function listJobs() {
     return run_("Render jobs loaded.", function () {
+      MediaWorkerCallbackInbox.processPending();
       recoverStaleJobs_();
       recoverStalePublishingJobs_();
       const publishingJobs = PublishingJobRepository.getAll();
@@ -407,6 +414,7 @@ const ProductionController = (() => {
   function publish(request) {
     return run_("Short uploaded to YouTube.", function () {
       return withScriptLock_(function () {
+      MediaWorkerCallbackInbox.processPendingLocked();
       const source = request || {};
       const renderJobId = String(source.renderJobId || "").trim();
       const renderJob = RenderJobRepository.getById(renderJobId);

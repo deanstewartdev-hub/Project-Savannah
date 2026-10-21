@@ -5,10 +5,13 @@ const ProductionQueueService = (() => {
   const HANDLER = "processProductionQueue";
 
   function processNext() {
+    // The existing 5-minute automation also drains render callbacks even if
+    // there are no queued scene-preparation tasks.
+    const callbacks = MediaWorkerCallbackInbox.processPending();
     const tasks = rankTasks(ProductionTaskRepository.getAll().filter(function (task) {
       return ["PREPARING", "READY"].indexOf(task.status) !== -1;
     }));
-    if (!tasks.length) return { processed: false, message: "No production tasks are waiting." };
+    if (!tasks.length) return { processed: false, message: "No production tasks are waiting.", callbacks: callbacks };
     const task = tasks[0];
     const response = task.status === "READY" ?
       ProductionController.submitPrepared({ taskId: task.id }) :
