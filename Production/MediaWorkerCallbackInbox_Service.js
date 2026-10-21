@@ -19,6 +19,7 @@ const MediaWorkerCallbackInbox = (() => {
   // failed after the worker accepted the job) is set aside after this long.
   // The row and its payload are kept; it simply stops being re-read.
   const ORPHAN_AFTER_MS = 48 * 60 * 60 * 1000;
+  const MAX_ERROR_ATTEMPTS = 10;
 
   // Best effort for read paths (page loads, queue ticks): if another production
   // action holds the lock, skip this pass rather than failing the caller. Any
@@ -61,6 +62,7 @@ const MediaWorkerCallbackInbox = (() => {
         // it) and keep going: one bad row must not block the page or queue.
         stats.errors++;
         attempts++;
+        recordError_(sheet, i + 2, row, caught, stats);
       }
     }
     return stats;
@@ -114,8 +116,29 @@ const MediaWorkerCallbackInbox = (() => {
     return true;
   }
 
+  // Pending receipts keep "Handled At" empty; their Result column counts failed
+  // attempts ("ERROR 3: ...") so an operator can see them. A receipt that keeps
+  // failing is set aside after MAX_ERROR_ATTEMPTS so it cannot consume the
+  // batch budget forever. The payload is kept, and the render stays active for
+  // status reconciliation, exactly as with REJECTED_NO_VIDEO.
+  function recordError_(sheet, rowNumber, row, caught, stats) {
+    const previous = /^ERROR (\d+):/.exec(String(row[6] || ""));
+    const count = (previous ? Number(previous[1]) : 0) + 1;
+    const message = String(caught && caught.message || caught).slice(0, 200);
+    try {
+      if (count >= MAX_ERROR_ATTEMPTS) {
+        mark_(sheet, rowNumber, "FAILED_PERMANENT: " + message);
+        stats.failedPermanent++;
+      } else {
+        sheet.getRange(rowNumber, 7).setValue("ERROR " + count + ": " + message);
+      }
+    } catch (ignored) {
+      // Sheets itself is failing; the receipt simply stays pending.
+    }
+  }
+
   function emptyStats_(extra) {
-    return Object.assign({ processed: 0, ignored: 0, deferred: 0, rejected: 0, orphaned: 0, errors: 0 }, extra || {});
+    return Object.assign({ processed: 0, ignored: 0, deferred: 0, rejected: 0, orphaned: 0, errors: 0, failedPermanent: 0 }, extra || {});
   }
 
   function videoUrl_(body) {

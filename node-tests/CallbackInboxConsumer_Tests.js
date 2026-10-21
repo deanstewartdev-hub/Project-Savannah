@@ -40,7 +40,8 @@ function makeSheet(rows, options) {
           }
           writes.push({ row, col, values });
           values.forEach((v, i) => v.forEach((cell, j) => { data[row - 1 + i][col - 1 + j] = cell; }));
-        }
+        },
+        setValue(value) { this.setValues([[value]]); }
       };
     }
   };
@@ -257,6 +258,26 @@ function runCallbackInboxConsumerTests() {
     assert(stats.errors === 1 && stats.processed === 1, "Expected one error and one applied receipt.");
     assert(!handled(t.sheet, 0), "Failed receipt must stay pending for retry.");
     assert(t.store[1].status === "SUCCEEDED", "Later receipt was blocked by an earlier failure.");
+  });
+
+  test("failing receipt records its attempt count but stays pending", () => {
+    const t = setup([receipt(RENDER_A, "completed")], [renderJob()], { repoThrowsFor: RENDER_A });
+    t.inbox.processPending();
+    t.inbox.processPending();
+    assert(!handled(t.sheet, 0), "Receipt must stay pending while under the attempt limit.");
+    assert(/^ERROR 2: Simulated Render Jobs read failure/.test(result(t.sheet, 0)), "Attempt count not recorded: " + result(t.sheet, 0));
+  });
+
+  test("receipt that keeps failing is set aside after 10 attempts, payload kept, render untouched", () => {
+    const row = receipt(RENDER_A, "completed"); row[6] = "ERROR 9: earlier failure";
+    const t = setup([row], [renderJob()], { repoThrowsFor: RENDER_A });
+    const stats = t.inbox.processPending();
+    assert(stats.failedPermanent === 1, "Expected the receipt to be set aside.");
+    assert(handled(t.sheet, 0) && /^FAILED_PERMANENT: /.test(result(t.sheet, 0)), "Receipt was not acknowledged as permanent failure.");
+    assert(JSON.parse(t.sheet.data[1][3]).video.url === VIDEO_URL, "Payload must be kept.");
+    assert(t.repoWrites.length === 0 && t.store[0].status === "RENDERING", "Render must stay active for reconciliation.");
+    const again = t.inbox.processPending();
+    assert(again.errors === 0, "A set-aside receipt must not be retried.");
   });
 
   test("render that already has a video URL is never overwritten", () => {
