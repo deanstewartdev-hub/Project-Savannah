@@ -75,6 +75,15 @@ function stagingManifest(repo) {
   return manifest;
 }
 
+// clasp version verified against this folder layout (clasp status lists exactly the copied files).
+const CLASP_VERSION = '3.4.1';
+
+// PowerShell: push runs only if Set-Location succeeded, so a failed or skipped folder
+// change can never fall through to a push from the production-bound repository folder.
+function pushCommand(out) {
+  return 'Set-Location "' + out + '"; if ($?) { npx --yes @google/clasp@' + CLASP_VERSION + ' push --force }';
+}
+
 function prepare(stagingScriptId, options) {
   const opts = options || {};
   const repo = opts.repo || REPO;
@@ -116,14 +125,14 @@ if (require.main === module) {
   try {
     const result = prepare(process.argv[2]);
     console.log('Prepared ' + result.files.length + ' files for the STAGING project (script ID ending ...' + result.scriptId.slice(-6) + ').');
-    console.log('\nNext, run these two commands:\n');
-    console.log('  cd "' + result.out + '"');
-    console.log('  npx @google/clasp push --force\n');
-    console.log('Do NOT run clasp push in the repository folder: it is bound to production.');
+    console.log('\nNext, copy and run this ONE line in PowerShell. It moves into the staging folder and pushes');
+    console.log('only if that worked, so it can never push from the repository folder (which is bound to production):\n');
+    console.log('  ' + pushCommand(result.out) + '\n');
+    console.log('Then return to the repository folder:  Set-Location "' + REPO + '"');
   } catch (error) {
     if (error instanceof Refused) { console.error('REFUSED: ' + error.message); process.exit(2); }
     throw error;
   }
 }
 
-module.exports = { prepare, selectFiles, stagingManifest, Refused, STAGING_SCOPES };
+module.exports = { prepare, selectFiles, stagingManifest, pushCommand, Refused, STAGING_SCOPES, CLASP_VERSION };

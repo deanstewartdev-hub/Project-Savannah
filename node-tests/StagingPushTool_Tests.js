@@ -62,5 +62,12 @@ test('the staging manifest can only reach its own spreadsheet: no YouTube, Drive
   assert.ok(production.oauthScopes.some(s => /youtube/.test(s)), 'the repository manifest itself must stay unchanged');
 });
 
+test('the printed push command only pushes after moving into the staging folder, with a pinned clasp', () => {
+  const { pushCommand, CLASP_VERSION } = require('../tools/staging/prepare-staging-push.cjs');
+  const command = pushCommand('C:\\Temp\\savannah-staging-push');
+  assert.equal(command, 'Set-Location "C:\\Temp\\savannah-staging-push"; if ($?) { npx --yes @google/clasp@' + CLASP_VERSION + ' push --force }');
+  assert.match(CLASP_VERSION, /^\d+\.\d+\.\d+$/, 'clasp must be pinned to an exact version');
+});
+
 fs.rmSync(scratch, { recursive: true, force: true });
 console.log(`Staging push tool: ${passed}/${passed} passed.`);

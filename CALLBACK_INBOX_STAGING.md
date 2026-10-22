@@ -90,9 +90,9 @@ Write these down in Notepad. You'll compare them in Part 6. **Look, don't change
    and switch **Google Apps Script API** to **On**.
 5. **Sign the command-line tool in:**
    ```powershell
-   npx @google/clasp login
+   npx --yes @google/clasp@3.4.1 login
    ```
-   If asked `Ok to proceed? (y)`, type `y`. A browser opens: choose your Google account and click
+   A browser opens: choose your Google account and click
    **Allow**. This lets the tool push code to projects you choose. The steps below only ever point it
    at staging.
 
@@ -112,11 +112,13 @@ Write these down in Notepad. You'll compare them in Part 6. **Look, don't change
    **Success:** `Prepared … files for the STAGING project (script ID ending …)`, followed by two
    commands. **If it says `REFUSED: That is the PRODUCTION script ID`, stop:** you copied the wrong
    ID. Go back to step 3 *in the STAGING spreadsheet's* Apps Script tab.
-5. Run the two commands it printed. The first starts with `cd`. The second is:
+5. Copy the **one line** it printed, which starts with `Set-Location`, and run it. It moves into the separate
+   staging folder first and pushes only if that worked, so it can never push from your repository folder
+   (which is wired to production). **Success:** a list of files, then a line saying the files were pushed.
+   Then go back to the repository folder:
    ```powershell
-   npx @google/clasp push --force
+   Set-Location C:\Users\dean9\Documents\GitHub\Project-Savannah
    ```
-   **Success:** a list of files ending with `Pushed … files`.
 6. Go back to the Apps Script tab and press F5 to refresh. The file list on the left now shows folders
    such as `App`, `Production` and `Utils`.
 7. **Project Settings** (gear) → scroll to **Script Properties** → **Add script property**, and add
@@ -242,7 +244,7 @@ anything you yourself did in the real app meanwhile (so ideally don't use it dur
 |---|---|---|
 | Part 3 step 4 says `REFUSED: … PRODUCTION script ID` | You copied the real project's ID | Copy the ID from the **Savannah STAGING** spreadsheet's Apps Script tab |
 | `clasp push` says the Apps Script API is disabled | Part 2 step 4 not done, or not saved yet | Switch it on, wait one minute, try again |
-| `clasp push` says "User has not enabled…" or asks to log in | Not signed in | Run `npx @google/clasp login` again |
+| `clasp push` says "User has not enabled…" or asks to log in | Not signed in | Run `npx --yes @google/clasp@3.4.1 login` again |
 | Seeding says `Refused: this is not marked as a staging project` | `SAVANNAH_ENVIRONMENT` is missing or misspelled in the **staging** project | Fix it (exactly `staging`, lower case) |
 | Seeding says `…spreadsheet whose name contains STAGING` | The spreadsheet name lacks "STAGING" | Rename the spreadsheet |
 | The permission screen mentions YouTube or Drive | The push in Part 3 did not use the tool's folder | Redo Part 3 steps 4–6 |
@@ -273,7 +275,7 @@ None of this affects production.
 5. Optional, if you won't re-run staging:
    - delete `Savannah STAGING` in Google Drive, and delete the bridge at `script.google.com` (⋮ → Remove)
    - remove both staging projects at `https://myaccount.google.com/permissions`
-   - run `npx @google/clasp logout`
+   - run `npx --yes @google/clasp@3.4.1 logout`
 
 Keeping the staging spreadsheet and bridge for future checks is also fine. They're clearly labelled and
 isolated.
