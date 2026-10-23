@@ -242,3 +242,108 @@ reports BLOCKED, which is expected: staging deliberately has no worker URL, job 
 - The real worker → bridge path, including the worker's callback retry (needs a new worker image).
 - A real render through Cloud Run, video quality, and a YouTube upload.
 - Real-world timings behind the health and queue thresholds (R2).
+
+## 8. Worker image deployment preflight (24 October 2026)
+
+Prepared and verified read-only. **Nothing below §8.5 has been executed**; it waits for the owner's approval.
+Project `savannah-media-worker`, region `europe-west2`, gcloud account dean.stewart.dev. Billing
+(dean99992011) is charged.
+
+### 8.1 What runs in production today (read from the live services)
+
+| Resource | Image | Code inside (source layer compared with git) | Other settings (unchanged by this deploy) |
+|---|---|---|---|
+| Service `savannah-media-worker-dispatcher` | `media-worker:v11`, revision `00008-btl`, 100% traffic | exactly `c9c1e3c` (13 Aug) | 1 vCPU / 512Mi, max 20 instances, scales to zero; `JOB_SUBMIT_SECRET` ← `job-submit-secret:latest`; SA `savannah-dispatcher@` |
+| Job `savannah-render-job` | `media-worker:v7` | exactly `963dbbf` (12 Aug) | 2 vCPU / 2Gi, timeout 1200 s, 0 retries; secrets openai, elevenlabs ×2, pexels, job-submit; SA `savannah-render-job@` |
+
+No render execution is running; the last one was on 18 Aug.
+
+### 8.2 What the new image (`v12`, built from the branch head) changes
+
+| Commit | Change | Dispatcher (from v11) | Render job (from v7) |
+|---|---|---|---|
+| `fd659d8` | Refuses to start if a secret has whitespace or control characters | yes | yes |
+| `8cf3535` | Fails closed if the job-submission secret is missing | yes | yes |
+| `33e7226` | Callback secrets redacted from worker errors and logs | yes | yes |
+| `6b5da59` | Callback delivery retried for transient failures (4 attempts, 2/10/30 s) | (shared code) | **yes**: this is the job that sends callbacks |
+| `89d8f57`–`c9c1e3c` | `/jobs/status` code | already in v11 | present but unused by the job |
+
+No dependency, Dockerfile or configuration change (`package.json` only gained a `test` script).
+
+### 8.3 Verification already done (no production change)
+
+- **Secrets** (worker's exact rules, values read only into memory; only verdicts printed): `job-submit-secret` v1, `openai-api-key` v4, `elevenlabs-api-key` v1, `pexels-api-key` v1 and `elevenlabs-voice-id` v1 are all **CLEAN**. The new start-up validation will pass.
+- **Local image smoke** (only `package*.json` + `src/`, `npm ci --omit=dev`, Node 22.23.4, the Docker base version), 8/8:
+  - the job runner loads with clean secrets, then exits with "JOB_ID env var is required"
+  - a malformed secret is refused with no value in the output
+  - the dispatcher refuses a malformed submit secret
+  - the dispatcher serves `/health`, and `/jobs` and `/jobs/status` return 401 without the secret
+- **Media-worker tests:** 81/81 on Node 22. **App suites:** all green.
+- **Build upload contents:** `gcloud meta list-files-for-upload` lists 32 files, with no credentials (fix `06f2d65`).
+
+### 8.4 Security finding (needs owner approval to remediate)
+
+The local key `media-worker/gcp-key.json` (service account `media-worker-railway@`, key `c56e3d6a…`, created 6 Aug, never
+expires, `storage.objectAdmin` on `gs://savannah-media`) was uploaded with each earlier Cloud Build. The newest of the
+**12 archives in `gs://savannah-media-worker_cloudbuild/source/`** contains it. The bucket is private to the project, and no
+image contains the key. Recommended:
+1. Rotate the key. If the Railway rollback is still wanted, create a new key and update Railway; otherwise disable the key.
+2. Delete those 12 source archives.
+3. Delete the local key files once Railway no longer needs them.
+
+### 8.5 Deployment steps (each needs approval; run from the repository root in PowerShell)
+
+```powershell
+$img = "europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker:v12"
+```
+
+1. **Build** (about 3–5 min). The source upload is key-free:
+   ```powershell
+   gcloud builds submit media-worker --tag $img
+   ```
+2. **Dispatcher canary, no traffic:**
+   ```powershell
+   gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --image $img --no-traffic --tag candidate
+   ```
+   Check `https://candidate---savannah-media-worker-dispatcher-d6ycwdbyla-nw.a.run.app/health` returns 200, and that POST `/jobs` without auth returns 401.
+3. **Promote** the canary:
+   ```powershell
+   gcloud run services update-traffic savannah-media-worker-dispatcher --region europe-west2 --to-latest
+   ```
+4. **Render job:** image only; secrets, limits and service account are kept:
+   ```powershell
+   gcloud run jobs update savannah-render-job --region europe-west2 --image $img
+   ```
+5. **Job smoke** (seconds of compute, no provider call, no callback):
+   ```powershell
+   gcloud run jobs execute savannah-render-job --region europe-west2 --wait
+   ```
+   **Expected:** the execution FAILS with "JOB_ID env var is required" in its log and no secret-format error. Read it with:
+   ```powershell
+   gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="savannah-render-job"' --freshness=10m --limit=10
+   ```
+
+### 8.6 Rollback (seconds; v7 and v11 stay in the registry; do not delete them)
+
+```powershell
+gcloud run services update-traffic savannah-media-worker-dispatcher --region europe-west2 --to-revisions savannah-media-worker-dispatcher-00008-btl=100
+```
+
+```powershell
+gcloud run jobs update savannah-render-job --region europe-west2 --image europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker:v7
+```
+
+No data, schema, secret or callback change is involved, so rollback restores the exact previous state.
+
+### 8.7 Estimated cost
+
+| Item | Estimate |
+|---|---|
+| Cloud Build (one build, about 5 min) | £0 within the monthly free build minutes; otherwise under £0.05 |
+| Artifact Registry (+260 MB image) | about £0.02–0.03 per month |
+| Dispatcher revision | £0 while idle (scales to zero) |
+| Job smoke execution | under £0.01 |
+| **Total for this deployment** | **under £0.10 one-off, about £0.03 per month** |
+
+Not part of this deployment: each real render later costs Cloud Run compute (pennies) plus ElevenLabs and OpenAI usage. That
+is the separate, approval-gated live-acceptance step.
