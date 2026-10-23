@@ -1,0 +1,19 @@
+# Read by `gcloud builds submit` / `gcloud run deploy --source` from this folder.
+# Without this file gcloud uploads everything here: the repository's .gitignore sits
+# one level up and does not apply to this build context.
+.gcloudignore
+.git
+.gitignore
+node_modules/
+npm-debug.log
+.env
+tmp/
+*.local
+test/
+
+# Credentials must never be uploaded to Cloud Build's source bucket.
+gcp-key.json
+gcp-key-b64.txt
+b64-chunk-*.txt
+*.pem
+*-key.json

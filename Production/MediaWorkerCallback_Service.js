@@ -12,7 +12,7 @@ const MediaWorkerCallbackService = (() => {
         ? event.parameter
         : {};
       const expectedSecret = Secrets.getMediaWorkerSharedSecret();
-      if (!expectedSecret || String(parameters.secret || "") !== expectedSecret) {
+      if (!expectedSecret || !secretsMatch_(String(parameters.secret || ""), String(expectedSecret))) {
         return { success: false, error: "Unauthorized." };
       }
 
@@ -30,6 +30,12 @@ const MediaWorkerCallbackService = (() => {
       if (body.status !== "completed" && body.status !== "failed") {
         return { success: false, error: "Unknown or missing status." };
       }
+      // Never record SUCCEEDED without a deliverable video. "Malformed" is a permanent
+      // rejection for the worker's retry policy; status reconciliation, which inspects
+      // the real artifact, decides the render instead.
+      if (body.status === "completed" && !videoUrl_(body)) {
+        return { success: false, error: "Malformed callback: completed without an https video URL." };
+      }
 
       // Prevent concurrent delivery callbacks from racing each other's status writes.
       const lock = LockService.getScriptLock();
@@ -40,7 +46,12 @@ const MediaWorkerCallbackService = (() => {
         // Read again under the lock: another callback may have completed the row.
         const current = RenderJobRepository.getByRenderId(String(body.jobId));
         if (!current) return { success: false, error: "Render job was not found." };
-        if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(current.status) !== -1) {
+        if (["SUCCEEDED", "FAILED", "CANCELLED"].indexOf(current.status) !== -1 || !!current.videoUrl) {
+          // Delivery recovery re-signing the SAME artifact is the only allowed change.
+          if (VideoLinkService.isSameArtifactRefresh(current, body)) {
+            RenderJobRepository.update(RenderJobModel.update(current, VideoLinkService.refreshChanges(current, body)));
+            return { success: true, refreshed: true };
+          }
           return { success: true, ignored: true };
         }
         const changes = body.status === "completed" ? completedChanges_(body) : failedChanges_(body);
@@ -55,10 +66,25 @@ const MediaWorkerCallbackService = (() => {
     }
   }
 
+  // Constant-time: the time taken must not reveal how much of a guessed secret matched.
+  function secretsMatch_(supplied, expected) {
+    let difference = supplied.length ^ expected.length;
+    for (let i = 0; i < expected.length; i++) {
+      difference |= expected.charCodeAt(i) ^ (i < supplied.length ? supplied.charCodeAt(i) : 0);
+    }
+    return difference === 0;
+  }
+
+  function videoUrl_(body) {
+    const video = body.video && typeof body.video === "object" ? body.video : {};
+    const url = String(video.url || "").trim();
+    return /^https:\/\/\S+$/i.test(url) ? url : "";
+  }
+
   function completedChanges_(body) {
     const video = body.video || {};
     const probe = body.probe || {};
-    const videoUrl = String(video.url || "");
+    const videoUrl = videoUrl_(body);
     return {
       status: "SUCCEEDED",
       progress: 100,

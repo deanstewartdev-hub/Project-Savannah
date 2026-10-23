@@ -12,10 +12,15 @@ const YouTubeAnalyticsService = (() => {
     if (!publishingJobs.length) return { channel: channelCapture, captured: [], skipped: [], missing: [] };
     const jobsByVideoId = {};
     publishingJobs.forEach(function (job) { jobsByVideoId[job.youtubeVideoId] = job; });
-    const response = YouTube.Videos.list("id,snippet,statistics,contentDetails,status", {
-      id: Object.keys(jobsByVideoId).slice(0, 50).join(",")
-    });
-    const videos = response && response.items || [], captured = [], skipped = [];
+    // Videos.list accepts at most 50 IDs per request. Request every published video,
+    // not just the first 50, or newer uploads would silently show as "missing".
+    const ids = Object.keys(jobsByVideoId), videos = [], captured = [], skipped = [];
+    for (let start = 0; start < ids.length; start += 50) {
+      const response = YouTube.Videos.list("id,snippet,statistics,contentDetails,status", {
+        id: ids.slice(start, start + 50).join(",")
+      });
+      (response && response.items || []).forEach(function (video) { videos.push(video); });
+    }
     videos.forEach(function (video) {
       const previous = AnalyticsSnapshotRepository.getLatestByVideoId(video.id);
       if (previous && Date.now() - new Date(previous.capturedAt).getTime() < MINIMUM_CAPTURE_INTERVAL_MS) {
@@ -27,7 +32,7 @@ const YouTubeAnalyticsService = (() => {
         youtubeVideoId: video.id, publishingJobId: job.id, scriptId: job.scriptId,
         title: video.snippet && video.snippet.title || job.title,
         publishedAt: video.snippet && video.snippet.publishedAt || status.publishAt || job.createdAt,
-        likes: statistics.likeCount, comments: statistics.commentCount,
+        views: statistics.viewCount, likes: statistics.likeCount, comments: statistics.commentCount,
         durationSeconds: parseDuration_(video.contentDetails && video.contentDetails.duration),
         privacyStatus: status.privacyStatus
       }));

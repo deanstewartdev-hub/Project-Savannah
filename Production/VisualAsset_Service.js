@@ -75,6 +75,7 @@ const VisualAssetService = (() => {
   function createImage_(prompt, imageQuality) {
     const apiKey = Secrets.getOpenAIApiKey();
     if (!apiKey) throw error_("OpenAI is not connected.");
+    assertNotStaging_("OpenAI image generation");
     const response = UrlFetchApp.fetch(IMAGE_URL, {
       method: "post",
       contentType: "application/json",

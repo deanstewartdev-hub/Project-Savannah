@@ -216,6 +216,7 @@ const LoggingService = (() => {
  * @return {Object} Saved log record.
  */
 function testLoggingService() {
+  assertLiveTestAllowed_("testLoggingService");
   const testRunId =
     "TEST-RUN-" +
     Utilities.getUuid()

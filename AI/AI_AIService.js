@@ -1067,6 +1067,7 @@ function testAIServiceRejectsInvalidSchema() {
  * @return {Object} AI service response.
  */
 function testAIServiceLiveConnection() {
+  assertLiveTestAllowed_("testAIServiceLiveConnection");
   const schema = {
     type: "json_schema",
     name:

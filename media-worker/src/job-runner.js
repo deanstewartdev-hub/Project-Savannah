@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { runJob } from "./pipeline/runJob.js";
-import { postCallback } from "./lib/callback.js";
+import { postCallbackWithRetry } from "./lib/callback.js";
 import { downloadJson, deleteObject } from "./lib/storage.js";
 
 // One Cloud Run Job execution handles exactly one render: read its request from GCS
@@ -47,13 +47,13 @@ await deleteObject(requestPath);
 
 try {
   const result = await runJob({ jobId, beats: request.beats, musicTrackPath: request.musicTrackPath });
-  await postCallback(request.callbackUrl, result).catch((callbackError) => {
+  await postCallbackWithRetry(request.callbackUrl, result).catch((callbackError) => {
     console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);
   });
   process.exit(0);
 } catch (renderError) {
   console.error(`Job ${jobId} failed:`, renderError);
-  await postCallback(request.callbackUrl, {
+  await postCallbackWithRetry(request.callbackUrl, {
     jobId,
     status: "failed",
     error: { message: renderError.message }

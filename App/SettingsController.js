@@ -47,6 +47,15 @@ const SettingsController = (() => {
 function settingsGetIntegrations() { return SettingsController.getIntegrations(); }
 function settingsSaveCreatomate(request) { return SettingsController.saveCreatomate(request); }
 function settingsSaveProductionBranding(request) { return SettingsController.saveProductionBranding(request); }
+// Read-only. Run from the deployed app so the callback check compares against the
+// real /exec URL (from the editor it can only warn). Never returns secret values.
+function settingsGetReleaseReadiness() {
+  try {
+    return { success: true, data: ReleaseReadinessService.run() };
+  } catch (error) {
+    return { success: false, error: { code: "RELEASE_READINESS_FAILED", message: String(error && error.message || error).slice(0, 300) } };
+  }
+}
 function testSettingsRejectsMissingCreatomateKey() {
   const result = SettingsController.saveCreatomate({ templateId: "9157fd7e-ef01-4c63-bcf4-388e7282d779" });
   if (result.success) throw new Error("Settings accepted a missing Creatomate API key.");

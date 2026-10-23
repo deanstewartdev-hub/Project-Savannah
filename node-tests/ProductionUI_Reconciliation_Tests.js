@@ -18,7 +18,7 @@ const SOURCE_PATH = path.join(__dirname, "..", "Frontend", "Assets", "Scripts", 
 const FUNCTION_NAMES = [
   "escapeHtml", "reconciliationReason", "isDeliveryRecoveryRequired", "isDeliveredSuccess",
   "classifyReadyJobs_", "jobStatusBadgeClass", "jobStatusLabel", "renderJobCard",
-  "countScriptNarrationWords_"
+  "countScriptNarrationWords_", "publishNeedsConfirmation_"
 ];
 
 function extractFunction(source, name) {
@@ -302,6 +302,23 @@ function runProductionUiReconciliationTests() {
     }));
     includes(html, "production-publish-panel", "No upload evidence: normal retry remains possible");
     excludes(html, "Upload evidence needs review", "No evidence warning for safe failed upload");
+  });
+
+  test("Immediate public upload needs a second click; private, unlisted and scheduled do not", function () {
+    assert(ui.publishNeedsConfirmation_("public", "", false) === true, "Public now must ask for confirmation.");
+    assert(ui.publishNeedsConfirmation_("public", "", true) === false, "Second click must proceed.");
+    assert(ui.publishNeedsConfirmation_("public", "2026-11-01T10:00:00.000Z", false) === false, "Scheduled uploads stay private until then.");
+    assert(ui.publishNeedsConfirmation_("private", "", false) === false, "Private needs no confirmation.");
+    assert(ui.publishNeedsConfirmation_("unlisted", "", false) === false, "Unlisted needs no confirmation.");
+  });
+
+  test("Publish click handler uses the confirmation and reloads the list on failure", function () {
+    const source = require("fs").readFileSync(SOURCE_PATH, "utf8");
+    const handler = source.slice(source.indexOf("const publish = event.target.closest(\".production-publish\")"));
+    const body = handler.slice(0, handler.indexOf("const approveRender"));
+    assert(body.indexOf("publishNeedsConfirmation_(") !== -1, "Handler must ask for confirmation.");
+    assert(body.indexOf("publishNeedsConfirmation_(") < body.indexOf("productionPublish("), "Confirmation must come before the upload call.");
+    assert((body.match(/loadJobs()/g) || []).length >= 3, "Both failure paths must reload the list.");
   });
 
   const failures = results.filter(function (r) { return !r.passed; });

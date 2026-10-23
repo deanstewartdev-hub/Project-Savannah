@@ -35,6 +35,7 @@ function fixture(initialStatus, options = {}) {
     Logger: { log: () => {} }
   };
   vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'Production', 'VideoLink_Service.js'), 'utf8'), sandbox, { filename: 'VideoLink_Service.js' });
   vm.runInContext(source, sandbox, { filename: 'MediaWorkerCallback_Service.js' });
   return {
     handle: (status, more = {}) => {
@@ -46,6 +47,10 @@ function fixture(initialStatus, options = {}) {
         }) }
       };
       sandbox.event = event;
+      return vm.runInContext('MediaWorkerCallbackService.handle(event)', sandbox);
+    },
+    handleWithSecret: (secret) => {
+      sandbox.event = { parameter: { secret }, postData: { contents: JSON.stringify({ jobId: row.renderId, status: 'completed', video: { url: 'https://example.test/new.mp4' } }) } };
       return vm.runInContext('MediaWorkerCallbackService.handle(event)', sandbox);
     },
     writes, getRow: () => row, getLocks: () => locks, getReleases: () => releases
@@ -94,6 +99,37 @@ function runTests() {
       const result = f.handle('not-a-status');
       if (result.success || f.writes.length || f.getLocks()) {
         throw new Error('Unknown callback status must be rejected before locking.');
+      }
+    }],
+    ['completed callback without an https video never records SUCCEEDED', () => {
+      for (const video of [{}, { url: '' }, { url: 'http://example.test/v.mp4' }, { url: '  ' }, 'not-an-object']) {
+        const f = fixture('RENDERING');
+        const result = f.handle('completed', { video });
+        if (result.success || !/^Malformed/.test(result.error) || f.writes.length || f.getLocks()) {
+          throw new Error('Accepted completion without a deliverable video: ' + JSON.stringify(video));
+        }
+        if (f.getRow().status !== 'RENDERING') throw new Error('Render must stay active for reconciliation.');
+      }
+    }],
+    ['render that already has a video URL is not overwritten by a late failure', () => {
+      const f = fixture('RENDERING');
+      f.handle('completed');
+      const withVideo = JSON.stringify(f.getRow());
+      const stale = fixture('RENDERING');
+      stale.getRow().videoUrl = 'https://example.test/already.mp4';
+      const result = stale.handle('failed');
+      if (!result.success || !result.ignored || stale.writes.length) {
+        throw new Error('A render with media evidence was overwritten.');
+      }
+      if (!withVideo.includes('SUCCEEDED')) throw new Error('Control completion failed.');
+    }],
+    ['wrong, truncated or extended secrets are rejected before any lookup', () => {
+      for (const secret of ['synthetic-secre', 'synthetic-secret-x', 'Synthetic-secret', '']) {
+        const f = fixture('RENDERING');
+        const result = f.handleWithSecret(secret);
+        if (result.success || result.error !== 'Unauthorized.' || f.writes.length || f.getLocks()) {
+          throw new Error('Accepted secret ' + JSON.stringify(secret));
+        }
       }
     }],
     ['lock contention is retryable and writes nothing', () => {

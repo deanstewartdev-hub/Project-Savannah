@@ -79,6 +79,18 @@ function runCallbackBridgeTests() {
     }
   });
 
+  test("SAV-15.4b prefixes, extensions and near-misses of the secret are rejected (constant-time compare)", () => {
+    const real = "synthetic-test-secret";
+    for (const guess of ["synthetic-test-secre", "synthetic-test-secret!", "Synthetic-test-secret", "synthetic-test-secret\u0000", "s"]) {
+      if (sandbox.isAuthorizedCallback_({ secret: guess }, real) !== false) {
+        throw new Error("Accepted a near-miss secret: " + JSON.stringify(guess));
+      }
+    }
+    if (!/charCodeAt/.test(bridgeSource) || /supplied === expectedSecret/.test(bridgeSource)) {
+      throw new Error("Bridge must compare the secret in constant time, not with ===.");
+    }
+  });
+
   test("SAV-15.5 an unknown callback route is rejected", () => {
     if (sandbox.resolveRoute_({ route: "something-else" }) === "media-worker-callback") {
       throw new Error("resolveRoute_ must not treat an unrelated route as the callback route.");
@@ -94,7 +106,7 @@ function runCallbackBridgeTests() {
   test("SAV-15.6 CallbackBridge defines only its own minimal function set - no operator controller name appears", () => {
     const declaredFunctions = Array.from(bridgeSource.matchAll(/^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/gm)).map((m) => m[1]);
     const expected = ["doPost", "resolveParameters_", "resolveRoute_", "isAuthorizedCallback_", "isValidRenderId_",
-      "isValidCallbackStatus_", "headersMatchExpected_", "handleCallback_", "updateRenderJobByRenderId_",
+      "isValidCallbackStatus_", "headersMatchExpected_", "handleCallback_", "appendCallbackReceipt_", "updateRenderJobByRenderId_",
       "writeCompletionColumns_", "completedChanges_", "failedChanges_"];
     const unexpected = declaredFunctions.filter((name) => !expected.includes(name));
     if (unexpected.length) {
@@ -452,22 +464,84 @@ function runCallbackBridgeTests() {
     });
   });
 
-  test("SAV-17.4 valid callback still completes active render under a lock", () => {
-    const row = terminalRow_("RENDERING");
-    const sheet = makeMockSheet(REAL_HEADERS.slice(), [row]);
-    const sandbox = runInFreshSandboxWithMocks(sheet, {
-      RENDER_JOBS_SPREADSHEET_ID: "test-id", MEDIA_WORKER_SHARED_SECRET: "synthetic-secret"
-    });
-    const result = sandbox.handleCallback_({
+  test("SAV-17.4 validated callback is durably queued without writing Render Jobs", () => {
+    const received = [];
+    const inbox = {
+      getLastRow: () => 1 + received.length,
+      getRange: (row, col, height, width) => ({
+        getDisplayValues: () => [sandbox.CALLBACK_INBOX_HEADERS.slice()],
+        setValues: values => {
+          if (row < 2) throw new Error("Test inbox header must not be overwritten.");
+          received.push(values[0]);
+        }
+      })
+    };
+    const script = {
+      PropertiesService: { getScriptProperties: () => ({ getProperty: name => ({
+        MEDIA_WORKER_SHARED_SECRET: "synthetic-secret",
+        RENDER_JOBS_SPREADSHEET_ID: "test-id"
+      })[name] }) },
+      SpreadsheetApp: { openById: () => ({
+        getSheetByName: name => name === "Render Callback Inbox" ? inbox :
+          (() => { throw new Error("Bridge must not access Render Jobs."); })()
+      }) },
+      Utilities: { getUuid: () => "RECEIPT-TEST" },
+      LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
+      Logger: { log: () => {} }
+    };
+    vm.createContext(script);
+    vm.runInContext(bridgeSource, script);
+    const result = script.handleCallback_({
       postData: { contents: JSON.stringify({
-        jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.test/final.mp4" }
+        jobId: VALID_RENDER_ID, status: "completed",
+        video: { url: "https://example.test/final.mp4" }
       }) }
     }, { secret: "synthetic-secret" });
-    if (!result.success || sheet.state.rows[1][5] !== "SUCCEEDED") {
-      throw new Error("Active render callback must still reach SUCCEEDED.");
+    if (!result.success || !result.queued || received.length !== 1) {
+      throw new Error("Valid callback must queue precisely one receipt.");
     }
-    if (sheet.state.calls.filter((call) => call.type === "setValues").length !== 1) {
-      throw new Error("Active callback must use one atomic row write.");
+    if (received[0][1] !== VALID_RENDER_ID || received[0][2] !== "completed") {
+      throw new Error("Receipt identity and callback status were not preserved.");
+    }
+    const payload = JSON.parse(received[0][3]);
+    if (payload.jobId !== VALID_RENDER_ID || payload.video.url !== "https://example.test/final.mp4") {
+      throw new Error("Queued receipt lost the finished video's payload.");
+    }
+    if (payload.synthetic !== false) throw new Error("A real callback must be stored as synthetic: false.");
+  });
+
+  test("SAV-17.5 synthetic test callbacks are refused unless this bridge is marked staging", () => {
+    function bridge(environment) {
+      const received = [];
+      const script = {
+        PropertiesService: { getScriptProperties: () => ({ getProperty: name => ({
+          MEDIA_WORKER_SHARED_SECRET: "synthetic-secret", RENDER_JOBS_SPREADSHEET_ID: "test-id",
+          SAVANNAH_ENVIRONMENT: environment
+        })[name] }) },
+        SpreadsheetApp: { openById: () => ({ getSheetByName: () => ({
+          getLastRow: () => 1 + received.length,
+          getRange: () => ({ getDisplayValues: () => [sandbox.CALLBACK_INBOX_HEADERS.slice()], setValues: v => received.push(v[0]) })
+        }) }) },
+        Utilities: { getUuid: () => "RECEIPT-TEST" },
+        LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
+        Logger: { log: () => {} }
+      };
+      vm.createContext(script);
+      vm.runInContext(bridgeSource, script);
+      const result = script.handleCallback_({ postData: { contents: JSON.stringify({
+        jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.invalid/x.mp4" }, synthetic: true
+      }) } }, { secret: "synthetic-secret" });
+      return { result, received };
+    }
+    for (const environment of [undefined, "production", "Staging"]) {
+      const prod = bridge(environment);
+      if (prod.result.success || !/only accepted by a staging bridge/.test(prod.result.error) || prod.received.length) {
+        throw new Error("Non-staging bridge accepted a synthetic callback (" + environment + ").");
+      }
+    }
+    const staging = bridge("staging");
+    if (!staging.result.queued || JSON.parse(staging.received[0][3]).synthetic !== true) {
+      throw new Error("Staging bridge must queue a synthetic callback and keep its marker.");
     }
   });
 
