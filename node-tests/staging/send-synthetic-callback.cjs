@@ -14,6 +14,7 @@
 // Scenarios: completed | link-refresh | failed | no-video | http-video | mismatched-job | bad-secret |
 //            malformed-id | unknown-status
 const { randomUUID } = require('node:crypto');
+const fs = require('node:fs');
 
 // Known production deployments (see HANDOFF.md). Refuse them outright.
 const PRODUCTION_MARKERS = [
@@ -71,7 +72,10 @@ function scenarioBody_(scenario, renderId) {
 // Throws Refused (never sends) unless the target is clearly a staging bridge.
 function stagingTarget(env) {
   const base = String(env.SAVANNAH_STAGING_BRIDGE_URL || '').trim();
-  const secret = String(env.SAVANNAH_STAGING_CALLBACK_SECRET || '');
+  // The secret comes from the environment, or from the private file written by
+  // tools/staging/new-staging-secret.cjs when SAVANNAH_STAGING_SECRET_FILE names it.
+  const secretFile = String(env.SAVANNAH_STAGING_SECRET_FILE || '').trim();
+  const secret = String(env.SAVANNAH_STAGING_CALLBACK_SECRET || (secretFile && fs.existsSync(secretFile) ? fs.readFileSync(secretFile, 'utf8').trim() : ''));
   if (!base) throw new Refused('SAVANNAH_STAGING_BRIDGE_URL is not set.');
   if (!secret) throw new Refused('SAVANNAH_STAGING_CALLBACK_SECRET is not set.');
   if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/exec$/.test(base)) {

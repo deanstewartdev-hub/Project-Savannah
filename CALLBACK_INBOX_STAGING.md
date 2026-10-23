@@ -238,6 +238,33 @@ anything you yourself did in the real app meanwhile (so ideally don't use it dur
 - [ ] Your repository folder: `git status` shows nothing changed, and `.clasp.json` still points at
       production as before.
 
+## Lessons from the first live run (23 Oct 2026)
+
+The first real staging run **passed**: 12/12 bridge checks, and stagingVerifyRun reported PASSED for C1–C12. These problems came up on the way:
+
+| Problem | How it showed | Fix |
+|---|---|---|
+| Several Google accounts in one browser | Apps Script pages said "Page not found" | Put the owner account's slot in the address, e.g. `https://script.google.com/u/2/home/projects/<ID>/edit` (here the owner, dean.stewart.dev, was account #2) |
+| Property named `Savannah_environment` | Staging tools would refuse | The name must be exactly `SAVANNAH_ENVIRONMENT` (all capitals) |
+| Bridge and sender had different secrets | The bridge kept answering `Unauthorized.` | Keep one secret: `node tools/staging/new-staging-secret.cjs` creates one (copied to the clipboard and saved to a private file in your user folder, never printed). `--from-clipboard` saves one that is already in Apps Script. Compare copies by fingerprint, never by showing the value. |
+| A fresh bridge returned 403 "Access denied" | Before its first run | Run any function once in the bridge editor (or use Deploy) so the owner authorises it |
+| Claude in Chrome said "requires a paid plan" | Extension sign-in | The extension's **Claude** sign-in is separate from your Google sign-ins. Sign the extension in with the paid Claude account, and keep Google on the project owner. |
+
+The bridge can also be created from the command line, as in this run, in **its own empty folder**:
+1. Run `clasp create-script --type standalone --title "Savannah STAGING bridge"`.
+2. Copy `CallbackBridge/CallbackBridge.js`, `CallbackBridge/appsscript.json` and `CallbackBridge/.claspignore` into that folder.
+3. Run `clasp push --force`, then `clasp create-deployment`.
+
+Never do this in the repository folder.
+
+To send the 12 callbacks using the saved secret file instead of typing the secret, set this before running the command from step 1:
+
+```powershell
+$env:SAVANNAH_STAGING_SECRET_FILE = "$env:USERPROFILE\.savannah-staging\callback-secret"
+```
+
+Delete the `%USERPROFILE%\.savannah-staging` folder during clean-up.
+
 ## Part 7: if something fails
 
 | What you see | Most likely cause | What to do |
