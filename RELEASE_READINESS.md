@@ -4,16 +4,19 @@ Audit date: **21 October 2026**. Branch: `integration/v1.4-callback-inbox-and-du
 ([PR #15](https://github.com/deanstewartdev-hub/Project-Savannah/pull/15)). Tracked in issue #6.
 
 Everything here was checked against the code, not the README. "Tested" means a CI test exercises
-the real code path with Google services faked. **Nothing has been verified live**, and no
-deployment, merge, callback-URL change, paid render or upload has been made.
+the real code path with Google services faked. **Update, 23 October 2026:** the callback inbox,
+queue and recovery workflow have now been **verified live in an isolated staging environment**
+(two passing runs, §7). No production deployment, merge, callback-URL change, paid render or
+upload has been made.
 
 ## Summary
 
 | Area | State |
 |---|---|
 | Code for v1.4 | Feature-complete for the Cloud Run pipeline; all known safe-to-fix defects fixed |
-| CI | Green: 21 app suites (syntax 81 server files + 9 frontend scripts) and media worker 81/81 |
-| Release blockers left | Owner-only: staging run, worker image, bridge deployment, cut-over, one real render, one private upload |
+| CI | Green: all app suites (syntax 84 server files + 9 frontend scripts) and media worker 81/81 |
+| Live staging | **PASSED** twice on real Apps Script: 12/12 bridge checks and C1–C12 (§7) |
+| Release blockers left | Owner-only: worker image, production bridge, cut-over, one real render, one private upload |
 
 ## 1. Prioritised backlog
 
@@ -25,7 +28,7 @@ deployment, merge, callback-URL change, paid render or upload has been made.
 | P0-2 | 25 commits (callback-bridge isolation SAV-15, secret separation, `/jobs/status` reconciliation) sat between #3 and #5 with **no PR**. | `CallbackBridge/`, `Services/Services_Secrets.js`, `media-worker/src/lib/*` | **Fixed:** draft [PR #18](https://github.com/deanstewartdev-hub/Project-Savannah/pull/18) makes them reviewable. |
 | P0-3 | Four sibling PRs (#13, #14, #16, #17) build on #12; two touch `App/ProductionController.js`. | — | **Fixed:** all integrated in #15 with merge commits; one trivial loader-list conflict resolved; combined suite green. Merge order in §3. |
 | P0-4 | The **legacy callback route** (the one production uses today) recorded SUCCEEDED for a `completed` callback with an empty or non-https video URL. | `Production/MediaWorkerCallback_Service.js` | **Fixed** (`eabad3f`), 2 tests. |
-| P0-5 | Live verification not done: staging, one real render, one private upload. | `CALLBACK_INBOX_STAGING.md`, `LIVE_ACCEPTANCE.md` | **Blocked on owner.** Staging is now automated (§5). |
+| P0-5 | Live verification: staging, one real render, one private upload. | `CALLBACK_INBOX_STAGING.md`, `LIVE_ACCEPTANCE.md` | **Staging done:** passed live twice on 23 Oct (§7). **Still blocked on the owner:** one real render and one private upload. |
 | P0-6 | The live spreadsheet menu item **Project Savannah → Setup v1.0 Sheet** ran setup functions that clear the Scripts, SEO Pack, Approval Queue, Logs and Costs tabs. It only crashes before clearing by accident. | `Utils/Utils_Helpers.js`, `Main.js` | **Fixed** (`e023dc6`): setup never clears an existing tab; 4 tests. |
 | P0-7 | Staging as first written copied the production spreadsheet (production data, possibly API keys, and YouTube access to the real channel). | staging docs and tools | **Fixed:** staging starts from empty files; spreadsheet-only permissions; paid/publishing calls refused in staging; two-condition staging guard; synthetic-message marker; push tool refuses the production script ID (`0bcabd3`, `d9efff8`, `6e4e17e`). |
 
@@ -80,8 +83,8 @@ deployment, merge, callback-URL change, paid render or upload has been made.
 main ← #2 sprint-3 (fast-forward) ← #3 ← #18 (review gap) ← #5 ← #7 ← #8 ← #9 ← #10 ← #11 ← #12 ← #15
 ```
 
-#15 contains #13, #14, #16, #17 and #19 as merge commits. Once #15 merges they become empty: close them
-as "included in #15". Merge bottom-up, re-running CI at each step.
+#15 contains #13, #14, #16, #17, #19, #20, #21, #22 and #23 as merge commits. Once #15 merges they
+become empty: close them as "included in #15". Merge bottom-up, re-running CI at each step.
 
 ## 4. Production cut-over order (owner, after staging passes)
 
@@ -120,7 +123,8 @@ Receipts already in the inbox stay safe and are applied once the new version ret
 
 Fully prepared and automated: `CALLBACK_INBOX_STAGING.md` (plain-language guide, three steps,
 checks C1–C12, troubleshooting). Its correctness is proven locally by
-`node node-tests/StagingFlowEndToEnd_Tests.js`. Not yet run against Google.
+`node node-tests/StagingFlowEndToEnd_Tests.js` and `StagingProjectSimulation_Tests.js`. **Run against
+Google on 23 Oct 2026: PASSED twice (§7).**
 
 ## 6. Independent verification and later additions
 
@@ -141,7 +145,7 @@ the sections above. Still nothing verified live.
 Not verified here: the media-worker suite on the combined tree (the new PRs do not touch `media-worker/`;
 CI on each PR is the evidence), and anything that needs Google or Cloud Run.
 
-### 6.2 Changes not yet in #15
+### 6.2 Changes not yet in #15 (now integrated: see §7.1)
 
 | PR | What | Base | Why it matters |
 |---|---|---|---|
@@ -168,7 +172,7 @@ queue defects above remain.
 
 ### 6.4 Owner actions still required (in order)
 
-1. Staging check from empty files (`CALLBACK_INBOX_STAGING.md`).
+1. ~~Staging check from empty files (`CALLBACK_INBOX_STAGING.md`).~~ **Done, 23 Oct 2026** (§7).
 2. Decide the `script.scriptapp` scope (P1-7); it forces a one-time re-authorisation.
 3. Cut-over in the order of §4 (worker images, bridge, callback URL then app, readiness check).
 4. Live acceptance (`LIVE_ACCEPTANCE.md`): one paid render, review, one private upload, duplicate checks.
@@ -182,5 +186,59 @@ queue defects above remain.
 
 ### 6.6 Release readiness, plainly
 
-Code and automated tests: ready for the owner-run steps above. Live behaviour: **not demonstrated**. No
-percentage is given because the remaining work is a short list of owner actions, not a quantity of code.
+Code and automated tests: ready for the owner-run steps above. Live behaviour: **demonstrated in staging**
+(§7) for callbacks, the inbox, the queue and recovery; still **not demonstrated** for a real render, the
+real worker-to-bridge path and a YouTube upload. No percentage is given because the remaining work is a
+short list of owner actions, not a quantity of code.
+
+## 7. Live staging acceptance and integration of #20–#23 (23 October 2026)
+
+### 7.1 Integration
+
+| PR | Merged into #15 as | Conflicts | Evidence |
+|---|---|---|---|
+| #23 (contains #22 and #20) | `b49778a` | None | Queue reliability 17/17, production health (queue) 15/15 |
+| #21 | `34137f6` | None | Queue × submission × callback interplay 10/10 |
+| New regression test | `98da503` | — | In a simulated spreadsheet-only staging project, a queue tick contains a failing READY task (not retried, no internet access) |
+
+`ProductionQueue_Service.js` keeps both this branch's Cloud Run guard and inbox-failure containment and
+#20's stall review, backoff and poison-task containment. Local runner: exit 0, every suite green
+(syntax 84 server files and 9 frontend scripts).
+
+### 7.2 Isolated staging environment (owner account dean.stewart.dev)
+
+| Component | ID | Isolation |
+|---|---|---|
+| Savannah STAGING spreadsheet | `1lco-iCL…ZI3nA` | Created empty; no production data |
+| Staging main project | `1Lwxw64D…EFihV2f` | Manifest: `spreadsheets.currentonly` only, no YouTube service; `SAVANNAH_ENVIRONMENT=staging` |
+| Savannah STAGING bridge | `1eVGe56y…oXw6dTvu`, web app @1 | Writes only to the staging spreadsheet; `SAVANNAH_ENVIRONMENT=staging`; staging-only secret (fingerprint `f6e4991c…`, never displayed) |
+
+Before each run, a read-only `clasp clone` of the staging project was compared file-by-file with the
+branch: 0 differences in both runs (`e698d39`, then `98da503`).
+
+### 7.3 Results
+
+| Run | Code | 12 bridge checks | `stagingVerifyRun` |
+|---|---|---|---|
+| f8001e19 | `6c3d01f` (before #20–#23) | 12/12 PASS | **PASSED**, C1–C12 PASS |
+| ad3d0f86 | `98da503` (with #20–#23) | 12/12 PASS | **PASSED**, C1–C12 PASS |
+
+Inbox outcome of the first run, as designed: 9 receipts (12 sent, 3 refused at the bridge), with 3
+APPLIED, 2 IGNORED_TERMINAL, 1 LINK_REFRESHED, 2 REJECTED_NO_VIDEO and 1 held (unknown render). C12
+reports BLOCKED, which is expected: staging deliberately has no worker URL, job secret or callback URL.
+
+### 7.4 Production verified unchanged (read-only, after both runs)
+
+- Deployments: `@89` (`AKfycbzfD4…`), HEAD and `@1`, unchanged. Versions: 89.
+- Code (`clasp clone`, read-only): 112 files, the v89 manifest (`ANYONE_ANONYMOUS`), none of the new files. Code last modified 17 Aug 2026.
+- Script properties: the same 12 names; **no** `SAVANNAH_ENVIRONMENT`. Triggers: 0.
+- Executions: **none on 23 Oct**. The newest is `onOpen`, 22 Oct 23:20, from before the staging bridge existed.
+- The production spreadsheet was not opened (to avoid running its `onOpen`); Drive shows it last modified 22 Oct.
+- Incident disclosed in issue #6: a malformed shell command ran broken `clasp` sub-commands from the
+  repository folder; all failed at argument parsing before contacting Google. The checks above were taken afterwards.
+
+### 7.5 What staging does not prove
+
+- The real worker → bridge path, including the worker's callback retry (needs a new worker image).
+- A real render through Cloud Run, video quality, and a YouTube upload.
+- Real-world timings behind the health and queue thresholds (R2).
