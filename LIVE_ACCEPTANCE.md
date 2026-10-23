@@ -122,6 +122,10 @@ what to check and what not to do. In short:
 | Upload appears to have stopped | In progress longer than one execution can run | Check Studio. Savannah marks it uncertain by itself | Upload again |
 | Failed upload still points at a video | A video ID was recorded | Verify in Studio, then reconcile | Upload again |
 | Same script on YouTube more than once | A duplicate already exists | Remove the unwanted copy in Studio. Savannah deletes nothing | Upload again |
+| Task "Stopped by the queue: ..." | A queued step failed and was stopped so it could not block the others | Read the message, fix the cause, then **Resume** | Re-render or re-prepare repeatedly |
+| Task "interrupted 3 times" | A scene kept timing out or crashing; the queue stopped retrying | Check the Logs sheet (`PRODUCTION_RECOVERY`), then **Resume** once | Resume in a loop. Each attempt can cost money |
+| Log: "stuck submitting ... linked to render" | A submission died after the render started; Savannah linked the task to that render | Watch that render; use Refresh status | Submit or re-render again |
+| Log: "stuck submitting ... returned to READY" | A submission died before any render started | Nothing. The queue submits it once | Submit it by hand as well |
 | Video link has expired / expires soon | The signed download link (7 days at most) has run out | Owner runs the delivery-recovery tool for that render ID; Savannah accepts the renewed link for the same video and keeps its approval | Re-render (the video still exists) |
 | A finished video arrived for an unknown render | A submission was interrupted after the worker accepted it | Follow **Unmatched delivery** below | Press Re-render safely on the interrupted render |
 
