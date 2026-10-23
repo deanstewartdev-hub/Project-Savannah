@@ -181,5 +181,20 @@ const RUNNER_ENV = { SAVANNAH_STAGING_BRIDGE_URL: 'https://script.google.com/mac
     assert.deepEqual(project.deniedCalls, [], 'the guard must stop these before any internet call is even attempted');
   });
 
+  await test('queue tick in staging stops a failing READY task (PR #20) without retrying it or making any internet call', () => {
+    const spreadsheet = makeSpreadsheet('Savannah STAGING', 'S3');
+    const project = stagingProject(spreadsheet, { SAVANNAH_ENVIRONMENT: 'staging', OPENAI_API_KEY: 'sk-left-behind-by-mistake' });
+    // A READY task whose script cannot be rendered: the submission fails before recording anything itself.
+    project.call('ProductionTaskRepository.save(ProductionTaskRepository.create({ id: "PRD-STGTEST", scriptId: "SCR-MISSING", status: "READY", preparedScenes: [1, 2, 3, 4], nextScene: 5 }))');
+    assert.throws(() => project.call('ProductionQueueService.processNext()'));
+    const task = JSON.parse(JSON.stringify(project.call('ProductionTaskRepository.getById("PRD-STGTEST")')));
+    assert.equal(task.status, 'FAILED', 'the failing task must be contained, not left first in line');
+    // Recorded by submitPrepared itself or, if it could not, by the queue's containment ("Stopped by the queue: ...").
+    assert.match(task.errorMessage, /approved script|Stopped by the queue/);
+    const second = JSON.parse(JSON.stringify(project.call('ProductionQueueService.processNext()')));
+    assert.equal(second.processed, false, 'a contained task must not be picked up again');
+    assert.deepEqual(project.deniedCalls.filter(c => !/^ScriptApp\./.test(c)), [], 'no internet, YouTube, Drive or other-spreadsheet access');
+  });
+
   console.log(`Staging project simulation: ${passed}/${passed} passed.`);
 })().catch(error => { console.error(error); process.exit(1); });
