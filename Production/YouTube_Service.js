@@ -25,6 +25,8 @@ const YouTubeService = (() => {
     if (!renderJob || renderJob.status !== "SUCCEEDED" || !renderJob.videoUrl) {
       throw error_("Only a completed render can be uploaded.");
     }
+    // A staging project is authorised as the owner, so YouTube here is the REAL channel.
+    assertNotStaging_("YouTube upload");
     const source = options || {};
     const title = String(source.title || seoPack.titleOptions && seoPack.titleOptions[0] || "").trim().slice(0, 100);
     if (!title) throw error_("A YouTube title is required.");

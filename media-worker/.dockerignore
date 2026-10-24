@@ -3,3 +3,12 @@ npm-debug.log
 .env
 tmp
 *.local
+
+# Credentials must never enter a build context. The Dockerfile only copies
+# package*.json and src/, but the whole folder is still uploaded to the builder
+# (and, for `gcloud builds submit`, to a Cloud Storage bucket) unless excluded here.
+gcp-key.json
+gcp-key-b64.txt
+b64-chunk-*.txt
+*.pem
+*-key.json

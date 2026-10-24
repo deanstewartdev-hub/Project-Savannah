@@ -68,6 +68,7 @@ const VoiceoverService = (() => {
     const apiKey = Secrets.getOpenAIApiKey();
     if (!apiKey) throw error_("OpenAI is not connected.");
     const branding = Secrets.getProductionBranding();
+    assertNotStaging_("OpenAI voiceover generation");
     const response = UrlFetchApp.fetch(SPEECH_URL, {
       method: "post",
       contentType: "application/json",

@@ -4,13 +4,13 @@ Node 22 + FFmpeg service that replaces Creatomate in Project Savannah's render p
 See `SAVANNAH_AUDIT_AND_PLAN.md` at the repo root and [ROADMAP.md](../ROADMAP.md) (v1.4)
 for why this exists.
 
-**Currently deployed on Railway; a Cloud Run dispatcher + render Job pair is provisioned
-and infra-smoke-tested but not yet the live path** (`MEDIA_WORKER_URL` still points at
-Railway). The Google-side routing bug that originally blocked Cloud Run (billing account
-trial→paid upgrade broke a `SetIamPolicy` call; Cloud Support case #74041894 →
-#74051643, unresolved as of 11 August 2026) only affects Cloud Run *Services* that
-existed before that billing change — a canary deploy and the new dispatcher service both
-confirmed a **brand-new** Cloud Run Service is reachable externally. See "Architecture:
+**Live on Google Cloud Run** (dispatcher Service + render Job); production's
+`MEDIA_WORKER_URL` points at the dispatcher (verified 24 October 2026). **Railway is
+permanently retired** and is not a fallback. The Google-side routing bug that originally
+blocked Cloud Run (billing account trial→paid upgrade broke a `SetIamPolicy` call; Cloud
+Support case #74041894 → #74051643) still affects the two Cloud Run *Services* created
+before that billing change (`savannah-media-worker`, `savannah-media-worker-test`, both
+returning 404); a **brand-new** Service such as the dispatcher is reachable. See "Architecture:
 dispatcher + render Job" below for the current design, and `../CHANGELOG.md` for the
 full story, including three real bugs found via live testing on Railway that equally
 apply on Cloud Run.
@@ -76,14 +76,11 @@ cp .env.example .env   # fill in API keys and GCS_BUCKET
 npm run dev
 ```
 
-`GOOGLE_APPLICATION_CREDENTIALS` should point at a service account key with Storage Object
-Admin on `GCS_BUCKET` for local runs. On Cloud Run, omit it and grant the role to the
-service's runtime service account instead. On a host with no attached-identity metadata
-server (e.g. Railway), set `GOOGLE_APPLICATION_CREDENTIALS_B64` instead — the same key
-file, base64-encoded (`node -e "console.log(Buffer.from(require('fs').readFileSync('key.json')).toString('base64'))"`).
-Raw JSON with embedded quotes and `\n`-escaped newlines is fragile to paste into plain
-env-var UIs; base64 sidesteps that entirely. `storage.js` checks for the base64 variant
-first and falls back to Cloud Run's ADC when neither is set.
+**Credentials:** do not download service-account keys. For local runs, use
+`gcloud auth application-default login` with an account that has Storage Object Admin on
+`GCS_BUCKET`. On Cloud Run the runtime service account is used automatically. The old
+inline-key variable `GOOGLE_APPLICATION_CREDENTIALS_B64` (only for the retired Railway host) is
+refused at start-up, so a leftover setting can't silently reintroduce a long-lived key.
 
 ## Architecture: dispatcher + render Job (Cloud Run)
 
@@ -195,44 +192,17 @@ a copy-pasted secret you've seen in a log — the shared secret should come from
 `Secrets.getMediaWorkerSharedSecret()` at the time of use, not a value memorized from an
 earlier failure's error message.
 
-## Deploying to Railway
+## Railway (retired)
 
-This is the **currently active** deployment (see the note at the top of this file for
-why). Root directory `media-worker/`, `railway.json` in this directory configures the
-Dockerfile builder and restart policy — Railway's dashboard settings can override
-config-as-code on existing services, so if behavior doesn't match `railway.json`, check
-Settings → Build/Deploy in the dashboard directly.
+Railway hosted this worker temporarily in August 2026 and is **permanently retired**; it is
+not a rollback path. `railway.json` has been removed, and the inline service-account key
+variable it needed (`GOOGLE_APPLICATION_CREDENTIALS_B64`) is now refused at start-up. The
+retirement of its service account (`media-worker-railway@`) and its key is tracked in
+`../RELEASE_READINESS.md` section 9.
 
-**Do not set a healthcheck path.** `railway.json` deliberately has no
-`deploy.healthcheckPath`. This is a single always-on worker, not a scaled HTTP service —
-an active-container healthcheck almost certainly can't get scheduled promptly enough
-while ffmpeg/Whisper are contending for CPU, so Railway marks the container unhealthy and
-kills it mid-job under whatever restart policy is configured. This was root-caused via
-live testing (see `../CHANGELOG.md`, 7 August 2026 entry) after jobs were silently
-vanishing with zero error logs. If a health check is ever reintroduced (e.g. once this
-runs on a higher tier with real headroom), verify a real job survives it before trusting
-the deployment.
-
-Environment variables (Railway dashboard → Variables, or Raw Editor for bulk paste):
-
-- Same as Cloud Run's `--set-secrets` list (`OPENAI_API_KEY`, `ELEVENLABS_API_KEY`,
-  `ELEVENLABS_VOICE_ID`, `PEXELS_API_KEY`, `JOB_SUBMIT_SECRET`) plus `GCS_BUCKET` and
-  `DEFAULT_MUSIC_TRACK_PATH` as plain values.
-- `GOOGLE_APPLICATION_CREDENTIALS_B64` — required (see "Local development" above for how
-  to produce it). Without it, `storage.js` falls back to `new Storage()` with no
-  credentials, which fails at the first GCS call, not at startup.
-- No `PORT` — Railway injects its own; `config.js` already reads `process.env.PORT` with
-  an 8080 fallback, so leave it unset rather than hard-coding 8080.
-
-On Railway's memory-constrained trial tier, every ffmpeg call in `assemble.js` is capped
-to `-threads 1 -preset veryfast` (`-filter_threads 1 -filter_complex_threads 1` on the
-heavier final-assembly call), beat normalization runs sequentially rather than via
-`Promise.all`, and `jobs.js` serializes job execution with an in-process promise-chain
-queue — running N ffmpeg encodes concurrently multiplies peak memory by N, which gets the
-process SIGKILLed (empty stdout/stderr is the tell — see `run()` in `src/lib/ffmpeg.js`
-for how that gets surfaced instead of just "Command failed"). If this moves to a host
-with real headroom, these caps are safe to relax but shouldn't be assumed unnecessary
-without testing a full multi-beat job first.
+The FFmpeg caps in `assemble.js` (`-threads 1 -preset veryfast`, sequential beat
+normalisation) were introduced for Railway's memory-constrained tier and remain in place
+on Cloud Run; relax them only after testing a full multi-beat job.
 
 ## What isn't here yet
 

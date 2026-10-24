@@ -272,6 +272,7 @@ function validateGeneratedIdeas_(
  * @return {Object} Workflow result.
  */
 function testIdeaGenerationWithTracking() {
+  assertLiveTestAllowed_("testIdeaGenerationWithTracking");
   const result =
     generateIdeasWorkflow();
 

@@ -13,6 +13,7 @@ function callOpenAI(options) {
 
   const payload = buildOpenAIResponsesPayload(options);
 
+  assertNotStaging_("OpenAI text generation");
   const response = UrlFetchApp.fetch("https://api.openai.com/v1/responses", {
     method: "post",
     contentType: "application/json",

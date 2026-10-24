@@ -31,7 +31,10 @@ export async function postCallback(callbackUrl, payload) {
   // callback (unauthorized, job not found, etc.) - response.ok alone can never catch
   // that. The body's own success field is the only real signal.
   if (!response.ok) {
-    throw new Error(`Callback to ${safeUrl} failed (${response.status}): ${redactSecretParams(raw)}`);
+    throw Object.assign(
+      new Error(`Callback to ${safeUrl} failed (${response.status}): ${redactSecretParams(raw)}`),
+      { httpStatus: response.status }
+    );
   }
 
   let body;
@@ -42,6 +45,46 @@ export async function postCallback(callbackUrl, payload) {
   }
   if (!body || body.success !== true) {
     const detail = (body && body.error) || raw;
-    throw new Error(`Callback to ${safeUrl} was not accepted: ${redactSecretParams(String(detail))}`);
+    throw Object.assign(
+      new Error(`Callback to ${safeUrl} was not accepted: ${redactSecretParams(String(detail))}`),
+      { rejection: redactSecretParams(String(detail)) }
+    );
+  }
+}
+
+// Rejections that will never succeed on a resend (bad secret, malformed request).
+// Everything else - network errors, 5xx/429/408, Apps Script HTML error pages,
+// "busy; retry", a job not yet persisted, a transient Sheets failure - is retried.
+// Resending is safe: Savannah ignores a callback for a render that is already
+// terminal, so a duplicate delivery can never change a recorded result.
+const PERMANENT_REJECTION = /unauthori[sz]ed|malformed|unknown or missing status|jobid is required/i;
+const RETRYABLE_HTTP_STATUS = new Set([408, 425, 429]);
+
+export function isRetryableCallbackError(error) {
+  if (!error) return false;
+  if (typeof error.httpStatus === "number") {
+    return error.httpStatus >= 500 || RETRYABLE_HTTP_STATUS.has(error.httpStatus);
+  }
+  if (typeof error.rejection === "string") return !PERMANENT_REJECTION.test(error.rejection);
+  return true; // network failure or non-JSON response
+}
+
+export const DEFAULT_CALLBACK_RETRY_DELAYS_MS = [2000, 10000, 30000];
+
+// Bounded: at most 1 + delaysMs.length attempts (about 42s in total by default),
+// well inside a Cloud Run Job's timeout. Throws the last error if all attempts fail.
+export async function postCallbackWithRetry(callbackUrl, payload, options = {}) {
+  const delays = options.delaysMs || DEFAULT_CALLBACK_RETRY_DELAYS_MS;
+  const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const log = options.log || ((message) => console.warn(message));
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await postCallback(callbackUrl, payload);
+    } catch (error) {
+      if (attempt >= delays.length || !isRetryableCallbackError(error)) throw error;
+      // error.message is already secret-redacted by postCallback.
+      log(`Callback attempt ${attempt + 1} failed, retrying in ${delays[attempt]}ms: ${error.message}`);
+      await sleep(delays[attempt]);
+    }
   }
 }

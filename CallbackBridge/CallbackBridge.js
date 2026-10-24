@@ -83,6 +83,9 @@ var VALID_CALLBACK_STATUSES = ["completed", "failed"];
 // written. Every other Render Jobs column is read back unchanged and rewritten as-is (see
 // writeCompletionColumns_), never left blank and never guessed at.
 var WRITABLE_COLUMNS = ["Status", "Progress", "Video URL", "Error Message", "Response JSON", "Updated At"];
+// Durable handoff: this standalone project appends callback receipts only. Only the
+// main Savannah app may change Render Jobs statuses and media evidence.
+var CALLBACK_INBOX_HEADERS = ["Receipt ID", "Render ID", "Status", "Payload JSON", "Received At", "Handled At", "Result"];
 
 function doPost(event) {
   var parameters = resolveParameters_(event);
@@ -107,7 +110,15 @@ function resolveRoute_(parameters) {
 function isAuthorizedCallback_(parameters, expectedSecret) {
   if (!expectedSecret) return false;
   var supplied = String((parameters && parameters.secret) || "");
-  return supplied === expectedSecret;
+  var expected = String(expectedSecret);
+  // Constant-time comparison: the time taken must not reveal how many leading
+  // characters of a guess were right. Kept inline - this project's set of
+  // global functions is fixed (see CallbackBridge_Tests.js).
+  var difference = supplied.length ^ expected.length;
+  for (var i = 0; i < expected.length; i++) {
+    difference |= expected.charCodeAt(i) ^ (i < supplied.length ? supplied.charCodeAt(i) : 0);
+  }
+  return difference === 0;
 }
 
 // Pure (SAV-16). Rejects anything that isn't exactly cr-<UUID> - path separators,
@@ -149,6 +160,13 @@ function handleCallback_(event, parameters) {
     if (!body || !body.jobId) return { success: false, error: "A jobId is required." };
     if (!isValidRenderId_(String(body.jobId))) return { success: false, error: "Malformed render ID." };
     if (!isValidCallbackStatus_(body.status)) return { success: false, error: "Unknown or missing status." };
+    // Synthetic test callbacks (node-tests/staging) are accepted only by a bridge
+    // explicitly marked as staging, so a test run aimed at the production bridge
+    // is refused before anything is written.
+    if (body.synthetic === true &&
+        PropertiesService.getScriptProperties().getProperty("SAVANNAH_ENVIRONMENT") !== "staging") {
+      return { success: false, error: "Synthetic test callbacks are only accepted by a staging bridge." };
+    }
 
     // Serialise concurrent callbacks from the media worker: a delayed failure must
     // never race a successful completion and replace its output.
@@ -157,9 +175,11 @@ function handleCallback_(event, parameters) {
       return { success: false, error: "Render callback is busy; retry." };
     }
     try {
-      var updated = updateRenderJobByRenderId_(String(body.jobId), body);
-      if (!updated) return { success: false, error: "Render job was not found." };
-      return { success: true };
+      // Do NOT write Render Jobs here. Independent Apps Script projects have
+      // independent locks, so that would race the operator's status polling.
+      // Queuing before the job exists also handles fast worker callbacks.
+      appendCallbackReceipt_(String(body.jobId), body);
+      return { success: true, queued: true };
     } finally {
       lock.releaseLock();
     }
@@ -167,6 +187,41 @@ function handleCallback_(event, parameters) {
     Logger.log("CallbackBridge failed: " + (caught && caught.message || caught));
     return { success: false, error: "Callback processing failed." };
   }
+}
+
+
+// The anonymous bridge has no route that updates Render Jobs. It only appends
+// receipts to a dedicated sheet. The main Apps Script project drains the inbox
+// under its own script lock, serialising callback delivery with status refreshes.
+//
+// No callback secret is persisted in the sheet: only the validated JSON body.
+// Receipts remain durable until acknowledged after the main project's job write.
+function appendCallbackReceipt_(renderId, body) {
+  var spreadsheetId = PropertiesService.getScriptProperties().getProperty("RENDER_JOBS_SPREADSHEET_ID");
+  if (!spreadsheetId) throw new Error("RENDER_JOBS_SPREADSHEET_ID is not configured.");
+  var payload = JSON.stringify({
+    jobId: renderId, status: body.status,
+    video: body.video || {}, probe: body.probe || {}, error: body.error || {},
+    synthetic: body.synthetic === true
+  });
+  // A Google Sheets cell is limited to 50,000 characters.
+  if (payload.length > 45000) throw new Error("Callback payload exceeds the receipt size limit.");
+
+  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = spreadsheet.getSheetByName("Render Callback Inbox");
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet("Render Callback Inbox");
+    sheet.getRange(1, 1, 1, CALLBACK_INBOX_HEADERS.length).setValues([CALLBACK_INBOX_HEADERS]);
+    sheet.setFrozenRows(1);
+  }
+  var headers = sheet.getRange(1, 1, 1, CALLBACK_INBOX_HEADERS.length).getDisplayValues()[0];
+  if (headers.join("|") !== CALLBACK_INBOX_HEADERS.join("|")) {
+    throw new Error("Render Callback Inbox schema mismatch; refusing to append.");
+  }
+  sheet.getRange(sheet.getLastRow() + 1, 1, 1, CALLBACK_INBOX_HEADERS.length).setValues([[
+    Utilities.getUuid(), renderId, body.status, payload, new Date(), "", ""
+  ]]);
+  return true;
 }
 
 // Deliberately narrow: updates only WRITABLE_COLUMNS (Status, Progress, Video URL,

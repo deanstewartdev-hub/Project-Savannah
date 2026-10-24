@@ -5,6 +5,16 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 19 October 2026 — legacy narration duration preflight
+
+Legacy scene planning now returns an advisory warning when estimated narration is
+outside 30–60 seconds, allowing actual audio timing to determine eligibility.
+Measured duration remains a hard gate before visual preparation and render submission.
+Non-finite measured timing and invalid total estimates are rejected explicitly.
+Added 22 local regression tests for estimates, measured limits, invalid timing,
+narration preservation, and rejection before visual generation. No paid providers
+are called by these fixtures. This change is not yet deployed.
+
 ### 19 October 2026 — publishing reliability on the current Cloud Run baseline
 
 - Block duplicate uploads after ambiguous YouTube insert failures or persistence
@@ -360,6 +370,107 @@ dashboard with ambient background motion (`prefers-reduced-motion` respected thr
 - Shrink the render queue to job submission + polling; retire per-scene resume,
   pause/cancel, and priority levels in `ProductionTaskRepository` now that the worker has
   no six-minute ceiling to work around.
+
+### 21 October 2026 — an interrupted render submission can no longer look like a failed one
+
+- Found by review: the Cloud Run render ID is chosen before the request to the worker, but was only
+  saved on the row after the request returned. If Apps Script timed out or died after the worker
+  accepted the job, the row had no render ID, `recoverStaleJobs_` marked it FAILED after 15 minutes,
+  and the page offered "Re-render safely": a second paid render, with the first render's callback
+  arriving for an ID Savannah no longer linked to anything.
+- `CloudRunFFmpegProvider.reserveRenderId()` now chooses the ID first; `submitCore_` saves it on the
+  QUEUED row before asking the worker to start, and `submitRender` uses that ID. A callback or a
+  status check can always find the row, and existing stale-job reconciliation applies to it.
+- If the request fails with no confirmation (network error or timeout, a 5xx that is not the
+  dispatcher's own "Failed to start render job" 502, or a 2xx that does not echo the job ID), the job
+  stays active under its ID with an explicit "do not re-render" message, so a second render of the
+  script is refused until the callback or reconciliation settles it. Definite failures (4xx, the
+  dispatcher's JSON 502, validation and configuration errors) still mark the job FAILED and drop the
+  unused ID. Creatomate, which cannot pre-assign IDs, is unchanged.
+- `node-tests/RenderSubmissionIdempotency_Tests.js` (15). Mutation-checked. Not deployed.
+
+### 21 October 2026 — script-level duplicate-upload guard
+
+- Found by review of the YouTube publishing workflow: every duplicate-upload guard was keyed
+  by render job ID, and a re-render gets a new ID. A script whose render was already
+  PUBLISHED, UPLOADING or RECONCILE could be re-rendered (paid) through `retry` on an older
+  failed render, `submit` with `forceRerender`, or the prepared-render path, and the new
+  render could then be approved and uploaded as a second copy.
+- `publish()`, `retry()` and `submitCore_()` now also refuse when any render of the same script
+  has a protected upload (PUBLISHED, UPLOADING, RECONCILE, or FAILED with YouTube video
+  evidence). A plain FAILED attempt with no video evidence does not block.
+- When YouTube returns a video ID but saving PUBLISHED fails, the RECONCILE record now keeps the
+  video ID and URL instead of discarding them.
+- 13 regression tests added to `node-tests/upload-recovery.cjs` (41 total); confirmed to fail
+  against the unfixed controller. Full local runner passes. Not deployed.
+
+### 21 October 2026 — production health monitoring and live acceptance checklist
+
+- New `Production/ProductionHealth_Service.js`: a pure, read-only evaluator that turns Render Jobs and
+  Publishing Jobs into operator findings. NotificationService only sees problems that logged a
+  failure; this covers states that are stuck or uncertain without logging one: renders active for
+  45 minutes / 3 hours (aged from `createdAt`, since polling rewrites `updatedAt`), delivery recovery
+  required, SUCCEEDED with no video, uncertain uploads, uploads that outlived an execution, failed
+  uploads that recorded a YouTube video, and the same script recorded on YouTube more than once.
+- Every finding states what to check and what not to do (`doNotRerender`, `doNotUploadAgain`), so a
+  recovery step cannot suggest a paid re-render of an existing video or a second upload.
+- `ProductionController.listJobs` returns `health` with the jobs and the Production page shows a
+  "Needs attention" panel. Health is advisory: if it cannot be computed the page still loads.
+- The two silent recovery transitions (interrupted render submission -> FAILED, stale UPLOADING ->
+  RECONCILE) now write a `PRODUCTION_RECOVERY` warning to the Logs sheet naming the IDs. A logging
+  failure never blocks the recovery.
+- Added `LIVE_ACCEPTANCE.md`: the ordered owner checklist for Apps Script authorisation, same-spreadsheet
+  and single-writer checks, one genuine callback, 1080x1920 quality review, one private upload,
+  duplicate-prevention verification and recovery. Prepared only; nothing in it has been run.
+- Tests: `node-tests/ProductionHealth_Tests.js` (20) and 5 controller cases in
+  `node-tests/upload-recovery.cjs` (46 total). Not deployed.
+
+### 21 October 2026 — background queue: stuck, poisoned and endlessly retried tasks
+
+Review of the 5-minute queue worker (`processProductionQueue`) and the task state machine found four
+defects, none covered by any test:
+
+- **Stuck in SUBMITTING, forever.** A task is set to SUBMITTING before the render is submitted. If the
+  execution died after that, nothing ever picked the task up again, `startPreparation` kept returning it,
+  and the queue status did not count it. The queue tick now settles any task stuck for 10 minutes (an
+  execution lasts at most 6): if a render was already started for the script it links the task to that
+  render and submits nothing; if none started it returns the task to READY. Both are logged as
+  `PRODUCTION_RECOVERY`.
+- **Poison task at the head of the queue.** A step that failed before it could record its own failure (for
+  example a READY task with three prepared scenes, or a script no longer approved) stayed first in line
+  and threw every 5 minutes, so no task behind it was ever processed. A non-temporary failure now marks
+  that task FAILED ("Stopped by the queue: ...") so the queue moves on. Temporary failures (busy lock,
+  rate limit, timeouts) are left alone.
+- **Interrupted scenes retried forever.** A scene that timed out or crashed recorded no failure, so it
+  was retried every tick with no limit, repeating paid asset generation. Retries now back off 5, 10, 20
+  minutes and stop after 3 interrupted attempts with an explicit message. Resume clears the count.
+- **Submission claimed outside the lock.** `submitPrepared` read the task, then wrote SUBMITTING without
+  the script lock, so overlapping callers could both proceed and a loser could overwrite the winner's
+  state. READY -> SUBMITTING is now a locked compare-and-set, and a second caller is refused as busy
+  (retryable) rather than failing the task. If a submission fails after a render row exists and is not
+  failed or cancelled, the task stays linked to it instead of becoming FAILED, because a failed task
+  invites another paid render.
+- Scope: under the Cloud Run renderer (the live provider) scene preparation is refused and the queue only
+  submits leftover READY tasks, so the SUBMITTING, poison-task and submission-claim fixes apply to both
+  providers, while the retry cap and backoff chiefly protect the Creatomate fallback.
+- Nothing here starts a render or prepares a scene on its own; recovery only settles state.
+- `node-tests/QueueReliability_Tests.js` (17) runs the real task repository, queue service and controller
+  on a fake sheet; 12 of the 17 fail against the previous code (the other 5 pin behaviour that must not
+  change). Not deployed.
+
+### 21 October 2026 — health panel reports background-queue and uncertain-submission problems
+
+- `ProductionHealthService` now also reads the Production Tasks sheet (read-only) and reports:
+  `TASK_STUCK_SUBMITTING` (10 min warning, 1 h critical), `TASK_FAILED` (last 7 days),
+  `TASK_RETRIES_EXHAUSTED` (3 interrupted attempts), and `TASK_LINKED_RENDER_MISSING` (a task that
+  says it started a render no render job has).
+- New `RENDER_SUBMISSION_UNCONFIRMED`: a Cloud Run render still QUEUED under its reserved ID, with no
+  worker confirmation, 5 minutes after submission. It replaces the generic "stuck" finding for that
+  render and says not to re-render. Creatomate renders, which legitimately wait in QUEUED, are not
+  flagged.
+- Reading the panel never settles, submits or rewrites anything; only the queue tick changes task
+  state. If the Production Tasks sheet cannot be read, the render and upload findings still show.
+- Operator rows for each finding added to `LIVE_ACCEPTANCE.md`. Tests: `node-tests/ProductionHealthQueue_Tests.js` (15).
 
 ## Earlier history
 

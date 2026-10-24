@@ -63,6 +63,33 @@
       voiceInstructions: document.getElementById("production-voice-instructions").value
     });
   });
+  const readinessButton = document.getElementById("release-readiness-run");
+  const readinessStatus = document.getElementById("release-readiness-status");
+  const readinessList = document.getElementById("release-readiness-checks");
+  if (readinessButton && readinessStatus && readinessList) {
+    readinessButton.addEventListener("click", function () {
+      readinessButton.disabled = true;
+      readinessStatus.textContent = "Checking…";
+      readinessList.textContent = "";
+      google.script.run.withSuccessHandler(function (response) {
+        readinessButton.disabled = false;
+        if (!response || !response.success || !response.data) {
+          readinessStatus.textContent = response && response.error ? response.error.message : "Readiness check failed.";
+          return;
+        }
+        const labels = { READY: "Ready", WARNINGS: "Ready with warnings", BLOCKED: "Blocked: fix the items marked BLOCK" };
+        readinessStatus.textContent = labels[response.data.status] || String(response.data.status);
+        (response.data.checks || []).forEach(function (check) {
+          const item = document.createElement("li");
+          item.textContent = "[" + String(check.level || "").toUpperCase() + "] " + String(check.message || "");
+          readinessList.appendChild(item);
+        });
+      }).withFailureHandler(function () {
+        readinessButton.disabled = false;
+        readinessStatus.textContent = "Readiness check failed.";
+      }).settingsGetReleaseReadiness();
+    });
+  }
   refresh();
 })();
 </script>

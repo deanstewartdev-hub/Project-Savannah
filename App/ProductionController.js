@@ -12,6 +12,7 @@ const ProductionController = (() => {
 
   function listReady() {
     return run_("Production-ready Shorts loaded.", function () {
+      drainCallbacks_(false);
       recoverStaleJobs_();
       const items = SeoRepository.getAll().filter(function (pack) {
           return pack.status === "GENERATED" || pack.status === "READY_FOR_PRODUCTION";
@@ -64,16 +65,29 @@ const ProductionController = (() => {
       if (completed && !(request && request.forceRerender === true)) {
         throw error_("This script already has a completed render. Use an explicit re-render action to replace it.");
       }
+      // A new render gets a new render job ID, so a render that was already uploaded must be
+      // checked by script. Otherwise the same content could be rendered, approved and uploaded
+      // a second time. A script with no earlier render cannot have an upload.
+      if (existingJobs.length && PublishingJobRepository.getAll().some(function (upload) {
+        return upload.scriptId === scriptId && isProtectedUpload_(upload);
+      })) {
+        throw error_("This script already has a YouTube upload that is published, in progress or uncertain. Resolve it in YouTube Studio before rendering again.");
+      }
       const provider = VideoProcessingProvider.get();
+      // Save the render ID before asking the worker to start. If this execution dies after the
+      // worker accepts the job, the row already carries the ID that status checks and the
+      // callback use, so it can be reconciled instead of looking like a failed submit.
+      const reservedRenderId = typeof provider.reserveRenderId === "function" ? provider.reserveRenderId() : "";
       let job = RenderJobRepository.save(RenderJobModel.create({
         scriptId: script.id,
         seoPackId: seoPack.id,
         templateId: resolveTemplateId_(),
         status: "QUEUED",
+        renderId: reservedRenderId,
         requestPayload: { preparationStatus: "assets-ready" }
       }));
       try {
-        const result = provider.submitRender(script, seoPack);
+        const result = provider.submitRender(script, seoPack, { renderId: reservedRenderId });
         const render = result.render;
         job = RenderJobRepository.update(RenderJobModel.update(job, {
           renderId: render.id,
@@ -85,10 +99,21 @@ const ProductionController = (() => {
           providerResponse: sanitise_(render)
         }));
       } catch (caught) {
-        RenderJobRepository.update(RenderJobModel.update(job, {
+        // No confirmation either way (timeout, 5xx): the worker may be rendering this job and
+        // billing for it. Keep the job active under its saved ID so the callback or status
+        // reconciliation decides. Marking it FAILED would invite a second paid render.
+        if (reservedRenderId && caught && caught.outcomeUnknown === true) {
+          RenderJobRepository.update(RenderJobModel.update(job, {
+            errorMessage: "The media worker did not confirm this render, so it may still be running. Savannah is keeping the job and will reconcile it. Do not re-render."
+          }));
+          throw error_("The media worker did not confirm this render. It may still be running, so Savannah is keeping the job and will reconcile it. Do not re-render.");
+        }
+        // A definite failure means nothing started, so the reserved ID is unused: drop it, as a
+        // failed submission has always had no render ID.
+        RenderJobRepository.update(RenderJobModel.update(job, Object.assign({
           status: "FAILED",
           errorMessage: friendlyError_(caught)
-        }));
+        }, reservedRenderId ? { renderId: "" } : {})));
         throw caught;
       }
       return { job: job };
@@ -97,6 +122,7 @@ const ProductionController = (() => {
 
   function startPreparation(request) {
     return run_("Persistent production preparation started.", function () {
+      assertScenePreparationUsed_();
       const source = request || {};
       return withScriptLock_(function () {
         let scriptId = String(source.scriptId || "").trim();
@@ -119,6 +145,7 @@ const ProductionController = (() => {
 
   function prepareNextScene(request) {
     return run_("Next scene asset prepared.", function () {
+      assertScenePreparationUsed_();
       return withScriptLock_(function () {
       const taskId = String(request && request.taskId || "").trim();
       let task = ProductionTaskRepository.getById(taskId);
@@ -183,7 +210,8 @@ const ProductionController = (() => {
         else if (action === "cancel" && ["SUBMITTED", "CANCELLED"].indexOf(task.status) === -1) status = "CANCELLED";
         else throw error_("That preparation action is not valid for the current status.");
         return { task: ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
-          status: status, errorMessage: action === "resume" ? "" : task.errorMessage
+          status: status, errorMessage: action === "resume" ? "" : task.errorMessage,
+          attempts: action === "resume" ? task.preparedScenes.length : task.attempts
         })) };
       });
     });
@@ -191,12 +219,22 @@ const ProductionController = (() => {
 
   function submitPrepared(request) {
     return run_("Prepared Short submitted for rendering.", function () {
-      let task = ProductionTaskRepository.getById(String(request && request.taskId || "").trim());
-      if (!task) throw error_("Production preparation task was not found.");
-      if (task.status !== "READY" || task.preparedScenes.length !== 4) {
-        throw error_("All four scenes must be prepared before rendering.");
-      }
-      task = ProductionTaskRepository.persist(ProductionTaskRepository.update(task, { status: "SUBMITTING" }));
+      const taskId = String(request && request.taskId || "").trim();
+      // Claim the task under the script lock: re-read it and move READY -> SUBMITTING in one
+      // step, so two overlapping callers (queue tick and a click, or two ticks) cannot both
+      // submit it, and a loser can never overwrite the winner's state. The lock is released
+      // before submitCore_, which takes the lock itself.
+      let task = withScriptLock_(function () {
+        const current = ProductionTaskRepository.getById(taskId);
+        if (!current) throw error_("Production preparation task was not found.");
+        if (current.status === "SUBMITTING") {
+          throw error_("This Short is already being submitted. The duplicate submission was prevented.");
+        }
+        if (current.status !== "READY" || current.preparedScenes.length !== 4) {
+          throw error_("All four scenes must be prepared before rendering.");
+        }
+        return ProductionTaskRepository.persist(ProductionTaskRepository.update(current, { status: "SUBMITTING" }));
+      });
       try {
         const result = submitCore_({ scriptId: task.scriptId, forceRerender: !!task.sourceRenderJobId });
         task = ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
@@ -204,7 +242,12 @@ const ProductionController = (() => {
         }));
         return { task: task, job: result.job };
       } catch (caught) {
-        ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+        // If a render row was created and is still alive, the render may be running. Keep the
+        // task linked to it instead of failing it: a failed task invites another submission.
+        const started = renderStartedBy_(task);
+        ProductionTaskRepository.persist(ProductionTaskRepository.update(task, started ? {
+          status: "SUBMITTED", renderJobId: started.id, errorMessage: friendlyError_(caught)
+        } : {
           status: "FAILED", errorMessage: friendlyError_(caught)
         }));
         throw caught;
@@ -212,8 +255,65 @@ const ProductionController = (() => {
     });
   }
 
+  // The render row (not failed or cancelled) that a submission started at or after the task
+  // entered SUBMITTING, or null. One second of tolerance absorbs clock and Sheets rounding.
+  function renderStartedBy_(task) {
+    const since = new Date(task.updatedAt).getTime() - 1000;
+    return RenderJobRepository.getAll().filter(function (job) {
+      return job.scriptId === task.scriptId && job.id !== task.sourceRenderJobId &&
+        ["FAILED", "CANCELLED"].indexOf(job.status) === -1 && new Date(job.createdAt).getTime() >= since;
+    }).sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); })[0] || null;
+  }
+
+  // An execution lasts at most 6 minutes, so a task still SUBMITTING after this has lost its worker.
+  const SUBMITTING_STALE_MS = 10 * 60 * 1000;
+  // Interrupted attempts at one scene (a timeout or crash records no failure) before the task stops.
+  const MAX_INTERRUPTED_ATTEMPTS = 3;
+  function interruptedAttempts_(task) {
+    return Math.max(0, Number(task.attempts || 0) - (task.preparedScenes || []).length);
+  }
+
+  // Called by the queue tick. Settles tasks whose worker disappeared, so nothing waits forever and
+  // nothing is retried forever. Never starts a render and never prepares a scene.
+  function reviewStalledTasks(nowMs) {
+    const now = Number(nowMs) || Date.now();
+    const outcome = { resumedSubmission: [], adoptedRender: [], stoppedPreparation: [] };
+    return withScriptLock_(function () {
+      ProductionTaskRepository.getAll().forEach(function (task) {
+        const age = now - new Date(task.updatedAt).getTime();
+        if (task.status === "SUBMITTING" && age >= SUBMITTING_STALE_MS) {
+          const started = renderStartedBy_(task);
+          if (started) {
+            ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+              status: "SUBMITTED", renderJobId: started.id, errorMessage: ""
+            }));
+            outcome.adoptedRender.push(task.id);
+            logRecovery_("Task " + task.id + " was stuck submitting. It is now linked to render " + started.id + ", which was already started; nothing was submitted again.");
+          } else {
+            ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+              status: "READY",
+              errorMessage: "A submission was interrupted before any render started. It will be submitted again."
+            }));
+            outcome.resumedSubmission.push(task.id);
+            logRecovery_("Task " + task.id + " was stuck submitting and no render had started, so it was returned to READY for another attempt.");
+          }
+        } else if (task.status === "PREPARING" && interruptedAttempts_(task) >= MAX_INTERRUPTED_ATTEMPTS) {
+          ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
+            status: "FAILED",
+            errorMessage: "Scene " + task.nextScene + " was interrupted " + MAX_INTERRUPTED_ATTEMPTS +
+              " times, which usually means it exceeds the Apps Script time limit. Check the Logs sheet, then use Resume to try again."
+          }));
+          outcome.stoppedPreparation.push(task.id);
+          logRecovery_("Task " + task.id + " was stopped after " + MAX_INTERRUPTED_ATTEMPTS + " interrupted attempts at scene " + task.nextScene + ".");
+        }
+      });
+      return outcome;
+    });
+  }
+
   function refresh(request) {
     return run_("Render status refreshed.", function () {
+      drainCallbacks_(false);
       const jobId = String(request && request.jobId || "").trim();
       const job = RenderJobRepository.getById(jobId);
       if (!job) throw error_("Render job was not found.");
@@ -226,6 +326,7 @@ const ProductionController = (() => {
 
   function refreshActive() {
     return run_("Active render statuses refreshed.", function () {
+      drainCallbacks_(false);
       recoverStaleJobs_();
       const active = RenderJobRepository.getAll().filter(function (job) {
         return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
@@ -255,6 +356,8 @@ const ProductionController = (() => {
   // Callback receivers in this Apps Script project use the same script lock.
   function persistRenderRefresh_(observed, render, providerError) {
     return withScriptLock_(function () {
+      // An inbox event may have arrived while the remote status request ran.
+      drainCallbacks_(true);
       const current = RenderJobRepository.getById(observed.id);
       if (!current) throw error_("Render job was not found.");
       // A callback may have finished the render while the network request ran.
@@ -280,12 +383,14 @@ const ProductionController = (() => {
   }
 
   function retry(request) {
+    drainCallbacks_(false);
     const jobId = String(request && request.jobId || "").trim();
     const job = RenderJobRepository.getById(jobId);
     if (!job) return failure_("Render job was not found.");
-    // Retry must respect older upload attempts, not only the latest sheet row.
+    // Retry must respect older upload attempts, not only the latest sheet row, and uploads of
+    // any other render of the same script (a re-render has a different render job ID).
     const uploadHistory = PublishingJobRepository.getAll().filter(function (upload) {
-      return upload.renderJobId === job.id;
+      return upload.renderJobId === job.id || upload.scriptId === job.scriptId;
     });
     if (uploadHistory.some(function (upload) { return upload.status === "PUBLISHED"; })) {
       return failure_("Published videos cannot be re-rendered from the retry action.");
@@ -308,6 +413,7 @@ const ProductionController = (() => {
 
   function prepareScene(request) {
     return run_("High-quality scene asset prepared.", function () {
+      assertScenePreparationUsed_();
       const source = request || {};
       let scriptId = String(source.scriptId || "").trim();
       if (!scriptId && source.jobId) {
@@ -338,10 +444,12 @@ const ProductionController = (() => {
 
   function listJobs() {
     return run_("Render jobs loaded.", function () {
+      drainCallbacks_(false);
       recoverStaleJobs_();
       recoverStalePublishingJobs_();
       const publishingJobs = PublishingJobRepository.getAll();
-      return { jobs: RenderJobRepository.getAll().sort(function (a, b) {
+      const renderJobs = RenderJobRepository.getAll();
+      return { health: productionHealth_(renderJobs, publishingJobs), jobs: renderJobs.slice().sort(function (a, b) {
         return new Date(b.updatedAt) - new Date(a.updatedAt);
       }).map(function (job) {
         const result = Object.assign({}, job);
@@ -407,6 +515,7 @@ const ProductionController = (() => {
   function publish(request) {
     return run_("Short uploaded to YouTube.", function () {
       return withScriptLock_(function () {
+      drainCallbacks_(true);
       const source = request || {};
       const renderJobId = String(source.renderJobId || "").trim();
       const renderJob = RenderJobRepository.getById(renderJobId);
@@ -416,6 +525,9 @@ const ProductionController = (() => {
       }
       RenderQualityService.assertPublishable(renderJob);
       RenderReviewService.assertApproved(renderJob.id);
+      // Refuse before recording an attempt: an expired signed link can only fail,
+      // and the fix is cheap delivery recovery, not a re-render.
+      VideoLinkService.assertUsable(renderJob.videoUrl);
       // A newer FAILED attempt must never hide an older published, in-progress, or
       // uncertain upload. Inspect every attempt for this render before inserting.
       const publishingJobs = PublishingJobRepository.getAll();
@@ -433,6 +545,13 @@ const ProductionController = (() => {
       }
       if (history.some(needsUploadEvidenceReview_)) {
         throw error_("A failed upload attempt still contains YouTube video evidence. Reconcile it or verify in YouTube Studio before retrying.");
+      }
+      // Another render of the same script may already be on YouTube (or be uploading, or be
+      // uncertain). Uploading this render too would publish the same content twice.
+      if (publishingJobs.some(function (job) {
+        return job.scriptId === renderJob.scriptId && isProtectedUpload_(job);
+      })) {
+        throw error_("Another render of this script already has a YouTube upload that is published, in progress or uncertain. Resolve it in YouTube Studio before uploading this render.");
       }
       const scheduleCheck = PublishingScheduleService.assertAvailable(
         source.publishAt,
@@ -471,12 +590,16 @@ const ProductionController = (() => {
           }
         }));
       } catch (caught) {
-        PublishingJobRepository.update(PublishingJobModel.update(job, {
+        // If YouTube already returned a video ID, keep it on the record even though saving the
+        // PUBLISHED state failed, so the evidence survives for reconciliation and audit.
+        const returned = upload && upload.videoId ?
+          { youtubeVideoId: upload.videoId, youtubeUrl: upload.videoUrl || "" } : {};
+        PublishingJobRepository.update(PublishingJobModel.update(job, Object.assign({
           status: caught.uploadUncertain || upload ? "RECONCILE" : "FAILED",
           errorMessage: caught.uploadUncertain || upload ?
             "YouTube upload completion is unknown. Reconcile the upload or check YouTube Studio before retrying." :
             friendlyError_(caught)
-        }));
+        }, returned)));
         if (upload) throw error_("YouTube upload completion is unknown. Reconcile the upload before retrying.");
         throw caught;
       }
@@ -555,6 +678,12 @@ const ProductionController = (() => {
     });
   }
 
+  // An upload that must stop any further upload of the same content.
+  function isProtectedUpload_(job) {
+    return !!job && (job.status === "PUBLISHED" || job.status === "UPLOADING" ||
+      job.status === "RECONCILE" || needsUploadEvidenceReview_(job));
+  }
+
   function needsUploadEvidenceReview_(job) {
     return !!job && job.status === "FAILED" &&
       !!(String(job.youtubeVideoId || "").trim() || String(job.youtubeUrl || "").trim());
@@ -597,6 +726,27 @@ const ProductionController = (() => {
     delete clone.metadata;
     return clone;
   }
+  // Operator-visible diagnostics for state changes that otherwise leave no trace. A logging
+  // failure must never undo or block the recovery it describes.
+  function logRecovery_(message) {
+    try { LoggingService.log({ runId: "", action: "PRODUCTION_RECOVERY", status: "Warning", message: message }); } catch (ignored) {}
+  }
+  // Health findings are advisory. If they cannot be computed the page must still load.
+  function productionHealth_(renderJobs, publishingJobs) {
+    try {
+      let callbackReceipts = [];
+      try { callbackReceipts = MediaWorkerCallbackInbox.recentReceipts(100); } catch (ignored) {}
+      // Queue tasks are advisory input too: an unreadable Production Tasks sheet must not hide
+      // the render and upload findings.
+      let productionTasks = [];
+      try { productionTasks = ProductionTaskRepository.getAll(); } catch (ignored) {}
+      return ProductionHealthService.evaluate({ renderJobs: renderJobs, publishingJobs: publishingJobs,
+        callbackReceipts: callbackReceipts, productionTasks: productionTasks });
+    } catch (caught) {
+      return { status: "unavailable", generatedAt: new Date().toISOString(),
+        counts: { critical: 0, warning: 0, total: 0 }, truncated: 0, findings: [] };
+    }
+  }
   function recoverStaleJobs_() {
     const cutoff = Date.now() - 15 * 60 * 1000;
     RenderJobRepository.getAll().filter(function (job) {
@@ -604,8 +754,9 @@ const ProductionController = (() => {
     }).forEach(function (job) {
       RenderJobRepository.update(RenderJobModel.update(job, {
         status: "FAILED",
-        errorMessage: "Render submission was interrupted before Creatomate returned an ID. Resume with Re-render safely."
+        errorMessage: "Render submission was interrupted before the provider returned an ID. The worker may still have made this video: check Production > Needs attention for an unmatched delivery before using Re-render safely."
       }));
+      logRecovery_("Render " + job.id + " was marked FAILED: submission was interrupted before the provider returned an ID.");
     });
   }
   function recoverStalePublishingJobs_() {
@@ -617,8 +768,47 @@ const ProductionController = (() => {
         status: "RECONCILE",
         errorMessage: "Upload completion is unknown. Check YouTube Studio before allowing another upload."
       }));
+      logRecovery_("Upload attempt " + job.id + " for render " + job.renderJobId +
+        " was set to uncertain (RECONCILE) after 30 minutes with no result. Check YouTube Studio before uploading again.");
     });
   }
+  // Scene-by-scene preparation exists for the legacy Creatomate renderer, whose
+  // createRender() needs pre-made visuals. The Cloud Run worker builds its own visuals
+  // from the script text, so preparing scenes there only pays for images nothing uses.
+  function assertScenePreparationUsed_() {
+    if (String(Secrets.getVideoProvider() || "cloud-run").toLowerCase() === "cloud-run") {
+      throw error_("Scene preparation is not used with the Cloud Run renderer: it builds its own visuals, so this " +
+        "would pay for images the render ignores. Use Create Short instead.");
+    }
+  }
+
+  // Apply queued Cloud Run callbacks before acting. A broken inbox (schema
+  // mismatch, unreadable sheet) must not take the Production page or its
+  // actions down with it: receipts stay pending, and an unapplied receipt can
+  // only move an active render to a terminal state, so no action here becomes
+  // unsafe by running without it. Pass locked=true when the script lock is held.
+  function drainCallbacks_(locked) {
+    try {
+      return locked ? MediaWorkerCallbackInbox.processPendingLocked() : MediaWorkerCallbackInbox.processPending();
+    } catch (caught) {
+      try {
+        // The page polls every ~12s while renders are active; log a persistent
+        // inbox failure at most once per 10 minutes instead of on every drain.
+        if (typeof CacheService !== "undefined") {
+          const cache = CacheService.getScriptCache();
+          if (cache.get("CALLBACK_INBOX_WARNED")) return { error: String(caught && caught.message || caught) };
+          cache.put("CALLBACK_INBOX_WARNED", "1", 600);
+        }
+        LoggingService.log({
+          action: "PRODUCTION_CALLBACK_INBOX", status: LoggingService.STATUS.WARNING,
+          message: "Render callback inbox could not be processed; receipts remain pending.",
+          errorDetails: String(caught && caught.message || caught)
+        });
+      } catch (ignored) {}
+      return { error: String(caught && caught.message || caught) };
+    }
+  }
+
   function withScriptLock_(callback) {
     const lock = LockService.getScriptLock();
     if (!lock.tryLock(5000)) throw error_("Another production action is running. Wait a few seconds and try again.");
@@ -664,7 +854,7 @@ const ProductionController = (() => {
   function error_(message) { const error = new Error(message); error.name = "ProductionControllerError"; return error; }
 
   return { testConnection: testConnection, listReady: listReady, submit: submit,
-    startPreparation: startPreparation, prepareNextScene: prepareNextScene,
+    startPreparation: startPreparation, prepareNextScene: prepareNextScene, reviewStalledTasks: reviewStalledTasks,
     controlPreparation: controlPreparation, submitPrepared: submitPrepared, refresh: refresh,
     refreshActive: refreshActive, retry: retry, prepareScene: prepareScene, approveRender: approveRender, listJobs: listJobs,
     getYouTubeConnection: getYouTubeConnection, getAutomationStatus: getAutomationStatus,
