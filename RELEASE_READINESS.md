@@ -267,6 +267,7 @@ No render execution is running; the last one was on 18 Aug.
 | `33e7226` | Callback secrets redacted from worker errors and logs | yes | yes |
 | `6b5da59` | Callback delivery retried for transient failures (4 attempts, 2/10/30 s) | (shared code) | **yes**: this is the job that sends callbacks |
 | `89d8f57`–`c9c1e3c` | `/jobs/status` code | already in v11 | present but unused by the job |
+| `6db099b` | Railway retired: storage always uses the attached service account and refuses the inline-key variable | yes | yes |
 
 No dependency, Dockerfile or configuration change (`package.json` only gained a `test` script).
 
@@ -347,3 +348,140 @@ No data, schema, secret or callback change is involved, so rollback restores the
 
 Not part of this deployment: each real render later costs Cloud Run compute (pennies) plus ElevenLabs and OpenAI usage. That
 is the separate, approval-gated live-acceptance step.
+
+## 9. Railway key retirement and exposed-archive cleanup (24 October 2026)
+
+Owner decision: Railway is permanently retired; Cloud Run is the rendering platform. Everything below §9.4 is
+**prepared, not executed**. Each stage needs explicit approval.
+
+### 9.1 Does anything depend on the Railway key? **No.**
+
+| Checked | Result |
+|---|---|
+| Production main app `MEDIA_WORKER_URL` | Points at the Cloud Run **dispatcher** (`savannah-media-worker-dispatcher-…-nw.a.run.app`), not Railway |
+| Cloud Run runtime identities | Dispatcher: `savannah-dispatcher@`; render job: `savannah-render-job@`; the two legacy services: the default compute account. **None runs as `media-worker-railway@`** |
+| Inline-key variable on any Cloud Run service or job | None set (every service checked) |
+| Cloud Build | Uses its own service account; no triggers |
+| Artifact Registry and images | Pull and push use the Cloud Build and runtime accounts; no image contains the key (v7/v11 source layers and both legacy images checked by file name) |
+| Secret Manager | No secret holds the key (5 secrets, all provider and submit secrets) |
+| Rollback process (§8.6) | Uses gcloud as the owner account and the existing images; does not touch the key |
+| Code (`6db099b`) | The inline-key path is removed; the variable is now refused at start-up |
+
+**The service account `media-worker-railway@savannah-media-worker.iam.gserviceaccount.com`** (display name "Media Worker
+(Railway, GCS-only)", unique ID `113584502099553594714`):
+- **Roles:** only `roles/storage.objectAdmin` on `gs://savannah-media`; no project roles; no one may act as it.
+- **Keys:** one user-managed key, **`c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5`** (created 6 Aug 2026, never expires, enabled). The two system-managed keys are Google-internal and cannot be downloaded.
+
+### 9.2 Audit findings and their limits
+
+| Evidence | Finding | Strength |
+|---|---|---|
+| Cloud Monitoring `iam.googleapis.com/service_account/key/authn_events_count` and `…/service_account/authn_events_count`, 12 Sep – 24 Oct 2026 | **No authentication events** for any key or account (a control query on the same API returned all 42 daily points) | Good evidence of **no key use in the last 6 weeks**; nothing earlier than 12 Sep is covered |
+| Admin Activity audit logs (400-day retention) | **0 entries made as the account**; 1 entry about it: `CreateServiceAccountKey`, 6 Aug, by the owner | Admin-type activity only |
+| Data Access audit logs | **Off** (the project default), including Cloud Storage object reads and writes, the key's only capability | **Cannot confirm** whether the key read or wrote bucket objects |
+| Policy Analyzer "key last authentication" | API not enabled (not changed) | Optional: enabling it (free) gives a direct last-used timestamp |
+| Who can read the exposed archives | Only the owner account, Google service agents and the default compute account (Editor); every archive's ACL is private | Exposure confined to project principals; reads by them cannot be ruled out (Data Access logs off) |
+
+### 9.3 What was exposed, and where (identified by file name and value fingerprint only)
+
+All **12 Cloud Build source archives** contain `gcp-key.json`, `gcp-key-b64.txt` and `b64-chunk-0..3.txt` (the Railway key),
+plus **`.env`**. The **3 `run-sources` zips** (4 Aug, before the key existed) also contain `.env`. In those `.env` copies:
+
+| Variable | Matches today's production secret? | Consequence |
+|---|---|---|
+| `JOB_SUBMIT_SECRET` | **Yes (live)** | Holder can start **paid** renders through the public dispatcher |
+| `ELEVENLABS_API_KEY` | **Yes (live)** | Holder can spend ElevenLabs credit |
+| `PEXELS_API_KEY` | **Yes (live)** | Free API, rate-limit abuse |
+| `ELEVENLABS_VOICE_ID` | Yes | An identifier, not a secret |
+| `OPENAI_API_KEY` | No: an **older** key (production uses v4) | Revoke it at OpenAI if it is still active (only the dashboard can tell) |
+
+**Not exposed:** git history (no key material, key-ID field or key file on any branch); no images; no secrets. Local copies
+remain on the owner's PC: `media-worker/gcp-key.json`, `gcp-key-b64.txt`, `b64-chunk-*.txt` and `media-worker/.env`. Railway's
+own variables (outside Google) also held them.
+
+**Additional risk found:** the two legacy Cloud Run services, `savannah-media-worker` (europe-west2) and
+`savannah-media-worker-test` (us-central1), are **publicly invokable** (`allUsers`), run the old all-in-one worker, and wire
+in the live secrets. Today they return 404 (Google's old routing bug), but that could change.
+
+**Objects proposed for deletion (15)**, by name and generation:
+
+| Bucket | Object | Generation |
+|---|---|---|
+| `savannah-media-worker_cloudbuild` | `source/1786459426.577613-a3be5b1b6d9b46c69de3bf09f06f9b94.tgz` | `1786459461758206` |
+| 〃 | `source/1786460138.368973-0e6786805ec241149e24513226f2a5de.tgz` | `1786460146684140` |
+| 〃 | `source/1786461167.097622-c4a8bf45e4ea44a898554de0b0bca078.tgz` | `1786461175036041` |
+| 〃 | `source/1786466727.043584-3224ab665e8a431c806b4a3f3ebf3087.tgz` | `1786466768218518` |
+| 〃 | `source/1786474148.991043-db932edb00dd400391b7cdc3a5b1f56d.tgz` | `1786474157011728` |
+| 〃 | `source/1786474773.175906-e07cda6d8324462a808c9b59f2f642d4.tgz` | `1786474780233359` |
+| 〃 | `source/1786489587.398235-2a71d7c25062421ea1b74868877f3b77.tgz` | `1786489630904381` |
+| 〃 | `source/1786578582.261914-78854e43fe20495ca188acde7e322d2c.tgz` | `1786578625213267` |
+| 〃 | `source/1786578649.148566-32e02cc4d13b4440a6436e8ba39ce626.tgz` | `1786578656849758` |
+| 〃 | `source/1786579310.692389-ee85d61273b246bca240e293b588ec67.tgz` | `1786579319454564` |
+| 〃 | `source/1786580975.257317-941118eb5d394b47a8c054325225eef2.tgz` | `1786580984340089` |
+| 〃 | `source/1786646276.226725-29c4034a85c040f4b293f81c088dcd31.tgz` | `1786646318077613` |
+| `run-sources-savannah-media-worker-europe-west2` | `services/savannah-media-worker/1785802652.161422-dd23b30bd3bb409994beb9eed05d4977.zip` | `1785802652147192` |
+| 〃 | `services/savannah-media-worker/1785802858.592545-48ed04b485f44e9e952f8ef69a4f913d.zip` | `1785802858428016` |
+| `run-sources-savannah-media-worker-us-central1` | `services/savannah-media-worker-test/1785839857.482359-b198b3b0505a402cb183da0d072844a7.zip` | `1785839857774094` |
+
+**Bucket protections, all three buckets:** versioning off; **soft delete 7 days**; no retention policy, no object holds, no
+default event-based hold, no lifecycle rule; no soft-deleted copies exist today. Nothing blocks deletion; a normal delete
+leaves a copy restorable by project principals for 7 days.
+
+### 9.4 Procedures (approval-gated; PowerShell, gcloud as the owner account)
+
+```powershell
+$sa  = "media-worker-railway@savannah-media-worker.iam.gserviceaccount.com"
+$key = "c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5"
+```
+
+**Stage A: disable the Railway key (reversible).**
+```powershell
+gcloud iam service-accounts keys disable $key --iam-account $sa
+```
+- **Verify:** `gcloud iam service-accounts keys list --iam-account $sa` shows `DISABLED True`; the dispatcher `/health` still returns 200; dispatcher and job identities are unchanged.
+- **Undo:** `gcloud iam service-accounts keys enable $key --iam-account $sa`.
+- **Then (also reversible):** remove the bucket role with `gcloud storage buckets remove-iam-policy-binding gs://savannah-media --member="serviceAccount:$sa" --role=roles/storage.objectAdmin`, and disable the account with `gcloud iam service-accounts disable $sa`.
+
+**Stage B: delete the 15 exposed archives.**
+1. Recommended, for an immediate permanent purge: turn soft delete off on the three build-input buckets first. They hold only build sources, which are rebuilt on each build.
+   ```powershell
+   gcloud storage buckets update gs://savannah-media-worker_cloudbuild gs://run-sources-savannah-media-worker-europe-west2 gs://run-sources-savannah-media-worker-us-central1 --clear-soft-delete
+   ```
+   Without this step, deleted copies stay restorable for 7 days.
+2. Delete each object **by exact generation**: `gcloud storage rm "gs://<bucket>/<object>#<generation>"`, one per table row in §9.3.
+3. **Verify:** `gcloud storage objects list "gs://<bucket>/**"` and `… --soft-deleted` show none of the 15.
+4. Optionally restore soft delete for future objects: `gcloud storage buckets update <buckets> --soft-delete-duration=7d`.
+5. Optional hardening: add a lifecycle rule deleting `source/` objects after 7 days in the Cloud Build bucket.
+6. **Consequences:** old Cloud Build history entries lose their source archive (they cannot be re-run). Running services and images are unaffected. **Irreversible** once soft delete is off.
+
+**Stage C: rotate the live credentials found in `.env`** (production-affecting; the owner does the provider dashboards):
+1. **`JOB_SUBMIT_SECRET`:** generate a new value with no trailing newline. Add it as a new version of `job-submit-secret`, and **at the same time** set the production main app's `MEDIA_WORKER_JOB_SUBMIT_SECRET` property to the same value. Then start a new dispatcher revision; the v12 deploy (§8.5) does this. Then disable version 1. Do it with no render in progress; between the two changes, submissions fail with 401 (safe, no spend).
+2. **ElevenLabs and Pexels:** regenerate the keys in the provider dashboards, add new secret versions, disable the old versions, and revoke the old keys at the provider. The render job picks up `latest` at its next execution.
+3. **OpenAI:** revoke the older key found in the archives, if it is still active.
+4. Afterwards, update or delete the local `media-worker/.env`.
+
+**Stage D: legacy services (recommended):** delete `savannah-media-worker` (europe-west2) and `savannah-media-worker-test`
+(us-central1) with `gcloud run services delete <name> --region <region>`. Optionally also delete their
+`cloud-run-source-deploy` images and the now-empty `run-sources-*` buckets. Redeploying is the only way back, and nothing
+uses them.
+
+**Stage E: permanent deletion (irreversible), after at least 7 days with no problems.**
+```powershell
+gcloud iam service-accounts keys delete $key --iam-account $sa --quiet
+gcloud iam service-accounts delete $sa --quiet
+```
+The account can be undeleted for 30 days with `gcloud iam service-accounts undelete 113584502099553594714`; **a deleted key can
+never be restored**. Then delete the local key files on the owner's PC.
+
+**Then:** the v12 worker deployment (§8), as a separate approval. It now also includes `6db099b`.
+
+### 9.5 Costs
+
+| Stage | Cost |
+|---|---|
+| A, D, E | Nothing; removes resources |
+| B | Nothing; frees about 100 MB (if soft delete stays on, the deleted copies cost a fraction of a penny for 7 days) |
+| C | None in Google; provider keys are free to regenerate |
+| Optional: enable the Policy Analyzer API for key last-used evidence | Free for this query |
+
+**Recommended order:** A (contain now) → B → C1 together with the v12 deployment → C2/C3 → D → E after 7 days.
