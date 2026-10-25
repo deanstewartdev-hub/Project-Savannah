@@ -541,9 +541,36 @@ show **exactly one request to each of the three legacy services**: my own `/heal
 PowerShell. No code or config refers to their URLs. The default compute account's two sign-ins on 24 Oct match those
 probes, which started instances that read their secrets.
 
+### 9.8 Stage D record (approved; executed 25 October 2026, 00:13–00:15 UTC)
+
+**Immediately before each change:** the service had no requests since 24 Oct other than my own `/health` probe; it was
+not in the rollback plan (§8.6 uses only dispatcher revision 00008-btl and `media-worker:v7`/`v11`); and its image was still
+in its registry. The `savannah-worker-2` account had no authentication events in 42 days.
+
+| Time (UTC) | Change | Production check afterwards | How to restore |
+|---|---|---|---|
+| 00:13:48 | Deleted Cloud Run service `savannah-media-worker` (europe-west2, project `savannah-media-worker`) | health 200; status call SUCCEEDED, artifact and probe found; dispatcher 00008-btl at 100%, v11, unchanged; render job v7, generation 9; 0 errors | `gcloud run services replace tools/security/stage-d-restore/savannah-media-worker.europe-west2.yaml --region europe-west2 --project savannah-media-worker`, then `gcloud run services set-iam-policy … <matching .iam.json>`. The image is kept in `cloud-run-source-deploy`. The public URL may differ |
+| 00:14:09 | Deleted `savannah-media-worker-test` (us-central1, project `savannah-media-worker`) | Same results, 0 errors | Same method with `savannah-media-worker-test.us-central1.yaml` |
+| 00:14:31 | Deleted `savannah-media-worker` (us-central1, project `savannah-worker-2`) | Same results, 0 errors | Same method with `worker-2.savannah-media-worker.us-central1.yaml` in project `savannah-worker-2` |
+| 00:15:00 | Removed `roles/storage.objectAdmin` on `gs://savannah-media` from `29658067982-compute@developer.gserviceaccount.com` | Same results, 0 errors; bucket `objectAdmin` is now the default compute account of `savannah-media-worker`, `media-worker-railway@` (key disabled), `savannah-dispatcher@` and `savannah-render-job@` | `gcloud storage buckets add-iam-policy-binding gs://savannah-media --member="serviceAccount:29658067982-compute@developer.gserviceaccount.com" --role=roles/storage.objectAdmin` (full previous policy: `savannah-media.bucket-iam.before.json`) |
+
+**Not done, and waiting for the owner:** shutting down `savannah-worker-2`. Its full inventory matches what was already
+known:
+- owner only, plus Google service agents and its default compute account;
+- billing enabled; no liens;
+- no Cloud Run services or jobs left; no BigQuery datasets, Pub/Sub, Datastore/Firestore database or Dataform repositories;
+- one Cloud Build (`98ffbe03…`) and one image (the deleted legacy service's);
+- the five known secrets;
+- one bucket holding only **archive #16**.
+
+Shutting the project down would permanently delete archive #16 after 30 days, and its secrets with it. That overlaps with
+Stage B, which is not yet approved. Its evidence is in `tools/security/archive-evidence-2026-10-25.json`.
+
+**Restore files** (`tools/security/stage-d-restore/`) hold configuration and secret *references* only, never secret values.
+
 ### 9.7 Revised safe order
 
-1. **A:** done.
+1. **A:** done. **D:** three services deleted and the bucket grant removed (§9.8); `savannah-worker-2` shutdown awaits the owner.
 2. **D** (approval): delete the three legacy services; remove the `savannah-worker-2` bucket grant; shut down `savannah-worker-2`.
    Removes every public path to the live secrets, at no risk to production.
 3. **§10.1, `JOB_SUBMIT_SECRET`** (approval), during the v12 deployment: the v12 deploy pins version 1, then the overlap

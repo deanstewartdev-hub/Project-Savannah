@@ -1,0 +1,80 @@
+﻿apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/build-enable-automatic-updates: 'false'
+    run.googleapis.com/build-id: 98ffbe03-e690-447b-aa6a-79d49d462ff1
+    run.googleapis.com/build-image-uri: us-central1-docker.pkg.dev/savannah-worker-2/cloud-run-source-deploy/savannah-media-worker
+    run.googleapis.com/build-name: projects/29658067982/locations/us-central1/builds/98ffbe03-e690-447b-aa6a-79d49d462ff1
+    run.googleapis.com/build-source-location: gs://run-sources-savannah-worker-2-us-central1/services/savannah-media-worker/1785840812.901701-6d29d2e2900f42d58a588b5fe19d534b.zip#1785840813372336
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/maxScale: '10'
+    run.googleapis.com/urls: '["https://savannah-media-worker-29658067982.us-central1.run.app","https://savannah-media-worker-3xl4b4tfmq-uc.a.run.app"]'
+  labels:
+    cloud.googleapis.com/location: us-central1
+  name: savannah-media-worker
+  namespace: '29658067982'
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 578.0.0
+        run.googleapis.com/cpu-throttling: 'false'
+        run.googleapis.com/startup-cpu-boost: 'true'
+      labels:
+        client.knative.dev/nonce: kvvwaofgvm
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 160
+      containers:
+      - env:
+        - name: GCS_BUCKET
+          value: savannah-media
+        - name: DEFAULT_MUSIC_TRACK_PATH
+          value: music/default-bed.mp3
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: openai-api-key
+        - name: ELEVENLABS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: elevenlabs-api-key
+        - name: ELEVENLABS_VOICE_ID
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: elevenlabs-voice-id
+        - name: PEXELS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: pexels-api-key
+        - name: JOB_SUBMIT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: job-submit-secret
+        image: us-central1-docker.pkg.dev/savannah-worker-2/cloud-run-source-deploy/savannah-media-worker@sha256:ea272506166310e16a96140842c768b7e231f11622f880a6f8ed0abde8469558
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: '2'
+            memory: 2Gi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+      serviceAccountName: 29658067982-compute@developer.gserviceaccount.com
+      timeoutSeconds: 900
+  traffic:
+  - latestRevision: true
+    percent: 100
