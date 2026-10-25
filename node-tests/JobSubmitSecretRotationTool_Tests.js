@@ -66,5 +66,18 @@ test('"check-clipboard" confirms the property copied back from Apps Script, by f
   assert.match(spaced, /surrounding whitespace/);
 });
 
+test('"check-clipboard <version>" confirms the current property against Secret Manager before rotating', () => {
+  const asked = [];
+  const access = version => { asked.push(version); return 'todays-live-value'; };
+  const ok = run(['check-clipboard', '1'], { file, readClipboard: () => 'todays-live-value', accessSecretVersion: access });
+  assert.match(ok, /Clipboard MATCHES job-submit-secret version 1/);
+  assert.equal(ok.includes('todays-live-value'), false);
+  assert.deepEqual(asked, ['1']);
+  assert.match(run(['check-clipboard', '1'], { file, readClipboard: () => 'stale', accessSecretVersion: access }), /DIFFERS FROM/);
+  assert.throws(() => run(['check-clipboard', '1 && echo'], { file, readClipboard: () => '', accessSecretVersion: access }), /Usage/);
+  // Works before "new" too: the pre-check needs no rotation file.
+  assert.match(run(['check-clipboard', '1'], { file: path.join(dir, 'missing'), readClipboard: () => 'todays-live-value', accessSecretVersion: access }), /MATCHES/);
+});
+
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(`Job submit secret rotation tool: ${passed}/${passed} passed.`);

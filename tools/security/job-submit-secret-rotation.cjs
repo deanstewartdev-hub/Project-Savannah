@@ -7,8 +7,9 @@
 //   node tools/security/job-submit-secret-rotation.cjs new             create the new value (refuses to overwrite)
 //   node tools/security/job-submit-secret-rotation.cjs copy            copy it to the clipboard (for the Apps Script property)
 //   node tools/security/job-submit-secret-rotation.cjs verify <ver>    compare Secret Manager version <ver> with the file
-//   node tools/security/job-submit-secret-rotation.cjs check-clipboard compare the clipboard (copied back out of the
-//                                                                      production Script properties) with the file
+//   node tools/security/job-submit-secret-rotation.cjs check-clipboard [ver]
+//       compare the clipboard (copied out of the production Script properties) with the file,
+//       or with Secret Manager version <ver> (use 1 before starting, to confirm today's value)
 //
 // The value lives in a private file in your user folder, outside the repository, with no
 // trailing newline (the worker refuses a secret with surrounding whitespace at start-up).
@@ -99,18 +100,23 @@ function run(argv, options) {
   }
 
   if (mode === 'check-clipboard') {
-    // Proves the production MEDIA_WORKER_JOB_SUBMIT_SECRET property holds the new value
-    // without any Apps Script code: copy it back out of Project Settings, then run this.
+    // Proves what the production MEDIA_WORKER_JOB_SUBMIT_SECRET property holds without any
+    // Apps Script code: copy it out of Project Settings, then run this. With no version it is
+    // compared with the rotation file (after pasting the new value); with a version (e.g. 1,
+    // before starting) it is compared with that Secret Manager version instead.
     // Get-Clipboard -Raw can add a trailing line break of its own, so only that is ignored.
-    const local = readSecretFile(file);
+    const version = argv[1];
+    if (version !== undefined && !/^(\d+|latest)$/.test(version)) throw new Error('Usage: check-clipboard [version number|latest]');
+    const expected = version === undefined ? readSecretFile(file) : (opts.accessSecretVersion || accessSecretVersion)(version);
+    const label = version === undefined ? 'the rotation file (file ' : SECRET_NAME + ' version ' + version + ' (Secret Manager ';
     const pasted = String((opts.readClipboard || readClipboard)() || '').replace(/\r?\n$/, '');
-    const lines = ['Clipboard ' + (pasted === local ? 'MATCHES' : 'DIFFERS FROM') + ' the rotation file (file ' + fingerprint(local) +
+    const lines = ['Clipboard ' + (pasted === expected ? 'MATCHES' : 'DIFFERS FROM') + ' ' + label + fingerprint(expected) +
       ', clipboard ' + fingerprint(pasted) + '). Clear the clipboard now.'];
     if (pasted !== pasted.trim()) lines.push('WARNING: the copied value has surrounding whitespace; re-paste the property without it.');
     return lines.join('\n');
   }
 
-  throw new Error('Usage: job-submit-secret-rotation.cjs new | copy | verify <version> | check-clipboard');
+  throw new Error('Usage: job-submit-secret-rotation.cjs new | copy | verify <version> | check-clipboard [version]');
 }
 
 module.exports = { run, fingerprint, secretPath };

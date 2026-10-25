@@ -17,6 +17,7 @@ upload has been made.
 | CI | Green: all app suites (syntax 84 server files + 9 frontend scripts) and media worker 81/81 |
 | Live staging | **PASSED** twice on real Apps Script: 12/12 bridge checks and C1–C12 (§7) |
 | Release blockers left | Owner-only: worker image, production bridge, cut-over, one real render, one private upload |
+| **Latest (25 Oct)** | §11 is the current path to the first real video: combined v12 + secret-rotation runbook, cut-over, prepared script, exact blockers (§11.6) |
 
 ## 1. Prioritised backlog
 
@@ -268,6 +269,8 @@ No render execution is running; the last one was on 18 Aug.
 | `6b5da59` | Callback delivery retried for transient failures (4 attempts, 2/10/30 s) | (shared code) | **yes**: this is the job that sends callbacks |
 | `89d8f57`–`c9c1e3c` | `/jobs/status` code | already in v11 | present but unused by the job |
 | `6db099b` | Railway retired: storage always uses the attached service account and refuses the inline-key variable | yes | yes |
+| `08c6b63` (PR #24) | Optional `JOB_SUBMIT_SECRET_PREVIOUS` for a zero-gap rotation; constant-time bearer comparison | yes | (shared code) |
+| `d35b1ef` (PR #24) | Patch-level dependency updates (body-parser, express, qs, proxy-addr, grpc-js, storage); lockfile only | yes | yes |
 
 No dependency, Dockerfile or configuration change (`package.json` only gained a `test` script).
 
@@ -671,3 +674,138 @@ Only the render job uses these, and it reads `latest` when each execution starts
 **before** step 2, delete, then set `--soft-delete-duration=7d` again. This briefly removes protection for every object in
 that bucket. The buckets hold only build inputs, but the owner asked to avoid this unless necessary, and it is not
 necessary once §10 is done.
+
+## 11. Path to the first real video (25 October 2026)
+
+Owner decision: keep `savannah-worker-2` until Stage B. Priority: the first controlled real render and private upload.
+Nothing in this section has been executed in production.
+
+### 11.1 State, re-checked 25 Oct 00:20 UTC
+
+| Item | Result |
+|---|---|
+| Production dispatcher | `/health` 200. An authenticated read-only status call found the last render (SUCCEEDED, artifact and probe present). Revision 00008-btl, v11, 100% traffic; 0 errors |
+| Render job | v7, `savannah-render-job@`, generation 9. No execution since 18 Aug |
+| Remaining Cloud Run services | Only the dispatcher (Stage D done) |
+| Railway key | Disabled (Stage A) |
+| Branches | PR #24 contains the integration tip `47b1773` plus its own commits; no conflicts. PR #24 and #15 CI green |
+| Production Apps Script | Still v89 (read-only clone): 112 files, the same five OAuth scopes as v1.4, web app `ANYONE_ANONYMOUS` |
+
+### 11.2 Verification run for this section (no production change)
+
+| Check | Result |
+|---|---|
+| Worker tests (Node 24) | 89/89 |
+| App suites (`node node-tests/run-local.cjs`) | Exit 0, every suite green |
+| Rotation tool tests | 7/7 |
+| Image smoke under Node 22.23.4 (v12 contents: `package*.json` + `src/`, `npm ci --omit=dev`) | **12/12**. Includes the overlap: new and previous secrets both pass auth, any other value gets 401, and a malformed `_PREVIOUS` is refused at start-up without being echoed |
+| Cloud Build upload set | 31 files, no credentials, no tests, no `node_modules` |
+| Secret scan of tracked files | No key patterns; no credential files tracked |
+| `npm audit --omit=dev` | Was 1 critical, 2 high, 7 moderate. The public dispatcher was exposed to `body-parser` (unauthenticated DoS) because it parses JSON before auth. Fixed by patch-level lockfile updates (`d35b1ef`; `package.json` unchanged). **5 moderate remain** (major upgrades only; the `uuid` advisory does not apply to the v4 API used) |
+| Manifest, v89 → v1.4 | Identical scopes, so **no re-authorisation**. Only change: web app `ANYONE_ANONYMOUS` → `MYSELF`, which is why the bridge must come first (P0-1) |
+| Files, v89 → v1.4 push set | Nothing removed; 24 files added |
+| Sheet headers, v89 → v1.4 | Unchanged for Render Jobs, Publishing Jobs, Production Tasks, Scripts, SEO, Approval and Analytics. The only new tab, Render Callback Inbox, is created by the bridge's first receipt |
+| Which secret v89 uses for dispatcher auth | The separate `MEDIA_WORKER_JOB_SUBMIT_SECRET`, as v1.4 does, so the rotation can run **before** the app cut-over |
+| Bucket prerequisites | `music/default-bed.mp3` present (the silent placeholder, P1-9). One stale `job-requests/` object from August (harmless) |
+
+**Known build risk:** the Dockerfile uses `node:22-slim` unpinned and `apt-get install ffmpeg`. v12 gets whichever Node 22.x
+and Debian ffmpeg are current at build time. The smoke ran on 22.23.4; the post-deploy job smoke (§11.3 step 5) is the check.
+
+### 11.3 Combined runbook: worker v12 + `JOB_SUBMIT_SECRET` rotation (one approval, about 45 minutes)
+
+Supersedes the separate §8.5 and §10.1 sequences; their commands are unchanged.
+- **Build source:** a clean checkout of the approved commit, so no local file can enter the build:
+  ```powershell
+  git -C C:\Users\dean9\Documents\GitHub\Project-Savannah worktree add $env:TEMP\savannah-v12 <approved commit>
+  ```
+  The approved commit is the PR #24 head, or the integration branch after #24 is merged into it (the owner's choice;
+  either way, record the commit in issue #6).
+- **Evidence:** after every step, the read-only production check (dispatcher health, revision and traffic, render job,
+  authenticated status call, bucket IAM, Cloud Run errors) is run and recorded.
+
+| # | Who | Action | Pass condition | If it fails |
+|---|---|---|---|---|
+| 0 | Owner + Claude | No render running (execution list; Production page idle). **Owner:** copy `MEDIA_WORKER_JOB_SUBMIT_SECRET` from production Project Settings → Script properties, then run `node tools/security/job-submit-secret-rotation.cjs check-clipboard 1`. Clear the clipboard | **MATCHES** version 1 | **Stop.** Production cannot be submitting today; investigate before anything else |
+| 1 | Claude | `gcloud builds submit $env:TEMP\savannah-v12\media-worker --tag …/media-worker:v12` | Build SUCCESS; image in the registry | Nothing deployed; fix and rebuild |
+| 2 | Claude | Dispatcher canary, no traffic, pinned to today's secret: `--image v12 --no-traffic --tag candidate --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:1` | Candidate URL: `/health` 200; `/jobs` without auth 401; status call with version 1 → 200 | Delete the tag; production untouched (still 00008-btl) |
+| 3 | Claude | `update-traffic --to-latest` | Production URL: same three checks | `update-traffic --to-revisions savannah-media-worker-dispatcher-00008-btl=100` |
+| 4 | Claude | `gcloud run jobs update savannah-render-job --image v12` | Job describes v12 | `jobs update --image …:v7` |
+| 5 | Claude | `gcloud run jobs execute savannah-render-job --wait` (no `JOB_ID`) | Execution FAILS with "JOB_ID env var is required"; no secret-format error; seconds of compute, no provider call | Roll the job back to v7 |
+| 6 | Claude | `rotation.cjs new`; `gcloud secrets versions add job-submit-secret --data-file=<file>`; `rotation.cjs verify 2` | MATCHES, no whitespace warning | `versions disable 2`. Nothing reads it yet |
+| 7 | Claude | Open the overlap: `--update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2,JOB_SUBMIT_SECRET_PREVIOUS=job-submit-secret:1` | Status call with version 1 → 200 **and** version 2 → 200 | Back to `:1` and `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` |
+| 8 | **Owner** | `rotation.cjs copy`. Paste into production `MEDIA_WORKER_JOB_SUBMIT_SECRET` and Save. Copy it back out, then `rotation.cjs check-clipboard`. Clear the clipboard | **MATCHES** the rotation file | Paste version 1 back; the overlap still accepts it |
+| 9 | Claude | Close the overlap: `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` | Version 1 → **401**, version 2 → 200; no 401s in dispatcher request logs afterwards | Step 7 command again |
+| 10 | Claude | `secrets versions disable 1`; `jobs update --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2`; delete `%USERPROFILE%\.savannah-rotation` | Listed versions: 1 disabled, 2 enabled | `versions enable 1` |
+
+**Never interrupted:** production v89 sends version 1 until step 8, and version 1 is accepted until step 9. It sends
+version 2 from step 8, and version 2 is accepted from step 7. Callbacks use the separate, unexposed callback secret,
+so renders are never affected.
+
+**Rollback by phase:**
+- Steps 2–5: back to revision 00008-btl or job v7 (seconds).
+- Steps 7–9: only to a v12 revision pinned to `:2`, or the step-7 command. v11 reads `latest` = version 2 and would
+  reject version 1, which production still holds until step 8.
+- After step 10: any revision pinned to `:2`, or v11.
+
+**Cost:** under £0.10 one-off (one build, inside the free build minutes; seconds of job compute), plus about £0.03 per
+month for the extra image. No provider call, no render, no upload.
+
+### 11.4 Production bridge and Apps Script cut-over (after §11.3; owner-run; not executed)
+
+This refines §4. The production script ID may only be pushed by the owner (standing rule). Do this with no render in
+progress.
+
+1. **Record rollback facts:**
+   - the current `MEDIA_WORKER_CALLBACK_URL` value (a private note);
+   - that version 89 is listed under Deploy → Manage deployments;
+   - the deployment ID (`AKfycbzfD4…`).
+2. **Create the bridge** (about 15 minutes; `CALLBACK_INBOX_STAGING.md` Part 4, with the §4 differences):
+   - From a folder containing **only** `CallbackBridge/` files, run
+     `npx @google/clasp@3.4.1 create --type standalone --title "Savannah bridge"`, then `… push`.
+   - Script properties, exactly two:
+     - `MEDIA_WORKER_SHARED_SECRET`, copied from the production main app;
+     - `RENDER_JOBS_SPREADSHEET_ID`, the production spreadsheet's ID.
+   - **Never** add `SAVANNAH_ENVIRONMENT`.
+   - Run **Authorize access**. Deploy as a web app (anyone, anonymous). Note the `/exec` URL.
+   - **Check:** a POST with a wrong secret is refused and writes nothing; the bridge's executions page shows it.
+3. **Push v1.4 to production HEAD only.** From a clean worktree of the approved commit, run
+   `npx @google/clasp@3.4.1 push`. That folder's `.clasp.json` targets production. HEAD is not the deployed version,
+   so users and callbacks still run v89.
+4. **Callback URL, then deploy:**
+   - Set `MEDIA_WORKER_CALLBACK_URL` to the bridge `/exec` URL exactly. From this moment, callbacks wait in the inbox.
+   - Then Deploy → Manage deployments → edit the existing deployment → **New version** → Deploy. The URL is unchanged;
+     access becomes "only me".
+5. **Readiness:** Settings → Release readiness → Run.
+   - Pass: no BLOCK; the spreadsheet suffix equals the end of the bridge's `RENDER_JOBS_SPREADSHEET_ID`.
+   - The only expected warnings are "No Render Callback Inbox tab yet" and the background-queue scope (P1-7).
+6. **Rollback:** restore the old `MEDIA_WORKER_CALLBACK_URL`, and edit the deployment back to version 89. Inbox receipts
+   are kept and applied when v1.4 returns.
+
+### 11.5 Workflow: Ideas → Scripts → Approval → SEO → Rendering → Quality → Private upload
+
+| Stage | Evidence now | Live proof still needed |
+|---|---|---|
+| Ideas | Code path §2. A manual idea row is supported by the repository format (`tools/first-video/README.md`) | Runs in the first video (or a manual row) |
+| Scripts | `Script_Validator` validated the prepared Chefchaouen script (104 words, 6 scenes, 55 s) | AI generation, about 1p |
+| Approval | 8 approval-gate tests; every render entry point requires APPROVED | Owner approves in the UI |
+| SEO | Code path §2. The AI-voice disclosure is appended at upload regardless of SEO text | AI generation, about 1p |
+| Rendering | Beats from the prepared script pass the dispatcher's `validateBeats`; all 6 Pexels queries return genuine Chefchaouen portrait clips (no paid image fallback expected); image smoke 12/12; staging inbox e2e passed (§7) | **The first real render through v12, the bridge and the inbox** |
+| Quality checks | Probe gates (resolution, silence, black frames) passed on the August render; human review screen tested | Review of the new video |
+| Private upload | Defaults to private; duplicate-upload guards tested (48 recovery cases); disclosure appended | **The first private upload** |
+
+### 11.6 Exact remaining blockers to the first real video
+
+| # | Blocker | Who | Approval needed |
+|---|---|---|---|
+| 1 | §11.3: worker v12 plus `JOB_SUBMIT_SECRET` rotation | Claude runs it; owner does steps 0 and 8 | **Yes** |
+| 2 | Choose the build commit: the PR #24 head, or merge #24 into the integration branch first | Owner | Yes (merge) |
+| 3 | §11.4: production bridge, v1.4 push, callback URL, new deployment version | Owner (production script ID) | Yes |
+| 4 | Confirm uploads go to **Savannah Atlas**: the deploying account's YouTube channel. Check the channel name on the app's Analytics page | Owner, read-only | No |
+| 5 | Confirm ElevenLabs has at least 1,000 credits left (the video needs about 635) | Owner, dashboard | No |
+| 6 | Accept the silent music placeholder for this private test, or supply a licensed track (P1-9) | Owner decision | — |
+| 7 | First video (`tools/first-video/README.md`, then `LIVE_ACCEPTANCE.md` §5–8): idea row, script and SEO generation, approval, **one paid render** (about £0.05 plus 635 ElevenLabs credits), review, **one private upload** | Owner, with Claude watching logs | **Yes** |
+
+Not blocking the first video: §10.2 and §10.3 (ElevenLabs, Pexels and OpenAI key rotation; best done right after the
+first video, so it is never interrupted), Stage B and the `savannah-worker-2` shutdown, Stage E, the `script.scriptapp`
+scope (P1-7), and merging the PR stack to `main` (recommended only after live acceptance passes, so `main` gets only
+proven code).
