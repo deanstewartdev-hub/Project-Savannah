@@ -20,6 +20,10 @@ const jobsClient = new JobsClient();
 const executionsClient = new ExecutionsClient();
 const jobResourceName = `projects/${dispatcherConfig.project}/locations/${dispatcherConfig.region}/jobs/${dispatcherConfig.renderJobName}`;
 
+// Current secret first; the previous one is accepted only while JOB_SUBMIT_SECRET is being
+// rotated (JOB_SUBMIT_SECRET_PREVIOUS set), so Apps Script can switch over with no 401 gap.
+const acceptedSubmitSecrets = [dispatcherConfig.jobSubmitSecret, dispatcherConfig.previousJobSubmitSecret];
+
 // Cloud Run's fully-managed platform intercepts GET /healthz before it ever reaches this
 // container (confirmed via Cloud Logging: /jobs, /, and even /readyz all reach Express and
 // get logged; /healthz alone returns Google's generic 404 page with zero log entry). /health
@@ -28,7 +32,7 @@ const jobResourceName = `projects/${dispatcherConfig.project}/locations/${dispat
 app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
-app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res) => {
+app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
   const { beats, musicTrackPath, callbackUrl, dryRun } = req.body || {};
 
   const beatsError = validateBeats(beats);
@@ -86,7 +90,7 @@ app.post("/jobs", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res
 // mutates Savannah state (it has none to mutate), never signs URLs, never calls back to
 // Apps Script, never triggers recovery - reconciliation decisions belong to Apps Script
 // (a later increment), this endpoint only supplies the evidence for that decision.
-app.post("/jobs/status", requireAuth(dispatcherConfig.jobSubmitSecret), async (req, res) => {
+app.post("/jobs/status", requireAuth(acceptedSubmitSecrets), async (req, res) => {
   const { jobId, executionName, operationName } = req.body || {};
 
   // Only gather artifact facts for a jobId shape that's already known-safe - avoids ever

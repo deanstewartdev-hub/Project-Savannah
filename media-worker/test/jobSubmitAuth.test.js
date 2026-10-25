@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { requireAuth } from "../src/lib/auth.js";
-import { requireSecretEnv } from "../src/lib/secretFormat.js";
+import { optionalSecretEnv, requireSecretEnv } from "../src/lib/secretFormat.js";
 
 // SAV-13: POST /jobs must never become unauthenticated because JOB_SUBMIT_SECRET is
 // missing. Two layers are tested here: requireSecretEnv (config.js/dispatcherConfig.js
@@ -99,5 +99,57 @@ test("7. errors do not contain the secret value", () => {
     assert.fail("expected requireSecretEnv to throw");
   } catch (error) {
     assert.equal(error.message.includes(realSecret), false);
+  }
+});
+
+// Zero-downtime JOB_SUBMIT_SECRET rotation: the dispatcher accepts [current, previous]
+// while JOB_SUBMIT_SECRET_PREVIOUS is set, so Apps Script can be switched over after the
+// new value is live without any request being rejected in between.
+function authResult(secrets, header) {
+  const { req, res, next, result } = fakeReqRes(header === undefined ? {} : { authorization: header });
+  requireAuth(secrets)(req, res, next);
+  return result();
+}
+
+test("8. rotation overlap: both the current and the previous secret are accepted", () => {
+  assert.equal(authResult(["new-secret-value", "old-secret-value"], "Bearer new-secret-value").nextCalled, true);
+  assert.equal(authResult(["new-secret-value", "old-secret-value"], "Bearer old-secret-value").nextCalled, true);
+  assert.equal(authResult(["new-secret-value", "old-secret-value"], "Bearer other-value").statusCode, 401);
+});
+
+test("9. outside a rotation (previous unset) only the current secret is accepted", () => {
+  assert.equal(authResult(["new-secret-value", null], "Bearer new-secret-value").nextCalled, true);
+  const r = authResult(["new-secret-value", null], "Bearer old-secret-value");
+  assert.equal(r.statusCode, 401);
+  assert.equal(r.nextCalled, false);
+});
+
+test("10. a list with no usable secret still fails closed, even for an empty bearer", () => {
+  for (const secrets of [[], [null, null], ["", undefined]]) {
+    assert.equal(authResult(secrets, "Bearer ").statusCode, 401);
+    assert.equal(authResult(secrets, "Bearer anything").nextCalled, false);
+    assert.equal(authResult(secrets).statusCode, 401);
+  }
+});
+
+test("11. prefixes, case changes and non-Bearer schemes of a valid secret are rejected", () => {
+  for (const header of ["Bearer new-secret-valu", "Bearer new-secret-value2", "Bearer NEW-SECRET-VALUE", "Basic new-secret-value", "new-secret-value"]) {
+    assert.equal(authResult(["new-secret-value", "old-secret-value"], header).nextCalled, false, header);
+  }
+});
+
+test("12. JOB_SUBMIT_SECRET_PREVIOUS is optional but must be well-formed when present", () => {
+  const name = "JOB_SUBMIT_SECRET_PREVIOUS_TEST_VAR";
+  try {
+    delete process.env[name];
+    assert.equal(optionalSecretEnv(name), null);
+    process.env[name] = "";
+    assert.equal(optionalSecretEnv(name), null);
+    process.env[name] = "a-clean-previous-value";
+    assert.equal(optionalSecretEnv(name), "a-clean-previous-value");
+    process.env[name] = "SECRET-WITH-NEWLINE\n";
+    assert.throws(() => optionalSecretEnv(name), (error) => /embedded LF/.test(error.message) && !error.message.includes("SECRET-WITH-NEWLINE"));
+  } finally {
+    delete process.env[name];
   }
 });

@@ -304,9 +304,11 @@ $img = "europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/
    ```
 2. **Dispatcher canary, no traffic:**
    ```powershell
-   gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --image $img --no-traffic --tag candidate
+   gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --image $img --no-traffic --tag candidate --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:1
    ```
    Check `https://candidate---savannah-media-worker-dispatcher-d6ycwdbyla-nw.a.run.app/health` returns 200, and that POST `/jobs` without auth returns 401.
+   Pinning `job-submit-secret:1` (today's value, so behaviour is identical) is the first step of the §10 rotation: with
+   `latest`, adding the new version would make every newly started instance reject Apps Script's current value.
 3. **Promote** the canary:
    ```powershell
    gcloud run services update-traffic savannah-media-worker-dispatcher --region europe-west2 --to-latest
@@ -321,8 +323,9 @@ $img = "europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/
    ```
    **Expected:** the execution FAILS with "JOB_ID env var is required" in its log and no secret-format error. Read it with:
    ```powershell
-   gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="savannah-render-job"' --freshness=10m --limit=10
+   gcloud logging read 'resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"savannah-render-job\"' --freshness=10m --limit=10
    ```
+   (The `\"` escapes are needed in Windows PowerShell 5.1, which otherwise strips the inner quotes and gcloud rejects the filter.)
 
 ### 8.6 Rollback (seconds; v7 and v11 stay in the registry; do not delete them)
 
@@ -334,7 +337,9 @@ gcloud run services update-traffic savannah-media-worker-dispatcher --region eur
 gcloud run jobs update savannah-render-job --region europe-west2 --image europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker:v7
 ```
 
-No data, schema, secret or callback change is involved, so rollback restores the exact previous state.
+No data, schema, secret or callback change is involved, so rollback restores the exact previous state. **Exception:** while
+a §10 rotation overlap is open, roll back only to a pinned v12 revision. Revision 00008-btl (v11) reads `latest` and does not
+understand `JOB_SUBMIT_SECRET_PREVIOUS`, so it would reject whichever value Apps Script holds if that is not the newest.
 
 ### 8.7 Estimated cost
 
@@ -351,8 +356,9 @@ is the separate, approval-gated live-acceptance step.
 
 ## 9. Railway key retirement and exposed-archive cleanup (24 October 2026)
 
-Owner decision: Railway is permanently retired; Cloud Run is the rendering platform. Everything below §9.4 is
-**prepared, not executed**. Each stage needs explicit approval.
+Owner decision: Railway is permanently retired; Cloud Run is the rendering platform. Each stage needs explicit approval.
+**Stage A was approved and executed on 25 October 2026 (§9.6).** Stages B–E are prepared, not executed; §10 is the
+coordinated credential rotation, and §9.7 the revised order.
 
 ### 9.1 Does anything depend on the Railway key? **No.**
 
@@ -370,7 +376,7 @@ Owner decision: Railway is permanently retired; Cloud Run is the rendering platf
 **The service account `media-worker-railway@savannah-media-worker.iam.gserviceaccount.com`** (display name "Media Worker
 (Railway, GCS-only)", unique ID `113584502099553594714`):
 - **Roles:** only `roles/storage.objectAdmin` on `gs://savannah-media`; no project roles; no one may act as it.
-- **Keys:** one user-managed key, **`c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5`** (created 6 Aug 2026, never expires, enabled). The two system-managed keys are Google-internal and cannot be downloaded.
+- **Keys:** one user-managed key, **`c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5`** (created 6 Aug 2026, never expires; **disabled 2026-10-24T23:54Z**, Stage A). The two system-managed keys are Google-internal and cannot be downloaded.
 
 ### 9.2 Audit findings and their limits
 
@@ -401,9 +407,27 @@ own variables (outside Google) also held them.
 
 **Additional risk found:** the two legacy Cloud Run services, `savannah-media-worker` (europe-west2) and
 `savannah-media-worker-test` (us-central1), are **publicly invokable** (`allUsers`), run the old all-in-one worker, and wire
-in the live secrets. Today they return 404 (Google's old routing bug), but that could change.
+in the live secrets. Today they return 404 (the old image has no `/health` route), but that could change.
 
-**Objects proposed for deletion (15)**, by name and generation:
+**Found on 25 October: a second project, `savannah-worker-2`** (number 29658067982, owner-created 4 Aug 2026), holds a
+**third legacy copy**:
+- Cloud Run service `savannah-media-worker` (us-central1), public (`allUsers` invoker, ingress all), running as that
+  project's default compute account, returning 404.
+- Its own Secret Manager copies, compared by fingerprint only: `job-submit-secret`, `elevenlabs-api-key`, `pexels-api-key`
+  and `elevenlabs-voice-id` **match today's production values**. `openai-api-key` is the **older OpenAI key** from the
+  archives.
+- A 16th source archive containing the same `.env`: `gs://run-sources-savannah-worker-2-us-central1/services/savannah-media-worker/1785840812.901701-6d29d2e2900f42d58a588b5fe19d534b.zip`,
+  generation `1785840813372336`. All four `run-sources` zips are byte-identical (same MD5).
+- **Cross-project access:** its default compute account, `29658067982-compute@developer.gserviceaccount.com`, has
+  `roles/storage.objectAdmin` on the production bucket `gs://savannah-media`.
+- No user-managed service-account keys. The owner's other two projects ("My First Project") have no Cloud Run, secrets,
+  buckets or user-managed keys.
+
+**Disabled but not destroyed:** production `openai-api-key` versions 1–3 (the current key is version 4). They probably
+hold the older key(s), and anyone with Secret Manager admin could re-enable them. Destroy them once the old OpenAI key is
+revoked (§10.3).
+
+**Objects proposed for deletion (15 here, plus the 16th in `savannah-worker-2` listed above)**, by name and generation:
 
 | Bucket | Object | Generation |
 |---|---|---|
@@ -434,7 +458,7 @@ $sa  = "media-worker-railway@savannah-media-worker.iam.gserviceaccount.com"
 $key = "c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5"
 ```
 
-**Stage A: disable the Railway key (reversible).**
+**Stage A: disable the Railway key (reversible). Done 2026-10-24T23:54Z; results in §9.6.**
 ```powershell
 gcloud iam service-accounts keys disable $key --iam-account $sa
 ```
@@ -442,28 +466,38 @@ gcloud iam service-accounts keys disable $key --iam-account $sa
 - **Undo:** `gcloud iam service-accounts keys enable $key --iam-account $sa`.
 - **Then (also reversible):** remove the bucket role with `gcloud storage buckets remove-iam-policy-binding gs://savannah-media --member="serviceAccount:$sa" --role=roles/storage.objectAdmin`, and disable the account with `gcloud iam service-accounts disable $sa`.
 
-**Stage B: delete the 15 exposed archives.**
-1. Recommended, for an immediate permanent purge: turn soft delete off on the three build-input buckets first. They hold only build sources, which are rebuilt on each build.
-   ```powershell
-   gcloud storage buckets update gs://savannah-media-worker_cloudbuild gs://run-sources-savannah-media-worker-europe-west2 gs://run-sources-savannah-media-worker-us-central1 --clear-soft-delete
-   ```
-   Without this step, deleted copies stay restorable for 7 days.
-2. Delete each object **by exact generation**: `gcloud storage rm "gs://<bucket>/<object>#<generation>"`, one per table row in §9.3.
-3. **Verify:** `gcloud storage objects list "gs://<bucket>/**"` and `… --soft-deleted` show none of the 15.
-4. Optionally restore soft delete for future objects: `gcloud storage buckets update <buckets> --soft-delete-duration=7d`.
-5. Optional hardening: add a lifecycle rule deleting `source/` objects after 7 days in the Cloud Build bucket.
-6. **Consequences:** old Cloud Build history entries lose their source archive (they cannot be re-run). Running services and images are unaffected. **Irreversible** once soft delete is off.
+**Stage B: delete the 16 exposed archives (targeted; soft delete left on). Revised 25 October; details in §10.4.**
+Bucket-wide soft delete is **not** turned off. Google's documentation is explicit that soft-deleted objects keep the retention
+in force when they were deleted, so clearing the policy afterwards purges nothing, and no single soft-deleted object can be
+purged early. A normal delete therefore always leaves a 7-day restorable copy; it is acceptable because:
+- after §10, every credential inside the archives is dead (rotated or revoked; the Railway key is disabled and later deleted
+  in Stage E);
+- a soft-deleted object cannot be read, only listed or restored, and only by Storage Admin-level project principals.
 
-**Stage C: rotate the live credentials found in `.env`** (production-affecting; the owner does the provider dashboards):
-1. **`JOB_SUBMIT_SECRET`:** generate a new value with no trailing newline. Add it as a new version of `job-submit-secret`, and **at the same time** set the production main app's `MEDIA_WORKER_JOB_SUBMIT_SECRET` property to the same value. Then start a new dispatcher revision; the v12 deploy (§8.5) does this. Then disable version 1. Do it with no render in progress; between the two changes, submissions fail with 401 (safe, no spend).
-2. **ElevenLabs and Pexels:** regenerate the keys in the provider dashboards, add new secret versions, disable the old versions, and revoke the old keys at the provider. The render job picks up `latest` at its next execution.
-3. **OpenAI:** revoke the older key found in the archives, if it is still active.
-4. Afterwards, update or delete the local `media-worker/.env`.
+Evidence is kept first: `tools/security/archive-evidence-2026-10-25.json` records every object's bucket, name, generation,
+size, CRC32C, MD5, creation time and Cloud Build ID, plus the credential entry names (no contents). Cloud Build history
+entries stay. Commands and verification: §10.4.
 
-**Stage D: legacy services (recommended):** delete `savannah-media-worker` (europe-west2) and `savannah-media-worker-test`
-(us-central1) with `gcloud run services delete <name> --region <region>`. Optionally also delete their
-`cloud-run-source-deploy` images and the now-empty `run-sources-*` buckets. Redeploying is the only way back, and nothing
-uses them.
+**Stage C: rotate the live credentials found in `.env`.** Superseded by the coordinated, no-interruption procedure in §10.
+
+**Stage D: remove the three legacy public services (revised 25 October).** No callers (§9.6):
+```powershell
+gcloud run services delete savannah-media-worker --region europe-west2 --project savannah-media-worker
+gcloud run services delete savannah-media-worker-test --region us-central1 --project savannah-media-worker
+gcloud run services delete savannah-media-worker --region us-central1 --project savannah-worker-2
+```
+Then, in `savannah-worker-2`:
+- Remove its cross-project bucket access:
+  ```powershell
+  gcloud storage buckets remove-iam-policy-binding gs://savannah-media --member="serviceAccount:29658067982-compute@developer.gserviceaccount.com" --role=roles/storage.objectAdmin
+  ```
+- Either delete its five secrets (`gcloud secrets delete <name> --project savannah-worker-2`), or **shut down the whole
+  project** (`gcloud projects delete savannah-worker-2`: recoverable for 30 days, then permanent; it holds nothing else).
+  Shutting it down is recommended.
+
+Redeploying is the only way back for the services, and nothing uses them. Optionally also delete their
+`cloud-run-source-deploy` images and the emptied `run-sources-*` buckets. Do D **before** §10.2, so the new provider keys
+are never wired into a public legacy service (they read `latest` at start-up).
 
 **Stage E: permanent deletion (irreversible), after at least 7 days with no problems.**
 ```powershell
@@ -484,4 +518,129 @@ never be restored**. Then delete the local key files on the owner's PC.
 | C | None in Google; provider keys are free to regenerate |
 | Optional: enable the Policy Analyzer API for key last-used evidence | Free for this query |
 
-**Recommended order:** A (contain now) → B → C1 together with the v12 deployment → C2/C3 → D → E after 7 days.
+### 9.6 Stage A results (executed 2026-10-24T23:54:27Z, approved by the owner)
+
+**Final dependency check, immediately before:** no Cloud Run service or job runs as `media-worker-railway@`. Env wiring was
+read by variable name only: no inline-key variable anywhere. The key had **no authentication events in the 42 days to 24
+Oct**. The account's only grant is still `objectAdmin` on `gs://savannah-media`.
+
+**Action:** `gcloud iam service-accounts keys disable c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5 --iam-account media-worker-railway@…`.
+The key is listed `DISABLED True`. The service account itself stays enabled, and nothing was deleted.
+
+**Health after the change:**
+
+| Check | Result |
+|---|---|
+| Dispatcher `GET /health` | 200 `{"status":"ok"}` |
+| Dispatcher authenticated `POST /jobs/status` for the last successful render (read-only) | 200: `state SUCCEEDED`, `artifactExists true`, `probeExists true`, `probePassed true`. The dispatcher's own account still reads `gs://savannah-media` and the Cloud Run Jobs API |
+| Render job | Unchanged: image v7, `savannah-render-job@`, generation 9; secret access intact for all five secrets; `objectAdmin` on the bucket intact (not executed: that would be a paid render) |
+| Cloud Run errors since the change | 0 |
+
+**Legacy service callers:** request logs (30-day retention, 25 Sep – 24 Oct) and Cloud Monitoring `request_count` (42 days)
+show **exactly one request to each of the three legacy services**: my own `/health` probes on 24 Oct, from curl and
+PowerShell. No code or config refers to their URLs. The default compute account's two sign-ins on 24 Oct match those
+probes, which started instances that read their secrets.
+
+### 9.7 Revised safe order
+
+1. **A:** done.
+2. **D** (approval): delete the three legacy services; remove the `savannah-worker-2` bucket grant; shut down `savannah-worker-2`.
+   Removes every public path to the live secrets, at no risk to production.
+3. **§10.1, `JOB_SUBMIT_SECRET`** (approval), during the v12 deployment: the v12 deploy pins version 1, then the overlap
+   rotation runs.
+4. **§10.2, ElevenLabs and Pexels** (approval, plus owner dashboards), and **§10.3, OpenAI old-key revocation** (owner).
+5. **B** (approval): delete the 16 archives by generation, with soft delete left on. Every credential inside is dead by then.
+   B may also run earlier, since deletion already blocks reads, but it adds little before the rotation.
+6. **E** (approval, at least 7 days after A with no problems): delete the key, then the account. Destroy `job-submit-secret`
+   version 1 and old provider versions. Delete the local key files and `.env`.
+
+## 10. Coordinated credential rotation (prepared 25 October 2026; not executed)
+
+Everything here changes production and needs the owner's approval stage by stage. Code support is on branch
+`security/job-submit-secret-rotation-overlap`:
+- The dispatcher accepts an optional `JOB_SUBMIT_SECRET_PREVIOUS` and compares bearer tokens in constant time
+  (`media-worker/src/lib/auth.js`; worker tests 89/89).
+- `tools/security/job-submit-secret-rotation.cjs` creates, copies and verifies the new value by fingerprint only, and never
+  writes to Google Cloud or Apps Script.
+
+**How each consumer picks up a secret.** Cloud Run resolves a secret reference when an **instance starts** (service), or
+when an **execution starts** (job). A running instance keeps the value it started with.
+- **Dispatcher:** `JOB_SUBMIT_SECRET` ← `job-submit-secret@latest` today. It must equal the production main app's
+  `MEDIA_WORKER_JOB_SUBMIT_SECRET`, which is used for `POST /jobs` and `POST /jobs/status`.
+- **Render job:** `JOB_SUBMIT_SECRET` is required at start-up but never used for authentication. It also needs
+  `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` and `PEXELS_API_KEY`, all at `@latest`.
+- **Callbacks:** use `MEDIA_WORKER_SHARED_SECRET` (bridge and main app). This was **not** exposed and is **not** rotated
+  here, so renders in flight still deliver their callbacks during every step below.
+
+**Common preconditions:**
+- No render in progress: `gcloud run jobs executions list --job savannah-render-job --region europe-west2 --limit 5` shows
+  every execution completed, and the production queue is idle.
+- Stage D is done.
+- Where PowerShell is shown, run it as the owner account.
+
+### 10.1 `JOB_SUBMIT_SECRET`: zero-gap overlap rotation (requires the v12 image)
+
+| Step | Action | Verify | Undo |
+|---|---|---|---|
+| 1 | v12 deploy with `--update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:1` (§8.5 step 2), promoted | `/health` 200; status call with the current value 200 | §8.6 rollback |
+| 2 | `node tools/security/job-submit-secret-rotation.cjs new` | Prints only a fingerprint | Delete `%USERPROFILE%\.savannah-rotation` |
+| 3 | `gcloud secrets versions add job-submit-secret --project savannah-media-worker --data-file="$env:USERPROFILE\.savannah-rotation\job-submit-secret"` (version 2). Nothing reads it yet: the dispatcher is pinned to 1, and the job only needs a well-formed value | `node tools/security/job-submit-secret-rotation.cjs verify 2` shows **MATCHES** with no whitespace warning | `gcloud secrets versions disable 2 --secret job-submit-secret` |
+| 4 | **Open the overlap:** `gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2,JOB_SUBMIT_SECRET_PREVIOUS=job-submit-secret:1`. **Never on v11**, which ignores `_PREVIOUS` | Status call with version 1 → 200 **and** with version 2 → 200 (values read from Secret Manager in memory, never shown) | Same command with `JOB_SUBMIT_SECRET=job-submit-secret:1` and `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` |
+| 5 | **Owner:** `node tools/security/job-submit-secret-rotation.cjs copy`. In the **production** script editor: Project Settings → Script properties → `MEDIA_WORKER_JOB_SUBMIT_SECRET` → paste → Save. Only this property changes | Copy the saved value back out of Script properties, then run `node tools/security/job-submit-secret-rotation.cjs check-clipboard` → **MATCHES**. Clear the clipboard | Paste version 1 back: `gcloud secrets versions access 1 --secret job-submit-secret` piped to `clip` |
+| 6 | **Close the overlap:** `gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` | Version 1 → **401**; version 2 → 200. No 401s in dispatcher request logs over the next day | Step 4 command again |
+| 7 | `gcloud secrets versions disable 1 --secret job-submit-secret --project savannah-media-worker`. Optionally pin the job too: `gcloud run jobs update savannah-render-job --region europe-west2 --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2` | `gcloud secrets versions list job-submit-secret`. Only after step 6: a revision still referencing version 1 (the step-1 or step-4 revision) can no longer start once it is disabled, so from here roll back only to a revision pinned to `:2`, or to v11 (`latest`) | `… versions enable 1` |
+| 8 | Delete `%USERPROFILE%\.savannah-rotation`. Destroy version 1 in Stage E | | |
+
+**Why there is no interruption:** at every moment, the value Apps Script sends is accepted. Before step 5 it is version 1
+(accepted from step 1 through step 6). After step 5 it is version 2 (accepted from step 4). Rollback during the overlap
+(steps 4–6) must target a pinned v12 revision; after step 6, even the v11 rollback revision works, because `latest` is then
+version 2.
+
+**Cost:** none (two config-only revisions; Secret Manager versions are free at this scale).
+
+### 10.2 ElevenLabs and Pexels (owner dashboards, then Secret Manager)
+
+Only the render job uses these, and it reads `latest` when each execution starts.
+1. **Owner:** create a **new** key in the ElevenLabs and Pexels dashboards. Do **not** revoke the old ones yet.
+2. **Owner:** add each as a new version without a trailing newline. Either use Secret Manager in the Console (`elevenlabs-api-key` or
+   `pexels-api-key` → New version → paste), or save the key to a file and use `gcloud secrets versions add <name> --data-file=<file>`.
+   Never use a PowerShell pipe, which adds CRLF.
+3. **Verify, free and read-only, values never shown:**
+   - the new version is clean (no surrounding whitespace; the worker would refuse it at start-up, before any paid call);
+   - ElevenLabs `GET /v1/user` returns 200 with the new key;
+   - Pexels `GET /v1/search?query=nature&per_page=1` returns 200 with the new key.
+4. With no render running, **owner:** revoke the old keys at each provider. Then
+   `gcloud secrets versions disable <old version> --secret <name>`.
+5. The next real render (live acceptance) is the end-to-end proof. Until then, the step 3 checks are the evidence.
+
+**Undo:** re-enable the old secret version (only possible until the provider key is revoked). **Cost:** none.
+
+### 10.3 OpenAI: the older key from the archives
+
+- The archived key **ends in `f8gA`**. Production version 4, which stays, ends in `FlsA`. These are the same redacted forms
+  OpenAI's key list shows.
+- **Owner:** OpenAI dashboard → API keys → find the key ending `f8gA` → check "Last used" → revoke it. If it is not listed,
+  it was already revoked.
+- After revocation, destroy production `openai-api-key` versions 1–3 (disabled today):
+  `gcloud secrets versions destroy <n> --secret openai-api-key --project savannah-media-worker`. **Irreversible**, but they
+  hold no value in use.
+- The `savannah-worker-2` copy disappears with Stage D.
+
+### 10.4 Archives: evidence, then targeted deletion (Stage B detail)
+
+1. Evidence is already committed (`tools/security/archive-evidence-2026-10-25.json`, 16 objects). Immediately before
+   deleting, re-check each object's MD5 against it:
+   `gcloud storage objects describe "gs://<bucket>/<object>#<generation>" --format="value(md5_hash)"`.
+2. Delete by exact generation, so nothing newer can be hit: `gcloud storage rm "gs://<bucket>/<object>#<generation>"`, one
+   per evidence entry. **No bucket policy change.**
+3. **Verify:** `gcloud storage ls -a "gs://<bucket>/**"` no longer lists them. They will show under
+   `gcloud storage ls --soft-deleted "gs://<bucket>/**"` until about 7 days later, when they expire automatically.
+4. **Consequences:** those old Cloud Build entries lose their source (they cannot be re-run). Images, services and the
+   evidence record are unaffected. Restorable for 7 days by Storage Admin-level principals, then **permanent**.
+5. **Cost:** nothing; about 100 MB is freed after the soft-delete window (pennies-or-less meanwhile).
+6. Recurrence is already prevented by `media-worker/.gcloudignore` and `.dockerignore` (§8; 32 key-free upload files).
+
+**Only if a faster purge is wanted (not recommended):** run `gcloud storage buckets update <bucket> --clear-soft-delete`
+**before** step 2, delete, then set `--soft-delete-duration=7d` again. This briefly removes protection for every object in
+that bucket. The buckets hold only build inputs, but the owner asked to avoid this unless necessary, and it is not
+necessary once §10 is done.

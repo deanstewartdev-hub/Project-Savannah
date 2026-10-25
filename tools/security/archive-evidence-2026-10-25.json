@@ -1,0 +1,214 @@
+{
+  "recorded": "2026-10-25",
+  "recordedBy": "read-only gcloud as the project owner; no object contents are included",
+  "purpose": "Audit evidence for the exposed Cloud Build / Cloud Run source archives, kept before targeted deletion (RELEASE_READINESS.md section 9.3 and 10.4).",
+  "credentialEntriesByKind": {
+    "cloudbuild": [
+      "gcp-key.json",
+      "gcp-key-b64.txt",
+      "b64-chunk-0.txt",
+      "b64-chunk-1.txt",
+      "b64-chunk-2.txt",
+      "b64-chunk-3.txt",
+      ".env"
+    ],
+    "run-sources": [
+      ".env"
+    ]
+  },
+  "objects": [
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786459426.577613-a3be5b1b6d9b46c69de3bf09f06f9b94.tgz",
+      "generation": "1786459461758206",
+      "sizeBytes": 8213040,
+      "crc32c": "RZfdpw==",
+      "md5": "kR+9hPETkASbeh660wNuIA==",
+      "created": "2026-08-11T14:44:21+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "52ee7590-e2bf-44fd-88c2-299473aa4b69"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786460138.368973-0e6786805ec241149e24513226f2a5de.tgz",
+      "generation": "1786460146684140",
+      "sizeBytes": 8213281,
+      "crc32c": "nt54gw==",
+      "md5": "o2K9HvBliXarUBg1hwHmvQ==",
+      "created": "2026-08-11T14:55:46+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "cbc49350-76c3-4455-aa28-c2a7df294aef"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786461167.097622-c4a8bf45e4ea44a898554de0b0bca078.tgz",
+      "generation": "1786461175036041",
+      "sizeBytes": 8213470,
+      "crc32c": "mlBoXw==",
+      "md5": "fG6zMpEEhcnIwTeA5dJ59Q==",
+      "created": "2026-08-11T15:12:55+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "0e3cf55a-9dd8-48b8-bd8e-a778ecd7f003"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786466727.043584-3224ab665e8a431c806b4a3f3ebf3087.tgz",
+      "generation": "1786466768218518",
+      "sizeBytes": 8215218,
+      "crc32c": "8vMptw==",
+      "md5": "fHk342h0sydwghs0vKwhUQ==",
+      "created": "2026-08-11T16:46:08+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "ce3076c3-0fd9-4068-a18f-40c315eb8f02"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786474148.991043-db932edb00dd400391b7cdc3a5b1f56d.tgz",
+      "generation": "1786474157011728",
+      "sizeBytes": 8216174,
+      "crc32c": "MnQExQ==",
+      "md5": "0HfWHmwWiU0tJS9b1kXEVA==",
+      "created": "2026-08-11T18:49:17+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "fd80fd8d-3fb3-4e5d-acae-0c27ba92243c"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786474773.175906-e07cda6d8324462a808c9b59f2f642d4.tgz",
+      "generation": "1786474780233359",
+      "sizeBytes": 8217064,
+      "crc32c": "9G5cIg==",
+      "md5": "LC2XAkrRaU5i+rlQyjVzFQ==",
+      "created": "2026-08-11T18:59:40+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "eeb75636-0f54-41e0-ae2c-666b40186e3b"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786489587.398235-2a71d7c25062421ea1b74868877f3b77.tgz",
+      "generation": "1786489630904381",
+      "sizeBytes": 8217284,
+      "crc32c": "7IWVnA==",
+      "md5": "gPjwGA17Kh7hNuGCxa+2zQ==",
+      "created": "2026-08-11T23:07:10+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "8a506a65-867f-4f7d-b187-e681b0cc5167"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786578582.261914-78854e43fe20495ca188acde7e322d2c.tgz",
+      "generation": "1786578625213267",
+      "sizeBytes": 8222873,
+      "crc32c": "mOw2SQ==",
+      "md5": "GwjBhuDJa1D/NFV8rU5W6A==",
+      "created": "2026-08-12T23:50:25+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": null,
+      "note": "no Cloud Build record references this upload (an abandoned or superseded submit)"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786578649.148566-32e02cc4d13b4440a6436e8ba39ce626.tgz",
+      "generation": "1786578656849758",
+      "sizeBytes": 8222873,
+      "crc32c": "gdOFfw==",
+      "md5": "W/VKkLNkV9kkADMtnFYY4g==",
+      "created": "2026-08-12T23:50:56+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "ebcaa9df-5ceb-42d7-8489-fbb5c9c66c49"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786579310.692389-ee85d61273b246bca240e293b588ec67.tgz",
+      "generation": "1786579319454564",
+      "sizeBytes": 8223832,
+      "crc32c": "xLL0dQ==",
+      "md5": "mhrU7Iepcq+HrK4l8ax6cw==",
+      "created": "2026-08-13T00:01:59+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "26335597-5495-4761-81b1-65987436539d"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786580975.257317-941118eb5d394b47a8c054325225eef2.tgz",
+      "generation": "1786580984340089",
+      "sizeBytes": 8226425,
+      "crc32c": "cAOpEQ==",
+      "md5": "KamUFAAVGRN9p42t7pDWFA==",
+      "created": "2026-08-13T00:29:44+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "ebc47347-5bad-4d6f-87ab-e4e21cecb14a"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "savannah-media-worker_cloudbuild",
+      "object": "source/1786646276.226725-29c4034a85c040f4b293f81c088dcd31.tgz",
+      "generation": "1786646318077613",
+      "sizeBytes": 8227286,
+      "crc32c": "KUb2lQ==",
+      "md5": "KL68BLIlOPEjC3iHEhxPpw==",
+      "created": "2026-08-13T18:38:38+0000",
+      "kind": "cloudbuild",
+      "cloudBuild": "29d0eedf-55bc-46b3-8aa1-4d0ff64c3782"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "run-sources-savannah-media-worker-europe-west2",
+      "object": "services/savannah-media-worker/1785802652.161422-dd23b30bd3bb409994beb9eed05d4977.zip",
+      "generation": "1785802652147192",
+      "sizeBytes": 36075,
+      "crc32c": "4nvN5Q==",
+      "md5": "W8PhHDDvOBMCI+yn/9J3QQ==",
+      "created": "2026-08-04T00:17:32+0000",
+      "kind": "run-sources",
+      "cloudBuild": "5e0d4641-7151-4068-82af-86f9775985f0"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "run-sources-savannah-media-worker-europe-west2",
+      "object": "services/savannah-media-worker/1785802858.592545-48ed04b485f44e9e952f8ef69a4f913d.zip",
+      "generation": "1785802858428016",
+      "sizeBytes": 36075,
+      "crc32c": "4nvN5Q==",
+      "md5": "W8PhHDDvOBMCI+yn/9J3QQ==",
+      "created": "2026-08-04T00:20:58+0000",
+      "kind": "run-sources",
+      "cloudBuild": "ae684052-e44a-483d-9c12-ebf4547a4392"
+    },
+    {
+      "project": "savannah-media-worker",
+      "bucket": "run-sources-savannah-media-worker-us-central1",
+      "object": "services/savannah-media-worker-test/1785839857.482359-b198b3b0505a402cb183da0d072844a7.zip",
+      "generation": "1785839857774094",
+      "sizeBytes": 36075,
+      "crc32c": "4nvN5Q==",
+      "md5": "W8PhHDDvOBMCI+yn/9J3QQ==",
+      "created": "2026-08-04T10:37:37+0000",
+      "kind": "run-sources",
+      "cloudBuild": "d14abe3e-674e-40c1-bf11-3ad3afab4817"
+    },
+    {
+      "project": "savannah-worker-2",
+      "bucket": "run-sources-savannah-worker-2-us-central1",
+      "object": "services/savannah-media-worker/1785840812.901701-6d29d2e2900f42d58a588b5fe19d534b.zip",
+      "generation": "1785840813372336",
+      "sizeBytes": 36075,
+      "crc32c": "4nvN5Q==",
+      "md5": "W8PhHDDvOBMCI+yn/9J3QQ==",
+      "created": "2026-08-04T10:53:33+0000",
+      "kind": "run-sources",
+      "cloudBuild": "98ffbe03-e690-447b-aa6a-79d49d462ff1"
+    }
+  ]
+}
