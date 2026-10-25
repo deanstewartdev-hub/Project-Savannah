@@ -732,10 +732,10 @@ Supersedes the separate §8.5 and §10.1 sequences; their commands are unchanged
 | 4 | Claude | `gcloud run jobs update savannah-render-job --image v12` | Job describes v12 | `jobs update --image …:v7` |
 | 5 | Claude | `gcloud run jobs execute savannah-render-job --wait` (no `JOB_ID`) | Execution FAILS with "JOB_ID env var is required"; no secret-format error; seconds of compute, no provider call | Roll the job back to v7 |
 | 6 | Claude | `rotation.cjs new`; `gcloud secrets versions add job-submit-secret --data-file=<file>`; `rotation.cjs verify 2` | MATCHES, no whitespace warning | `versions disable 2`. Nothing reads it yet |
-| 7 | Claude | Open the overlap: `--update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2,JOB_SUBMIT_SECRET_PREVIOUS=job-submit-secret:1` | Status call with version 1 → 200 **and** version 2 → 200 | Back to `:1` and `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` |
+| 7 | Claude | Open the overlap: `--update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2,JOB_SUBMIT_SECRET_PREVIOUS=job-submit-secret:1` | Status call with version 1 → 200 **and** version 2 → 200 | Before step 8 only: back to `:1` and `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS`. **After step 8 the overlap is the safe state.** To undo completely, the owner pastes version 1 back first, then go to `:1` only |
 | 8 | **Owner** | `rotation.cjs copy`. Paste into production `MEDIA_WORKER_JOB_SUBMIT_SECRET` and Save. Copy it back out, then `rotation.cjs check-clipboard`. Clear the clipboard | **MATCHES** the rotation file | Paste version 1 back; the overlap still accepts it |
 | 9 | Claude | Close the overlap: `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` | Version 1 → **401**, version 2 → 200; no 401s in dispatcher request logs afterwards | Step 7 command again |
-| 10 | Claude | `secrets versions disable 1`; `jobs update --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2`; delete `%USERPROFILE%\.savannah-rotation` | Listed versions: 1 disabled, 2 enabled | `versions enable 1` |
+| 10 | Claude | `secrets versions disable 1`; `jobs update --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2`; delete `%USERPROFILE%\.savannah-rotation` | Listed versions: 1 disabled, 2 enabled | `versions enable 1` **first**: a revision that references a disabled version cannot start, so the overlap (step 7) can only be reopened after this |
 
 **Never interrupted:** production v89 sends version 1 until step 8, and version 1 is accepted until step 9. It sends
 version 2 from step 8, and version 2 is accepted from step 7. Callbacks use the separate, unexposed callback secret,
@@ -749,6 +749,33 @@ so renders are never affected.
 
 **Cost:** under £0.10 one-off (one build, inside the free build minutes; seconds of job compute), plus about £0.03 per
 month for the extra image. No provider call, no render, no upload.
+
+### 11.3a ElevenLabs and Pexels before the first paid video (owner decision, 25 Oct; not executed)
+
+Only the render job uses these keys, and it reads `latest` when each execution starts. With no render running, nothing
+is interrupted.
+- `savannah-worker-2` still holds copies of the old keys. They stop working once the old key is revoked at the provider.
+- ElevenLabs is the first paid step of a render. A bad new key fails there, before any charge.
+
+**ElevenLabs (rotate):**
+
+| # | Who | Action | Pass condition | Undo |
+|---|---|---|---|---|
+| E1 | Owner | ElevenLabs → API keys → **create a new key** (for example `savannah-render-2026-10`). Allow at least **Text to Speech**, plus **User read** so it can be verified for free. Set a monthly credit limit if offered (for example 10,000). **No expiry.** Do **not** delete the old key yet | Key created | Delete it |
+| E2 | Owner | Secret Manager → `elevenlabs-api-key` → **New version** → paste → Add | Version 2 exists | `gcloud secrets versions disable 2 --secret elevenlabs-api-key` (latest falls back to 1) |
+| E3 | Claude | Read-only: version 2 has no surrounding whitespace; its fingerprint differs from version 1; `GET /v1/user` with it returns 200 (403 means valid but scope-limited; **401 means invalid**, so undo E2) | Clean, different, not 401 | As E2 |
+| E4 | Owner | With no render running: delete the **old** key in ElevenLabs. Then Claude disables secret version 1 | Old key gone | None for the old key. A broken new key is replaced by creating another |
+
+**Pexels (cannot be rotated safely today):** Pexels states that "new API key issuance is currently paused", and its docs
+describe no regenerate or revoke. The worker treats a failed Pexels search as an error (no image fallback), so revoking the
+key would break every render.
+- **Do not revoke it.**
+- **Owner:** check the Pexels API dashboard for a regenerate option. If there is one, use the ElevenLabs pattern
+  (E1–E4). If not, ask Pexels support for a key reset.
+- **Residual risk is low:** the API is free, and misuse can only consume the account's 200 requests per hour and 20,000
+  per month. The worst case is renders failing at the visuals step until the key is replaced.
+
+**Suggested order:** §11.3 → E1–E4 → (Pexels if possible) → §11.4 → the first video.
 
 ### 11.4 Production bridge and Apps Script cut-over (after §11.3; owner-run; not executed)
 
@@ -805,7 +832,9 @@ progress.
 | 6 | Accept the silent music placeholder for this private test, or supply a licensed track (P1-9) | Owner decision | — |
 | 7 | First video (`tools/first-video/README.md`, then `LIVE_ACCEPTANCE.md` §5–8): idea row, script and SEO generation, approval, **one paid render** (about £0.05 plus 635 ElevenLabs credits), review, **one private upload** | Owner, with Claude watching logs | **Yes** |
 
-Not blocking the first video: §10.2 and §10.3 (ElevenLabs, Pexels and OpenAI key rotation; best done right after the
-first video, so it is never interrupted), Stage B and the `savannah-worker-2` shutdown, Stage E, the `script.scriptapp`
+**Added by owner decision (25 Oct):** rotate ElevenLabs **before** the first paid video (§11.3a E1–E4). For Pexels:
+regenerate if the dashboard allows it, otherwise keep the key and ask support (issuance is paused).
+
+Not blocking the first video: §10.3 (OpenAI old-key revocation), Stage B and the `savannah-worker-2` shutdown, Stage E, the `script.scriptapp`
 scope (P1-7), and merging the PR stack to `main` (recommended only after live acceptance passes, so `main` gets only
 proven code).
