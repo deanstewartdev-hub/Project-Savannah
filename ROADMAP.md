@@ -1,8 +1,8 @@
 # Project Savannah Roadmap
 
-Last updated: 3 August 2026
-Live Apps Script deployment: version 78
-Canonical branch: `sprint-3`
+Last updated: 26 October 2026 (branch model, hosting and deployment state corrected; feature checklists last edited 19 October)
+Live Apps Script deployment: version 89 (`RELEASE_READINESS.md`, opening note and section 4: v1.4 has not been deployed to production)
+Branch model: see `CLAUDE.md`. `sprint-3` is the documented fast-forward base for `main`; active work is the stack of open PRs (`RELEASE_READINESS.md` section 3).
 
 This roadmap was restructured following the 3 August 2026 audit
 (`SAVANNAH_AUDIT_AND_PLAN.md`). The previous seven-phase framing measured progress by
@@ -56,12 +56,13 @@ Repository hygiene (no external dependencies):
 - [x] Add CHANGELOG.md
 
 `savannah-media-worker` (Node 22 + FFmpeg) — **deployed and verified end to end** as of
-7 August 2026, currently running on **Railway** (`project-savannah-production.up.railway.app`)
-as a temporary bridge, not Cloud Run — Cloud Run's external HTTPS routing 404s due to a
-Google-side platform bug (case #74041894/#74051643 with Google Cloud Support, unresolved).
-See `CHANGELOG.md`'s 7 August entry for the three real bugs found and fixed via live
-testing (healthcheck-triggered restarts, concurrent-ffmpeg OOM, oversized Pexels sources)
-and `media-worker/README.md` → "Deploying to Railway" for the actual deploy steps:
+7 August 2026 on Railway as a temporary bridge, because Cloud Run's external HTTPS routing
+404'd due to a Google-side platform bug (cases #74041894/#74051643 with Google Cloud Support).
+It was migrated to Cloud Run and validated end to end on 11 August; Railway was retired on
+24 October 2026. See `CHANGELOG.md`'s 7 and 11 August entries for the real bugs found and fixed
+via live testing (healthcheck-triggered restarts, concurrent-ffmpeg OOM, oversized Pexels
+sources), `media-worker/README.md` for deployment, and `RELEASE_READINESS.md` section 9
+for the current state:
 
 - [x] Job submission endpoint + GCS bucket for assets and outputs
 - [x] ElevenLabs narration as one continuous take (not four per-scene calls)
@@ -110,10 +111,8 @@ Apps Script adaptation:
   direct API, or hit a pre-existing duplicate-render guard when attempted through the UI).
 - A side by side comparison against a Creatomate render before Creatomate is deleted.
 
-Moving back from Railway to Cloud Run once Google Support resolves the routing bug is
-v1.4-adjacent cleanup, not a blocker — the provider abstraction means it's a one-property
-change
-(`Secrets.setMediaWorkerUrl`).
+Moving back from Railway to Cloud Run is done: `MEDIA_WORKER_URL` has pointed at Cloud Run since 11 August and Railway
+was retired on 24 October 2026 (`CHANGELOG.md`, `RELEASE_READINESS.md` section 9).
 
 **Success condition:** a new idea travels from generation to a verified private YouTube
 upload with no manual database repair, and the finished video is one you'd show someone
