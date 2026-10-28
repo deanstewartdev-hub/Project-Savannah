@@ -55,11 +55,14 @@ test('the main app sends the job-submission secret the way the worker checks it 
   assert.match(read('media-worker/src/dispatcherConfig.js'), /requireSecretEnv\("JOB_SUBMIT_SECRET"\)/);
 });
 
-test('the callback URL the main app builds is the route and parameter the bridge reads', () => {
-  assert.match(read('Production/VideoProcessingProvider.js'), /"\?route=media-worker-callback&secret=" \+ encodeURIComponent\(callbackSecret_\(\)\)/);
+test('the callback URL carries no secret; the secret travels in the job body and the bridge reads it there', () => {
+  const provider = read('Production/VideoProcessingProvider.js');
+  assert.ok(provider.includes('return webAppUrl + "?route=media-worker-callback";'));
+  assert.ok(!provider.includes('encodeURIComponent(callbackSecret_())'));
+  assert.ok(provider.includes('callbackSecret: callbackSecret_()'));
   const bridge = read('CallbackBridge/CallbackBridge.js');
-  assert.match(bridge, /route === "media-worker-callback"/);
-  assert.match(bridge, /parameters && parameters\.secret/);
+  assert.ok(bridge.includes('route === "media-worker-callback"'));
+  assert.ok(bridge.includes('isAuthorizedCallback_({ secret: body.callbackSecret }'));
 });
 
 test('the bridge persists every field the worker sends and the inbox reads', () => {

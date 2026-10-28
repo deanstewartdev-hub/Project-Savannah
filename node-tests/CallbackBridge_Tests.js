@@ -493,10 +493,10 @@ function runCallbackBridgeTests() {
     vm.runInContext(bridgeSource, script);
     const result = script.handleCallback_({
       postData: { contents: JSON.stringify({
-        jobId: VALID_RENDER_ID, status: "completed",
+        jobId: VALID_RENDER_ID, status: "completed", callbackSecret: "synthetic-secret",
         video: { url: "https://example.test/final.mp4" }
       }) }
-    }, { secret: "synthetic-secret" });
+    }, {});
     if (!result.success || !result.queued || received.length !== 1) {
       throw new Error("Valid callback must queue precisely one receipt.");
     }
@@ -529,8 +529,8 @@ function runCallbackBridgeTests() {
       vm.createContext(script);
       vm.runInContext(bridgeSource, script);
       const result = script.handleCallback_({ postData: { contents: JSON.stringify({
-        jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.invalid/x.mp4" }, synthetic: true
-      }) } }, { secret: "synthetic-secret" });
+        callbackSecret: "synthetic-secret", jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.invalid/x.mp4" }, synthetic: true
+      }) } }, {});
       return { result, received };
     }
     for (const environment of [undefined, "production", "Staging"]) {
@@ -542,6 +542,85 @@ function runCallbackBridgeTests() {
     const staging = bridge("staging");
     if (!staging.result.queued || JSON.parse(staging.received[0][3]).synthetic !== true) {
       throw new Error("Staging bridge must queue a synthetic callback and keep its marker.");
+    }
+  });
+
+  // ============================================================
+  // SAV-18: the callback secret is read from the JSON body only, and authentication runs
+  // before any other field is read or any sheet is touched.
+  // ============================================================
+
+  function bridgeHarness(secretValue, sheetTouched) {
+    const received = [];
+    const script = {
+      PropertiesService: { getScriptProperties: () => ({ getProperty: name => ({
+        MEDIA_WORKER_SHARED_SECRET: secretValue, RENDER_JOBS_SPREADSHEET_ID: "test-id"
+      })[name] }) },
+      SpreadsheetApp: { openById: () => { sheetTouched.touched = true; return { getSheetByName: () => ({
+        getLastRow: () => 1 + received.length,
+        getRange: () => ({ getDisplayValues: () => [sandbox.CALLBACK_INBOX_HEADERS.slice()], setValues: v => received.push(v[0]) })
+      }) }; } },
+      Utilities: { getUuid: () => "RECEIPT-TEST" },
+      LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
+      Logger: { log: () => {} }
+    };
+    vm.createContext(script);
+    vm.runInContext(bridgeSource, script);
+    return { script, received };
+  }
+
+  const VALID_BODY = { jobId: VALID_RENDER_ID, status: "completed", video: { url: "https://example.test/final.mp4" } };
+
+  test("SAV-18.1 a secret supplied only in the URL is refused and nothing is written", () => {
+    const sheet = { touched: false };
+    const { script, received } = bridgeHarness("synthetic-secret", sheet);
+    const result = script.handleCallback_({ postData: { contents: JSON.stringify(VALID_BODY) } }, { secret: "synthetic-secret" });
+    if (result.success || result.error !== "Unauthorized." || received.length || sheet.touched) {
+      throw new Error("A URL-only secret must be refused before any write.");
+    }
+  });
+
+  test("SAV-18.2 an incorrect body secret is refused and nothing is written", () => {
+    const sheet = { touched: false };
+    const { script, received } = bridgeHarness("synthetic-secret", sheet);
+    const body = Object.assign({}, VALID_BODY, { callbackSecret: "synthetic-secreT" });
+    const result = script.handleCallback_({ postData: { contents: JSON.stringify(body) } }, {});
+    if (result.success || result.error !== "Unauthorized." || received.length || sheet.touched) {
+      throw new Error("An incorrect body secret must be refused before any write.");
+    }
+  });
+
+  test("SAV-18.3 a missing body secret is refused, even when the request is otherwise valid", () => {
+    const sheet = { touched: false };
+    const { script, received } = bridgeHarness("synthetic-secret", sheet);
+    const result = script.handleCallback_({ postData: { contents: JSON.stringify(VALID_BODY) } }, {});
+    if (result.success || result.error !== "Unauthorized." || received.length || sheet.touched) {
+      throw new Error("A missing body secret must be refused before any write.");
+    }
+  });
+
+  test("SAV-18.4 a malformed JSON body is refused as Unauthorized, never reaching the sheet", () => {
+    const sheet = { touched: false };
+    const { script, received } = bridgeHarness("synthetic-secret", sheet);
+    const result = script.handleCallback_({ postData: { contents: "{not json" } }, {});
+    if (result.success || result.error !== "Unauthorized." || received.length || sheet.touched) {
+      throw new Error("A malformed body must be refused before any write.");
+    }
+  });
+
+  test("SAV-18.5 with no secret configured, a body secret is still refused (never treated as open)", () => {
+    const sheet = { touched: false };
+    const { script, received } = bridgeHarness("", sheet);
+    const body = Object.assign({}, VALID_BODY, { callbackSecret: "" });
+    const result = script.handleCallback_({ postData: { contents: JSON.stringify(body) } }, {});
+    if (result.success || result.error !== "Unauthorized." || received.length || sheet.touched) {
+      throw new Error("An unconfigured bridge must refuse every callback.");
+    }
+  });
+
+  test("SAV-18.6 the bridge source never authenticates from the URL parameters", () => {
+    if (/parameters\.secret|parameters\[\s*["']secret["']\s*\]/.test(bridgeSource)) {
+      throw new Error("CallbackBridge.js must not read the callback secret from the request URL.");
     }
   });
 

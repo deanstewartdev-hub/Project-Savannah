@@ -62,7 +62,8 @@ function world(options) {
   const transport = async (target, scenario, renderId) => {
     const payload = payloadFor(scenario, renderId);
     const secret = scenario === 'bad-secret' ? 'wrong' : target.secret;
-    bridge.__event = { parameter: { route: 'media-worker-callback', secret }, postData: { contents: JSON.stringify(payload) } };
+    // The secret travels in the JSON body (callbackSecret), never in the URL.
+    bridge.__event = { parameter: { route: 'media-worker-callback' }, postData: { contents: JSON.stringify(Object.assign({}, payload, { callbackSecret: secret })) } };
     return { response: JSON.parse(vm.runInContext('doPost(__event)', bridge).text) };
   };
 

@@ -90,9 +90,10 @@ async function send(target, scenario, renderId) {
   const payload = payloadFor(scenario, renderId);
   if (!payload) throw new Refused('unknown scenario "' + scenario + '".');
   const usedSecret = scenario === 'bad-secret' ? 'wrong-' + randomUUID() : target.secret;
-  const url = target.base + '?route=media-worker-callback&secret=' + encodeURIComponent(usedSecret);
+  // The secret goes in the JSON body (callbackSecret), never in the URL.
+  const url = target.base + '?route=media-worker-callback';
   // Apps Script answers POST with a 302 to a GET echo URL; fetch follows it.
-  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({}, payload, { callbackSecret: usedSecret })) });
   const text = await response.text();
   let body = null;
   try { body = JSON.parse(text); } catch (ignored) {}

@@ -31,7 +31,8 @@ function parseJobRequest(raw) {
   return {
     beats: raw.beats,
     musicTrackPath: raw.musicTrackPath,
-    callbackUrl: raw.callbackUrl
+    callbackUrl: raw.callbackUrl,
+    callbackSecret: typeof raw.callbackSecret === "string" && raw.callbackSecret.length > 0 ? raw.callbackSecret : undefined
   };
 }
 
@@ -47,7 +48,7 @@ await deleteObject(requestPath);
 
 try {
   const result = await runJob({ jobId, beats: request.beats, musicTrackPath: request.musicTrackPath });
-  await postCallbackWithRetry(request.callbackUrl, result).catch((callbackError) => {
+  await postCallbackWithRetry(request.callbackUrl, result, { callbackSecret: request.callbackSecret }).catch((callbackError) => {
     console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);
   });
   process.exit(0);
@@ -57,7 +58,7 @@ try {
     jobId,
     status: "failed",
     error: { message: renderError.message }
-  }).catch((callbackError) => {
+  }, { callbackSecret: request.callbackSecret }).catch((callbackError) => {
     console.error(`Job ${jobId} failed, and delivering that failure's callback also failed:`, callbackError);
   });
   process.exit(1);

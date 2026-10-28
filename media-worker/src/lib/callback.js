@@ -10,15 +10,20 @@ import { redactSecretParams } from "./sanitize.js";
 // which reaches Cloud Run logs - so callbackUrl (and anything else that might contain
 // the secret) must be redacted before it ever reaches a thrown Error's message, not
 // just at the final logging call site.
-export async function postCallback(callbackUrl, payload) {
+// callbackSecret, when given, travels in the JSON body as `callbackSecret`. Apps Script
+// doPost can read the body but not custom headers, and a body value is not written into the
+// request URL that proxies and access logs record. Without it the payload is sent unchanged,
+// so callbacks for renders submitted before this change still carry their URL secret.
+export async function postCallback(callbackUrl, payload, callbackSecret) {
   const safeUrl = redactSecretParams(callbackUrl);
+  const requestBody = callbackSecret ? { ...payload, callbackSecret } : payload;
 
   let response;
   try {
     response = await fetch(callbackUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(requestBody)
     });
   } catch (networkError) {
     throw new Error(`Callback to ${safeUrl} could not be sent: ${redactSecretParams(networkError.message)}`);
@@ -79,7 +84,7 @@ export async function postCallbackWithRetry(callbackUrl, payload, options = {}) 
   const log = options.log || ((message) => console.warn(message));
   for (let attempt = 0; ; attempt++) {
     try {
-      return await postCallback(callbackUrl, payload);
+      return await postCallback(callbackUrl, payload, options.callbackSecret);
     } catch (error) {
       if (attempt >= delays.length || !isRetryableCallbackError(error)) throw error;
       // error.message is already secret-redacted by postCallback.

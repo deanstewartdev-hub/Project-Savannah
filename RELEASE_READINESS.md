@@ -868,3 +868,61 @@ Health 200; unauthenticated 401; version 2 accepted; wrong value 401. Render job
 - Re-enabling version 1 (`gcloud secrets versions enable 1`) restores `00009-man`, but only after the production Apps Script property is set back to version 1.
 
 **Open:** no production submission has been observed since the overlap closed. The §10.1 step 6 "no 401s over the next day" check remains to be confirmed from dispatcher logs.
+
+## 12. Callback authentication: threat model, migration and rollback (28 October 2026)
+
+**Status:** implemented on branch `security/callback-secret-in-body`, not deployed. Tests: worker 93/93 (`npm test`),
+application suite exit 0 (347 PASS lines, including the bridge's 37 checks and the legacy route's 13).
+
+### 12.1 Why the change
+
+Apps Script's `doPost` can read only the query string and the JSON body; custom request headers are not visible. The
+callback secret therefore used to travel in the callback URL (`?route=media-worker-callback&secret=...`). A URL is written
+to access logs and to any logs that record the request line, and it is copied into the job request. The URL carried the
+credential in every callback. The secret now travels only in the JSON body, as `callbackSecret`.
+
+### 12.2 Threat model
+
+| Asset or boundary | Threat | Control | Residual risk |
+|---|---|---|---|
+| `MEDIA_WORKER_SHARED_SECRET` in the callback body | Leaks from request-line logs | Credential no longer in any URL. New bridge refuses URL-only secrets (SAV-18.1) | Not in the request line. Whether Apps Script or Cloud Logging record bodies was not verified in this session; the worker's error text is redacted (SAV-14) |
+| Same secret, in transit | Eavesdropping | HTTPS to Apps Script and Cloud Run | None beyond the platform |
+| Same secret, at rest in the job request | Read from `job-requests/` in GCS | The Job deletes the request before it runs (`job-runner.js`). Bucket IAM was not re-checked in this session | **Residual:** the secret is stored in the job request until the Job starts. It was already there inside `callbackUrl`, so this adds no new exposure. Remove in a later change by passing it through the Job's environment |
+| Secret comparison | Timing attack | SHA-256 both sides, constant-time compare, every accepted value checked (SAV-15.4b) | None |
+| Unauthenticated writes | Forged completion | Authentication runs before any other field is read and before any sheet is opened (SAV-18.1–18.5) | None |
+| Replay of a captured callback | Duplicate or out-of-order completion | Receipt IDs are unique; Render Jobs writes are idempotent per terminal state (SAV-17.2, 17.3) | A captured valid callback can be replayed until the secret rotates |
+| Staging test callbacks in production | Synthetic record reaches production | Refused unless the bridge is marked staging (SAV-17.5, SAV-18) | None |
+| Legacy route (in-flight renders) | URL-secret acceptance continues | Transitional fallback in `MediaWorkerCallback_Service.js`, documented for removal | Lasts only until renders submitted before this change have delivered |
+| Bridge code path | Writes to Render Jobs or other sheets | Bridge appends receipts only; SAV-16.4 / 17.4 check single writes to the inbox | None |
+
+### 12.3 Recommended follow-ups (not in this change)
+
+- **Rotate `MEDIA_WORKER_SHARED_SECRET` after cutover.** The value was carried in callback URLs before this change, and
+  those URLs may already be in logs. Rotation needs its own approval and the same owner-run clipboard procedure as §11.3.
+- Remove the job-request copy of the secret (§12.2, residual row) in a later worker release.
+- Remove the legacy URL fallback once no render submitted before this change is in flight.
+
+### 12.4 Deployment order (each step needs its own approval)
+
+The change is compatible in both directions only in this order. Do not reverse it.
+
+1. **Worker v13** (from this branch). It accepts `callbackSecret` in `/jobs` and forwards it in the callback body. It still
+   works with today's main app, whose callback URLs carry the secret: without a body secret it sends the payload unchanged.
+2. **Bridge, new version** (from this branch). It refuses URL secrets. The bridge currently deployed as version 3 is the
+   **previous** URL-based code and must be replaced before cutover.
+3. **Main app v1.4** (from this branch). Sends `callbackSecret` in the job body and removes the secret from the callback
+   URL. Deploy only after steps 1 and 2 are live: a v12 worker would post to a URL with no secret and receive Unauthorized.
+4. Set `MEDIA_WORKER_CALLBACK_URL` to the bridge's `/exec` URL (§11.4 step 4), then verify with a controlled callback.
+
+**Credential migration:** none for the secret itself (same value, moved to the body). Rotation after cutover is a separate
+item (§12.3).
+
+### 12.5 Rollback
+
+- **Before step 3:** roll back the worker only, to v12. v12 ignores `callbackSecret`, and the URL-secret callbacks it
+  delivers are still accepted by the legacy route.
+- **After step 3:** roll back the **main app first** to version 89 (URL secret; the legacy route still accepts it), then
+  the worker to v12 if needed. Rolling the worker back first, while the main app sends no URL secret, makes callbacks fail
+  with Unauthorized.
+- **Bridge:** if the cutover is rolled back, set `MEDIA_WORKER_CALLBACK_URL` back to the previous `/exec` URL. The bridge
+  holds receipts; they are applied when the main app returns (§11.4 rollback).

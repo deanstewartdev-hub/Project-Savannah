@@ -49,6 +49,10 @@ function fixture(initialStatus, options = {}) {
       sandbox.event = event;
       return vm.runInContext('MediaWorkerCallbackService.handle(event)', sandbox);
     },
+    handleRaw: (parameter, body) => {
+      sandbox.event = { parameter, postData: { contents: JSON.stringify(Object.assign({ jobId: row.renderId, status: 'completed', video: { url: 'https://example.test/new.mp4' } }, body)) } };
+      return vm.runInContext('MediaWorkerCallbackService.handle(event)', sandbox);
+    },
     handleWithSecret: (secret) => {
       sandbox.event = { parameter: { secret }, postData: { contents: JSON.stringify({ jobId: row.renderId, status: 'completed', video: { url: 'https://example.test/new.mp4' } }) } };
       return vm.runInContext('MediaWorkerCallbackService.handle(event)', sandbox);
@@ -122,6 +126,34 @@ function runTests() {
         throw new Error('A render with media evidence was overwritten.');
       }
       if (!withVideo.includes('SUCCEEDED')) throw new Error('Control completion failed.');
+    }],
+    ['the secret in the JSON body is accepted and the render is recorded once', () => {
+      const f = fixture('RENDERING');
+      const result = f.handleRaw({}, { callbackSecret: 'synthetic-secret' });
+      if (!result.success || f.writes.length !== 1 || f.getRow().status !== 'SUCCEEDED') {
+        throw new Error('A correct body secret must be accepted.');
+      }
+    }],
+    ['the body secret decides: a correct URL secret cannot override a wrong body secret', () => {
+      const f = fixture('RENDERING');
+      const result = f.handleRaw({ secret: 'synthetic-secret' }, { callbackSecret: 'wrong' });
+      if (result.success || result.error !== 'Unauthorized.' || f.writes.length || f.getLocks()) {
+        throw new Error('A wrong body secret must be refused even with a correct URL secret.');
+      }
+    }],
+    ['a render submitted before the change (URL secret only) is still accepted during the transition', () => {
+      const f = fixture('RENDERING');
+      const result = f.handleRaw({ secret: 'synthetic-secret' }, {});
+      if (!result.success || f.writes.length !== 1) {
+        throw new Error('The transitional URL-secret fallback must still accept in-flight renders.');
+      }
+    }],
+    ['a request with no secret at all is refused before any lookup', () => {
+      const f = fixture('RENDERING');
+      const result = f.handleRaw({}, {});
+      if (result.success || result.error !== 'Unauthorized.' || f.writes.length || f.getLocks()) {
+        throw new Error('A request with no secret must be refused.');
+      }
     }],
     ['wrong, truncated or extended secrets are rejected before any lookup', () => {
       for (const secret of ['synthetic-secre', 'synthetic-secret-x', 'Synthetic-secret', '']) {

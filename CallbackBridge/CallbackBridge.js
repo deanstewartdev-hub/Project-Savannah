@@ -46,8 +46,11 @@
  *    /exec URL.
  * 4. Update the main project's MEDIA_WORKER_CALLBACK_URL Script Property to that new
  *    URL (Secrets.setMediaWorkerCallbackUrl() - see Production/VideoProcessingProvider.js
- *    callbackUrl_()). No code change needed there; the callback base URL was already
- *    externalized to a Script Property before this change.
+ *    callbackUrl_()). The main project must send the secret in the job body as
+ *    `callbackSecret` (see submit in VideoProcessingProvider.js); the URL carries none.
+ *    Deploy the worker build that forwards `callbackSecret` (v13 or later) first.
+ *    Callbacks authenticate from the JSON body `callbackSecret` only; a URL `secret` is
+ *    refused here (SAV-18).
  * 5. Only then redeploy the main project with appsscript.json's access: MYSELF from this
  *    same commit - deploying that alone, first, would break the callback.
  * 6. Verify with one real render before considering this migration complete.
@@ -107,9 +110,11 @@ function resolveRoute_(parameters) {
 
 // Pure - see resolveRoute_. This is the SAV-15 fail-closed auth gate: no secret
 // configured, or a mismatched/missing secret on the request, both reject.
-function isAuthorizedCallback_(parameters, expectedSecret) {
+// `candidate` is the request's JSON body fields (candidate.secret is body.callbackSecret),
+// never the URL's query parameters.
+function isAuthorizedCallback_(candidate, expectedSecret) {
   if (!expectedSecret) return false;
-  var supplied = String((parameters && parameters.secret) || "");
+  var supplied = String((candidate && candidate.secret) || "");
   var expected = String(expectedSecret);
   // Constant-time comparison: the time taken must not reveal how many leading
   // characters of a guess were right. Kept inline - this project's set of
@@ -149,15 +154,18 @@ function headersMatchExpected_(actualHeaders) {
 
 function handleCallback_(event, parameters) {
   try {
-    var expectedSecret = PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
-    if (!isAuthorizedCallback_(parameters, expectedSecret)) {
-      return { success: false, error: "Unauthorized." };
-    }
-
+    // The secret is read from the JSON body (`callbackSecret`), never from the URL: a URL is
+    // written to Google's and the worker's logs. Authentication happens before any other field
+    // is read, so a request without a valid secret never reaches validation or the sheet.
     var raw = (event && event.postData && event.postData.contents) || "";
     var body;
     try { body = JSON.parse(raw); } catch (parseError) { body = null; }
-    if (!body || !body.jobId) return { success: false, error: "A jobId is required." };
+    var expectedSecret = PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
+    if (!body || !isAuthorizedCallback_({ secret: body.callbackSecret }, expectedSecret)) {
+      return { success: false, error: "Unauthorized." };
+    }
+
+    if (!body.jobId) return { success: false, error: "A jobId is required." };
     if (!isValidRenderId_(String(body.jobId))) return { success: false, error: "Malformed render ID." };
     if (!isValidCallbackStatus_(body.status)) return { success: false, error: "Unknown or missing status." };
     // Synthetic test callbacks (node-tests/staging) are accepted only by a bridge

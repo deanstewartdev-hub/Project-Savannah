@@ -140,10 +140,13 @@ const CloudRunFFmpegProvider = (() => {
     const jobId = RESERVED_ID_SHAPE.test(reserved) ? reserved : reserveRenderId();
     const callbackUrl = callbackUrl_();
     assertNotStaging_("Cloud Run render submission");
+    // The callback secret travels in the job body, never in callbackUrl: a URL is written to
+    // Google's and the worker's logs. The worker forwards it back as a JSON field.
     const response = request_("post", "/jobs", {
       jobId: jobId,
       beats: beats,
-      callbackUrl: callbackUrl
+      callbackUrl: callbackUrl,
+      callbackSecret: callbackSecret_()
     });
     if (!response || response.jobId !== jobId) {
       const unclear = error_("Media worker did not accept the render job.");
@@ -352,9 +355,10 @@ const CloudRunFFmpegProvider = (() => {
   }
 
   function callbackUrl_() {
-    // Apps Script doPost cannot read custom request headers, only the query string and
-    // body, so the callback secret has to travel in the URL itself. MediaWorkerCallback_Service
-    // re-checks it against Secrets.getMediaWorkerSharedSecret() on the way in.
+    // The URL carries no credential. The callback secret is sent in the job body as
+    // `callbackSecret` (see submit) and returned in the callback body; both receivers
+    // check it against Secrets.getMediaWorkerSharedSecret(). Apps Script doPost cannot read
+    // custom request headers, so the body is the only place a credential can go.
     //
     // Deliberately NOT ScriptApp.getService().getUrl(): that returns whichever URL the
     // current execution happens to be running under, which is the /dev URL during
@@ -364,7 +368,7 @@ const CloudRunFFmpegProvider = (() => {
     // independent of where the render was submitted from.
     const webAppUrl = Secrets.getMediaWorkerCallbackUrl();
     if (!webAppUrl) throw error_("MEDIA_WORKER_CALLBACK_URL is not configured - set it to the production /exec URL before submitting Cloud Run render jobs.");
-    return webAppUrl + "?route=media-worker-callback&secret=" + encodeURIComponent(callbackSecret_());
+    return webAppUrl + "?route=media-worker-callback";
   }
   function workerUrl_() {
     const value = Secrets.getMediaWorkerUrl();

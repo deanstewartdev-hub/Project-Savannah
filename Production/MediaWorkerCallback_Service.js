@@ -12,13 +12,21 @@ const MediaWorkerCallbackService = (() => {
         ? event.parameter
         : {};
       const expectedSecret = Secrets.getMediaWorkerSharedSecret();
-      if (!expectedSecret || !secretsMatch_(String(parameters.secret || ""), String(expectedSecret))) {
-        return { success: false, error: "Unauthorized." };
-      }
 
       const raw = event && event.postData && event.postData.contents || "";
       let body;
       try { body = JSON.parse(raw); } catch (parseError) { body = null; }
+
+      // Preferred: the secret arrives in the JSON body as callbackSecret. Transitional fallback:
+      // renders submitted before the secret moved out of the URL still carry it there, so
+      // their callbacks are accepted until none are in flight. Remove this fallback then.
+      const supplied = body && typeof body.callbackSecret === "string"
+        ? body.callbackSecret
+        : String(parameters.secret || "");
+      if (!expectedSecret || !secretsMatch_(supplied, String(expectedSecret))) {
+        return { success: false, error: "Unauthorized." };
+      }
+
       if (!body || !body.jobId) return { success: false, error: "A jobId is required." };
 
       const job = RenderJobRepository.getByRenderId(String(body.jobId));

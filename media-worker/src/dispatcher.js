@@ -33,7 +33,7 @@ app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
 app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
-  const { beats, musicTrackPath, callbackUrl, dryRun } = req.body || {};
+  const { beats, musicTrackPath, callbackUrl, callbackSecret, dryRun } = req.body || {};
 
   const beatsError = validateBeats(beats);
   if (beatsError) {
@@ -42,6 +42,12 @@ app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
   }
   if (typeof callbackUrl !== "string" || callbackUrl.trim().length === 0) {
     res.status(400).json({ error: "callbackUrl is required" });
+    return;
+  }
+
+  // Never echo the value back: a malformed secret is reported by field name only.
+  if (callbackSecret !== undefined && (typeof callbackSecret !== "string" || callbackSecret.trim().length === 0)) {
+    res.status(400).json({ error: "callbackSecret must be a non-empty string" });
     return;
   }
 
@@ -64,6 +70,7 @@ app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
       beats,
       musicTrackPath,
       callbackUrl,
+      callbackSecret,
       submittedAt: new Date().toISOString()
     });
     const [operation] = await jobsClient.runJob({

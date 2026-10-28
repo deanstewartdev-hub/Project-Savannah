@@ -22,7 +22,7 @@ function runSerialized(task) {
 }
 
 jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
-  const { beats, musicTrackPath, callbackUrl } = req.body || {};
+  const { beats, musicTrackPath, callbackUrl, callbackSecret } = req.body || {};
 
   const beatsError = validateBeats(beats);
   if (beatsError) {
@@ -31,6 +31,11 @@ jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
   }
   if (typeof callbackUrl !== "string" || callbackUrl.trim().length === 0) {
     res.status(400).json({ error: "callbackUrl is required" });
+    return;
+  }
+
+  if (callbackSecret !== undefined && (typeof callbackSecret !== "string" || callbackSecret.trim().length === 0)) {
+    res.status(400).json({ error: "callbackSecret must be a non-empty string" });
     return;
   }
 
@@ -49,7 +54,7 @@ jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
   // (see media-worker/README.md "What isn't here yet").
   runSerialized(() => runJob({ jobId, beats, musicTrackPath })).then(
     (result) => {
-      postCallbackWithRetry(callbackUrl, result).catch((callbackError) => {
+      postCallbackWithRetry(callbackUrl, result, { callbackSecret }).catch((callbackError) => {
         console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);
       });
     },
@@ -59,7 +64,7 @@ jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
         jobId,
         status: "failed",
         error: { message: renderError.message }
-      }).catch((callbackError) => {
+      }, { callbackSecret }).catch((callbackError) => {
         console.error(`Job ${jobId} failed, and delivering that failure's callback also failed:`, callbackError);
       });
     }
