@@ -68,3 +68,20 @@ export function requireSecretEnv(name) {
   assertSecretFormat(name, value);
   return value;
 }
+
+/**
+ * Like requireSecretEnv, but for a credential that may legitimately be absent (e.g.
+ * JOB_SUBMIT_SECRET_PREVIOUS outside a rotation). Absent or empty resolves to null;
+ * a present value must still be well-formed.
+ *
+ * @param {string} name Environment variable name.
+ * @return {?string} The validated value, or null when unset.
+ */
+export function optionalSecretEnv(name) {
+  const value = process.env[name];
+  if (value === undefined || value === "") {
+    return null;
+  }
+  assertSecretFormat(name, value);
+  return value;
+}

@@ -1,0 +1,41 @@
+﻿{
+  "bindings": [
+    {
+      "members": [
+        "projectEditor:savannah-media-worker",
+        "projectOwner:savannah-media-worker"
+      ],
+      "role": "roles/storage.legacyBucketOwner"
+    },
+    {
+      "members": [
+        "projectViewer:savannah-media-worker"
+      ],
+      "role": "roles/storage.legacyBucketReader"
+    },
+    {
+      "members": [
+        "projectEditor:savannah-media-worker",
+        "projectOwner:savannah-media-worker"
+      ],
+      "role": "roles/storage.legacyObjectOwner"
+    },
+    {
+      "members": [
+        "projectViewer:savannah-media-worker"
+      ],
+      "role": "roles/storage.legacyObjectReader"
+    },
+    {
+      "members": [
+        "serviceAccount:29658067982-compute@developer.gserviceaccount.com",
+        "serviceAccount:353442994882-compute@developer.gserviceaccount.com",
+        "serviceAccount:media-worker-railway@savannah-media-worker.iam.gserviceaccount.com",
+        "serviceAccount:savannah-dispatcher@savannah-media-worker.iam.gserviceaccount.com",
+        "serviceAccount:savannah-render-job@savannah-media-worker.iam.gserviceaccount.com"
+      ],
+      "role": "roles/storage.objectAdmin"
+    }
+  ],
+  "etag": "CAY="
+}

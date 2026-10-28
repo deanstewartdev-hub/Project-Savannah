@@ -1,0 +1,52 @@
+{
+  "title": "Why Is This Moroccan Town Painted Blue?",
+  "hook": "In Morocco's Rif Mountains, a whole town is painted blue, and nobody agrees why.",
+  "voiceoverScript": "In Morocco's Rif Mountains, a whole town is painted blue, and nobody agrees why. Chefchaouen began in 1471 as a small fortress in northern Morocco. Its old medina still climbs the hillside in narrow lanes. The famous blue came much later. One popular story credits Jewish families who settled here in the 1930s, linking blue with the sky. Others say the colour keeps homes cool or keeps mosquitoes away. Some simply say it looks beautiful, and it certainly draws visitors. Residents still repaint their walls regularly, keeping every shade of blue fresh for the next generation. Follow Savannah Atlas for more places worth discovering.",
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "narration": "In Morocco's Rif Mountains, a whole town is painted blue, and nobody agrees why.",
+      "onScreenText": "Chefchaouen, Morocco",
+      "visualDirection": "Chefchaouen blue city aerial view mountains",
+      "estimatedSeconds": 8
+    },
+    {
+      "sceneNumber": 2,
+      "narration": "Chefchaouen began in 1471 as a small fortress in northern Morocco. Its old medina still climbs the hillside in narrow lanes.",
+      "onScreenText": "Founded 1471",
+      "visualDirection": "Chefchaouen narrow blue alley steps",
+      "estimatedSeconds": 10
+    },
+    {
+      "sceneNumber": 3,
+      "narration": "The famous blue came much later. One popular story credits Jewish families who settled here in the 1930s, linking blue with the sky.",
+      "onScreenText": "Why blue?",
+      "visualDirection": "Chefchaouen blue wall wooden door",
+      "estimatedSeconds": 11
+    },
+    {
+      "sceneNumber": 4,
+      "narration": "Others say the colour keeps homes cool or keeps mosquitoes away. Some simply say it looks beautiful, and it certainly draws visitors.",
+      "onScreenText": "Many theories",
+      "visualDirection": "Chefchaouen blue street people walking",
+      "estimatedSeconds": 11
+    },
+    {
+      "sceneNumber": 5,
+      "narration": "Residents still repaint their walls regularly, keeping every shade of blue fresh for the next generation.",
+      "onScreenText": "Repainted by hand",
+      "visualDirection": "Chefchaouen blue painted houses close up",
+      "estimatedSeconds": 9
+    },
+    {
+      "sceneNumber": 6,
+      "narration": "Follow Savannah Atlas for more places worth discovering.",
+      "onScreenText": "Follow Savannah Atlas",
+      "visualDirection": "Chefchaouen rooftops and mountains view",
+      "estimatedSeconds": 6
+    }
+  ],
+  "callToAction": "Follow Savannah Atlas for more places worth discovering.",
+  "estimatedDurationSeconds": 55,
+  "generationNotes": "Hand-written for the first controlled live render (no paid AI call). The blue's origin is deliberately presented as disputed: the 1930s Jewish-refugee story is popular but not established, so it is framed as one story among several. Visual directions are the Pexels search queries the worker uses verbatim; all six were checked on 25 Oct 2026 and return genuine Chefchaouen portrait footage, so no paid gpt-image-2 fallback is expected."
+}

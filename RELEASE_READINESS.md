@@ -17,6 +17,7 @@ upload has been made.
 | CI | Green: all app suites (syntax 84 server files + 9 frontend scripts) and media worker 81/81 |
 | Live staging | **PASSED** twice on real Apps Script: 12/12 bridge checks and C1–C12 (§7) |
 | Release blockers left | Owner-only: worker image, production bridge, cut-over, one real render, one private upload |
+| **Latest (25 Oct)** | §11 is the current path to the first real video: combined v12 + secret-rotation runbook, cut-over, prepared script, exact blockers (§11.6) |
 
 ## 1. Prioritised backlog
 
@@ -268,6 +269,8 @@ No render execution is running; the last one was on 18 Aug.
 | `6b5da59` | Callback delivery retried for transient failures (4 attempts, 2/10/30 s) | (shared code) | **yes**: this is the job that sends callbacks |
 | `89d8f57`–`c9c1e3c` | `/jobs/status` code | already in v11 | present but unused by the job |
 | `6db099b` | Railway retired: storage always uses the attached service account and refuses the inline-key variable | yes | yes |
+| `08c6b63` (PR #24) | Optional `JOB_SUBMIT_SECRET_PREVIOUS` for a zero-gap rotation; constant-time bearer comparison | yes | (shared code) |
+| `d35b1ef` (PR #24) | Patch-level dependency updates (body-parser, express, qs, proxy-addr, grpc-js, storage); lockfile only | yes | yes |
 
 No dependency, Dockerfile or configuration change (`package.json` only gained a `test` script).
 
@@ -304,9 +307,11 @@ $img = "europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/
    ```
 2. **Dispatcher canary, no traffic:**
    ```powershell
-   gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --image $img --no-traffic --tag candidate
+   gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --image $img --no-traffic --tag candidate --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:1
    ```
    Check `https://candidate---savannah-media-worker-dispatcher-d6ycwdbyla-nw.a.run.app/health` returns 200, and that POST `/jobs` without auth returns 401.
+   Pinning `job-submit-secret:1` (today's value, so behaviour is identical) is the first step of the §10 rotation: with
+   `latest`, adding the new version would make every newly started instance reject Apps Script's current value.
 3. **Promote** the canary:
    ```powershell
    gcloud run services update-traffic savannah-media-worker-dispatcher --region europe-west2 --to-latest
@@ -321,8 +326,9 @@ $img = "europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/
    ```
    **Expected:** the execution FAILS with "JOB_ID env var is required" in its log and no secret-format error. Read it with:
    ```powershell
-   gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="savannah-render-job"' --freshness=10m --limit=10
+   gcloud logging read 'resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"savannah-render-job\"' --freshness=10m --limit=10
    ```
+   (The `\"` escapes are needed in Windows PowerShell 5.1, which otherwise strips the inner quotes and gcloud rejects the filter.)
 
 ### 8.6 Rollback (seconds; v7 and v11 stay in the registry; do not delete them)
 
@@ -334,7 +340,9 @@ gcloud run services update-traffic savannah-media-worker-dispatcher --region eur
 gcloud run jobs update savannah-render-job --region europe-west2 --image europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker:v7
 ```
 
-No data, schema, secret or callback change is involved, so rollback restores the exact previous state.
+No data, schema, secret or callback change is involved, so rollback restores the exact previous state. **Exception:** while
+a §10 rotation overlap is open, roll back only to a pinned v12 revision. Revision 00008-btl (v11) reads `latest` and does not
+understand `JOB_SUBMIT_SECRET_PREVIOUS`, so it would reject whichever value Apps Script holds if that is not the newest.
 
 ### 8.7 Estimated cost
 
@@ -351,8 +359,9 @@ is the separate, approval-gated live-acceptance step.
 
 ## 9. Railway key retirement and exposed-archive cleanup (24 October 2026)
 
-Owner decision: Railway is permanently retired; Cloud Run is the rendering platform. Everything below §9.4 is
-**prepared, not executed**. Each stage needs explicit approval.
+Owner decision: Railway is permanently retired; Cloud Run is the rendering platform. Each stage needs explicit approval.
+**Stage A was approved and executed on 25 October 2026 (§9.6).** Stages B–E are prepared, not executed; §10 is the
+coordinated credential rotation, and §9.7 the revised order.
 
 ### 9.1 Does anything depend on the Railway key? **No.**
 
@@ -370,7 +379,7 @@ Owner decision: Railway is permanently retired; Cloud Run is the rendering platf
 **The service account `media-worker-railway@savannah-media-worker.iam.gserviceaccount.com`** (display name "Media Worker
 (Railway, GCS-only)", unique ID `113584502099553594714`):
 - **Roles:** only `roles/storage.objectAdmin` on `gs://savannah-media`; no project roles; no one may act as it.
-- **Keys:** one user-managed key, **`c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5`** (created 6 Aug 2026, never expires, enabled). The two system-managed keys are Google-internal and cannot be downloaded.
+- **Keys:** one user-managed key, **`c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5`** (created 6 Aug 2026, never expires; **disabled 2026-10-24T23:54Z**, Stage A). The two system-managed keys are Google-internal and cannot be downloaded.
 
 ### 9.2 Audit findings and their limits
 
@@ -401,9 +410,27 @@ own variables (outside Google) also held them.
 
 **Additional risk found:** the two legacy Cloud Run services, `savannah-media-worker` (europe-west2) and
 `savannah-media-worker-test` (us-central1), are **publicly invokable** (`allUsers`), run the old all-in-one worker, and wire
-in the live secrets. Today they return 404 (Google's old routing bug), but that could change.
+in the live secrets. Today they return 404 (the old image has no `/health` route), but that could change.
 
-**Objects proposed for deletion (15)**, by name and generation:
+**Found on 25 October: a second project, `savannah-worker-2`** (number 29658067982, owner-created 4 Aug 2026), holds a
+**third legacy copy**:
+- Cloud Run service `savannah-media-worker` (us-central1), public (`allUsers` invoker, ingress all), running as that
+  project's default compute account, returning 404.
+- Its own Secret Manager copies, compared by fingerprint only: `job-submit-secret`, `elevenlabs-api-key`, `pexels-api-key`
+  and `elevenlabs-voice-id` **match today's production values**. `openai-api-key` is the **older OpenAI key** from the
+  archives.
+- A 16th source archive containing the same `.env`: `gs://run-sources-savannah-worker-2-us-central1/services/savannah-media-worker/1785840812.901701-6d29d2e2900f42d58a588b5fe19d534b.zip`,
+  generation `1785840813372336`. All four `run-sources` zips are byte-identical (same MD5).
+- **Cross-project access:** its default compute account, `29658067982-compute@developer.gserviceaccount.com`, has
+  `roles/storage.objectAdmin` on the production bucket `gs://savannah-media`.
+- No user-managed service-account keys. The owner's other two projects ("My First Project") have no Cloud Run, secrets,
+  buckets or user-managed keys.
+
+**Disabled but not destroyed:** production `openai-api-key` versions 1–3 (the current key is version 4). They probably
+hold the older key(s), and anyone with Secret Manager admin could re-enable them. Destroy them once the old OpenAI key is
+revoked (§10.3).
+
+**Objects proposed for deletion (15 here, plus the 16th in `savannah-worker-2` listed above)**, by name and generation:
 
 | Bucket | Object | Generation |
 |---|---|---|
@@ -434,7 +461,7 @@ $sa  = "media-worker-railway@savannah-media-worker.iam.gserviceaccount.com"
 $key = "c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5"
 ```
 
-**Stage A: disable the Railway key (reversible).**
+**Stage A: disable the Railway key (reversible). Done 2026-10-24T23:54Z; results in §9.6.**
 ```powershell
 gcloud iam service-accounts keys disable $key --iam-account $sa
 ```
@@ -442,28 +469,38 @@ gcloud iam service-accounts keys disable $key --iam-account $sa
 - **Undo:** `gcloud iam service-accounts keys enable $key --iam-account $sa`.
 - **Then (also reversible):** remove the bucket role with `gcloud storage buckets remove-iam-policy-binding gs://savannah-media --member="serviceAccount:$sa" --role=roles/storage.objectAdmin`, and disable the account with `gcloud iam service-accounts disable $sa`.
 
-**Stage B: delete the 15 exposed archives.**
-1. Recommended, for an immediate permanent purge: turn soft delete off on the three build-input buckets first. They hold only build sources, which are rebuilt on each build.
-   ```powershell
-   gcloud storage buckets update gs://savannah-media-worker_cloudbuild gs://run-sources-savannah-media-worker-europe-west2 gs://run-sources-savannah-media-worker-us-central1 --clear-soft-delete
-   ```
-   Without this step, deleted copies stay restorable for 7 days.
-2. Delete each object **by exact generation**: `gcloud storage rm "gs://<bucket>/<object>#<generation>"`, one per table row in §9.3.
-3. **Verify:** `gcloud storage objects list "gs://<bucket>/**"` and `… --soft-deleted` show none of the 15.
-4. Optionally restore soft delete for future objects: `gcloud storage buckets update <buckets> --soft-delete-duration=7d`.
-5. Optional hardening: add a lifecycle rule deleting `source/` objects after 7 days in the Cloud Build bucket.
-6. **Consequences:** old Cloud Build history entries lose their source archive (they cannot be re-run). Running services and images are unaffected. **Irreversible** once soft delete is off.
+**Stage B: delete the 16 exposed archives (targeted; soft delete left on). Revised 25 October; details in §10.4.**
+Bucket-wide soft delete is **not** turned off. Google's documentation is explicit that soft-deleted objects keep the retention
+in force when they were deleted, so clearing the policy afterwards purges nothing, and no single soft-deleted object can be
+purged early. A normal delete therefore always leaves a 7-day restorable copy; it is acceptable because:
+- after §10, every credential inside the archives is dead (rotated or revoked; the Railway key is disabled and later deleted
+  in Stage E);
+- a soft-deleted object cannot be read, only listed or restored, and only by Storage Admin-level project principals.
 
-**Stage C: rotate the live credentials found in `.env`** (production-affecting; the owner does the provider dashboards):
-1. **`JOB_SUBMIT_SECRET`:** generate a new value with no trailing newline. Add it as a new version of `job-submit-secret`, and **at the same time** set the production main app's `MEDIA_WORKER_JOB_SUBMIT_SECRET` property to the same value. Then start a new dispatcher revision; the v12 deploy (§8.5) does this. Then disable version 1. Do it with no render in progress; between the two changes, submissions fail with 401 (safe, no spend).
-2. **ElevenLabs and Pexels:** regenerate the keys in the provider dashboards, add new secret versions, disable the old versions, and revoke the old keys at the provider. The render job picks up `latest` at its next execution.
-3. **OpenAI:** revoke the older key found in the archives, if it is still active.
-4. Afterwards, update or delete the local `media-worker/.env`.
+Evidence is kept first: `tools/security/archive-evidence-2026-10-25.json` records every object's bucket, name, generation,
+size, CRC32C, MD5, creation time and Cloud Build ID, plus the credential entry names (no contents). Cloud Build history
+entries stay. Commands and verification: §10.4.
 
-**Stage D: legacy services (recommended):** delete `savannah-media-worker` (europe-west2) and `savannah-media-worker-test`
-(us-central1) with `gcloud run services delete <name> --region <region>`. Optionally also delete their
-`cloud-run-source-deploy` images and the now-empty `run-sources-*` buckets. Redeploying is the only way back, and nothing
-uses them.
+**Stage C: rotate the live credentials found in `.env`.** Superseded by the coordinated, no-interruption procedure in §10.
+
+**Stage D: remove the three legacy public services (revised 25 October).** No callers (§9.6):
+```powershell
+gcloud run services delete savannah-media-worker --region europe-west2 --project savannah-media-worker
+gcloud run services delete savannah-media-worker-test --region us-central1 --project savannah-media-worker
+gcloud run services delete savannah-media-worker --region us-central1 --project savannah-worker-2
+```
+Then, in `savannah-worker-2`:
+- Remove its cross-project bucket access:
+  ```powershell
+  gcloud storage buckets remove-iam-policy-binding gs://savannah-media --member="serviceAccount:29658067982-compute@developer.gserviceaccount.com" --role=roles/storage.objectAdmin
+  ```
+- Either delete its five secrets (`gcloud secrets delete <name> --project savannah-worker-2`), or **shut down the whole
+  project** (`gcloud projects delete savannah-worker-2`: recoverable for 30 days, then permanent; it holds nothing else).
+  Shutting it down is recommended.
+
+Redeploying is the only way back for the services, and nothing uses them. Optionally also delete their
+`cloud-run-source-deploy` images and the emptied `run-sources-*` buckets. Do D **before** §10.2, so the new provider keys
+are never wired into a public legacy service (they read `latest` at start-up).
 
 **Stage E: permanent deletion (irreversible), after at least 7 days with no problems.**
 ```powershell
@@ -484,4 +521,350 @@ never be restored**. Then delete the local key files on the owner's PC.
 | C | None in Google; provider keys are free to regenerate |
 | Optional: enable the Policy Analyzer API for key last-used evidence | Free for this query |
 
-**Recommended order:** A (contain now) → B → C1 together with the v12 deployment → C2/C3 → D → E after 7 days.
+### 9.6 Stage A results (executed 2026-10-24T23:54:27Z, approved by the owner)
+
+**Final dependency check, immediately before:** no Cloud Run service or job runs as `media-worker-railway@`. Env wiring was
+read by variable name only: no inline-key variable anywhere. The key had **no authentication events in the 42 days to 24
+Oct**. The account's only grant is still `objectAdmin` on `gs://savannah-media`.
+
+**Action:** `gcloud iam service-accounts keys disable c56e3d6ae90a2bd84e99bbeace72ce73ef5c9ab5 --iam-account media-worker-railway@…`.
+The key is listed `DISABLED True`. The service account itself stays enabled, and nothing was deleted.
+
+**Health after the change:**
+
+| Check | Result |
+|---|---|
+| Dispatcher `GET /health` | 200 `{"status":"ok"}` |
+| Dispatcher authenticated `POST /jobs/status` for the last successful render (read-only) | 200: `state SUCCEEDED`, `artifactExists true`, `probeExists true`, `probePassed true`. The dispatcher's own account still reads `gs://savannah-media` and the Cloud Run Jobs API |
+| Render job | Unchanged: image v7, `savannah-render-job@`, generation 9; secret access intact for all five secrets; `objectAdmin` on the bucket intact (not executed: that would be a paid render) |
+| Cloud Run errors since the change | 0 |
+
+**Legacy service callers:** request logs (30-day retention, 25 Sep – 24 Oct) and Cloud Monitoring `request_count` (42 days)
+show **exactly one request to each of the three legacy services**: my own `/health` probes on 24 Oct, from curl and
+PowerShell. No code or config refers to their URLs. The default compute account's two sign-ins on 24 Oct match those
+probes, which started instances that read their secrets.
+
+### 9.8 Stage D record (approved; executed 25 October 2026, 00:13–00:15 UTC)
+
+**Immediately before each change:** the service had no requests since 24 Oct other than my own `/health` probe; it was
+not in the rollback plan (§8.6 uses only dispatcher revision 00008-btl and `media-worker:v7`/`v11`); and its image was still
+in its registry. The `savannah-worker-2` account had no authentication events in 42 days.
+
+| Time (UTC) | Change | Production check afterwards | How to restore |
+|---|---|---|---|
+| 00:13:48 | Deleted Cloud Run service `savannah-media-worker` (europe-west2, project `savannah-media-worker`) | health 200; status call SUCCEEDED, artifact and probe found; dispatcher 00008-btl at 100%, v11, unchanged; render job v7, generation 9; 0 errors | `gcloud run services replace tools/security/stage-d-restore/savannah-media-worker.europe-west2.yaml --region europe-west2 --project savannah-media-worker`, then `gcloud run services set-iam-policy … <matching .iam.json>`. The image is kept in `cloud-run-source-deploy`. The public URL may differ |
+| 00:14:09 | Deleted `savannah-media-worker-test` (us-central1, project `savannah-media-worker`) | Same results, 0 errors | Same method with `savannah-media-worker-test.us-central1.yaml` |
+| 00:14:31 | Deleted `savannah-media-worker` (us-central1, project `savannah-worker-2`) | Same results, 0 errors | Same method with `worker-2.savannah-media-worker.us-central1.yaml` in project `savannah-worker-2` |
+| 00:15:00 | Removed `roles/storage.objectAdmin` on `gs://savannah-media` from `29658067982-compute@developer.gserviceaccount.com` | Same results, 0 errors; bucket `objectAdmin` is now the default compute account of `savannah-media-worker`, `media-worker-railway@` (key disabled), `savannah-dispatcher@` and `savannah-render-job@` | `gcloud storage buckets add-iam-policy-binding gs://savannah-media --member="serviceAccount:29658067982-compute@developer.gserviceaccount.com" --role=roles/storage.objectAdmin` (full previous policy: `savannah-media.bucket-iam.before.json`) |
+
+**Not done, and waiting for the owner:** shutting down `savannah-worker-2`. Its full inventory matches what was already
+known:
+- owner only, plus Google service agents and its default compute account;
+- billing enabled; no liens;
+- no Cloud Run services or jobs left; no BigQuery datasets, Pub/Sub, Datastore/Firestore database or Dataform repositories;
+- one Cloud Build (`98ffbe03…`) and one image (the deleted legacy service's);
+- the five known secrets;
+- one bucket holding only **archive #16**.
+
+Shutting the project down would permanently delete archive #16 after 30 days, and its secrets with it. That overlaps with
+Stage B, which is not yet approved. Its evidence is in `tools/security/archive-evidence-2026-10-25.json`.
+
+**Restore files** (`tools/security/stage-d-restore/`) hold configuration and secret *references* only, never secret values.
+
+### 9.7 Revised safe order
+
+1. **A:** done. **D:** three services deleted and the bucket grant removed (§9.8); `savannah-worker-2` shutdown awaits the owner.
+2. **D** (approval): delete the three legacy services; remove the `savannah-worker-2` bucket grant; shut down `savannah-worker-2`.
+   Removes every public path to the live secrets, at no risk to production.
+3. **§10.1, `JOB_SUBMIT_SECRET`** (approval), during the v12 deployment: the v12 deploy pins version 1, then the overlap
+   rotation runs.
+4. **§10.2, ElevenLabs and Pexels** (approval, plus owner dashboards), and **§10.3, OpenAI old-key revocation** (owner).
+5. **B** (approval): delete the 16 archives by generation, with soft delete left on. Every credential inside is dead by then.
+   B may also run earlier, since deletion already blocks reads, but it adds little before the rotation.
+6. **E** (approval, at least 7 days after A with no problems): delete the key, then the account. Destroy `job-submit-secret`
+   version 1 and old provider versions. Delete the local key files and `.env`.
+
+## 10. Coordinated credential rotation (prepared 25 October 2026; not executed)
+
+Everything here changes production and needs the owner's approval stage by stage. Code support is on branch
+`security/job-submit-secret-rotation-overlap`:
+- The dispatcher accepts an optional `JOB_SUBMIT_SECRET_PREVIOUS` and compares bearer tokens in constant time
+  (`media-worker/src/lib/auth.js`; worker tests 89/89).
+- `tools/security/job-submit-secret-rotation.cjs` creates, copies and verifies the new value by fingerprint only, and never
+  writes to Google Cloud or Apps Script.
+
+**How each consumer picks up a secret.** Cloud Run resolves a secret reference when an **instance starts** (service), or
+when an **execution starts** (job). A running instance keeps the value it started with.
+- **Dispatcher:** `JOB_SUBMIT_SECRET` ← `job-submit-secret@latest` today. It must equal the production main app's
+  `MEDIA_WORKER_JOB_SUBMIT_SECRET`, which is used for `POST /jobs` and `POST /jobs/status`.
+- **Render job:** `JOB_SUBMIT_SECRET` is required at start-up but never used for authentication. It also needs
+  `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` and `PEXELS_API_KEY`, all at `@latest`.
+- **Callbacks:** use `MEDIA_WORKER_SHARED_SECRET` (bridge and main app). This was **not** exposed and is **not** rotated
+  here, so renders in flight still deliver their callbacks during every step below.
+
+**Common preconditions:**
+- No render in progress: `gcloud run jobs executions list --job savannah-render-job --region europe-west2 --limit 5` shows
+  every execution completed, and the production queue is idle.
+- Stage D is done.
+- Where PowerShell is shown, run it as the owner account.
+
+### 10.1 `JOB_SUBMIT_SECRET`: zero-gap overlap rotation (requires the v12 image)
+
+| Step | Action | Verify | Undo |
+|---|---|---|---|
+| 1 | v12 deploy with `--update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:1` (§8.5 step 2), promoted | `/health` 200; status call with the current value 200 | §8.6 rollback |
+| 2 | `node tools/security/job-submit-secret-rotation.cjs new` | Prints only a fingerprint | Delete `%USERPROFILE%\.savannah-rotation` |
+| 3 | `gcloud secrets versions add job-submit-secret --project savannah-media-worker --data-file="$env:USERPROFILE\.savannah-rotation\job-submit-secret"` (version 2). Nothing reads it yet: the dispatcher is pinned to 1, and the job only needs a well-formed value | `node tools/security/job-submit-secret-rotation.cjs verify 2` shows **MATCHES** with no whitespace warning | `gcloud secrets versions disable 2 --secret job-submit-secret` |
+| 4 | **Open the overlap:** `gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2,JOB_SUBMIT_SECRET_PREVIOUS=job-submit-secret:1`. **Never on v11**, which ignores `_PREVIOUS` | Status call with version 1 → 200 **and** with version 2 → 200 (values read from Secret Manager in memory, never shown) | Same command with `JOB_SUBMIT_SECRET=job-submit-secret:1` and `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` |
+| 5 | **Owner:** `node tools/security/job-submit-secret-rotation.cjs copy`. In the **production** script editor: Project Settings → Script properties → `MEDIA_WORKER_JOB_SUBMIT_SECRET` → paste → Save. Only this property changes | Copy the saved value back out of Script properties, then run `node tools/security/job-submit-secret-rotation.cjs check-clipboard` → **MATCHES**. Clear the clipboard | Paste version 1 back: `gcloud secrets versions access 1 --secret job-submit-secret` piped to `clip` |
+| 6 | **Close the overlap:** `gcloud run services update savannah-media-worker-dispatcher --region europe-west2 --remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` | Version 1 → **401**; version 2 → 200. No 401s in dispatcher request logs over the next day | Step 4 command again |
+| 7 | `gcloud secrets versions disable 1 --secret job-submit-secret --project savannah-media-worker`. Optionally pin the job too: `gcloud run jobs update savannah-render-job --region europe-west2 --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2` | `gcloud secrets versions list job-submit-secret`. Only after step 6: a revision still referencing version 1 (the step-1 or step-4 revision) can no longer start once it is disabled, so from here roll back only to a revision pinned to `:2`, or to v11 (`latest`) | `… versions enable 1` |
+| 8 | Delete `%USERPROFILE%\.savannah-rotation`. Destroy version 1 in Stage E | | |
+
+**Why there is no interruption:** at every moment, the value Apps Script sends is accepted. Before step 5 it is version 1
+(accepted from step 1 through step 6). After step 5 it is version 2 (accepted from step 4). Rollback during the overlap
+(steps 4–6) must target a pinned v12 revision; after step 6, even the v11 rollback revision works, because `latest` is then
+version 2.
+
+**Cost:** none (two config-only revisions; Secret Manager versions are free at this scale).
+
+### 10.2 ElevenLabs and Pexels (owner dashboards, then Secret Manager)
+
+Only the render job uses these, and it reads `latest` when each execution starts.
+1. **Owner:** create a **new** key in the ElevenLabs and Pexels dashboards. Do **not** revoke the old ones yet.
+2. **Owner:** add each as a new version without a trailing newline. Either use Secret Manager in the Console (`elevenlabs-api-key` or
+   `pexels-api-key` → New version → paste), or save the key to a file and use `gcloud secrets versions add <name> --data-file=<file>`.
+   Never use a PowerShell pipe, which adds CRLF.
+3. **Verify, free and read-only, values never shown:**
+   - the new version is clean (no surrounding whitespace; the worker would refuse it at start-up, before any paid call);
+   - ElevenLabs `GET /v1/user` returns 200 with the new key;
+   - Pexels `GET /v1/search?query=nature&per_page=1` returns 200 with the new key.
+4. With no render running, **owner:** revoke the old keys at each provider. Then
+   `gcloud secrets versions disable <old version> --secret <name>`.
+5. The next real render (live acceptance) is the end-to-end proof. Until then, the step 3 checks are the evidence.
+
+**Undo:** re-enable the old secret version (only possible until the provider key is revoked). **Cost:** none.
+
+### 10.3 OpenAI: the older key from the archives
+
+- The archived key **ends in `f8gA`**. Production version 4, which stays, ends in `FlsA`. These are the same redacted forms
+  OpenAI's key list shows.
+- **Owner:** OpenAI dashboard → API keys → find the key ending `f8gA` → check "Last used" → revoke it. If it is not listed,
+  it was already revoked.
+- After revocation, destroy production `openai-api-key` versions 1–3 (disabled today):
+  `gcloud secrets versions destroy <n> --secret openai-api-key --project savannah-media-worker`. **Irreversible**, but they
+  hold no value in use.
+- The `savannah-worker-2` copy disappears with Stage D.
+
+### 10.4 Archives: evidence, then targeted deletion (Stage B detail)
+
+1. Evidence is already committed (`tools/security/archive-evidence-2026-10-25.json`, 16 objects). Immediately before
+   deleting, re-check each object's MD5 against it:
+   `gcloud storage objects describe "gs://<bucket>/<object>#<generation>" --format="value(md5_hash)"`.
+2. Delete by exact generation, so nothing newer can be hit: `gcloud storage rm "gs://<bucket>/<object>#<generation>"`, one
+   per evidence entry. **No bucket policy change.**
+3. **Verify:** `gcloud storage ls -a "gs://<bucket>/**"` no longer lists them. They will show under
+   `gcloud storage ls --soft-deleted "gs://<bucket>/**"` until about 7 days later, when they expire automatically.
+4. **Consequences:** those old Cloud Build entries lose their source (they cannot be re-run). Images, services and the
+   evidence record are unaffected. Restorable for 7 days by Storage Admin-level principals, then **permanent**.
+5. **Cost:** nothing; about 100 MB is freed after the soft-delete window (pennies-or-less meanwhile).
+6. Recurrence is already prevented by `media-worker/.gcloudignore` and `.dockerignore` (§8; 32 key-free upload files).
+
+**Only if a faster purge is wanted (not recommended):** run `gcloud storage buckets update <bucket> --clear-soft-delete`
+**before** step 2, delete, then set `--soft-delete-duration=7d` again. This briefly removes protection for every object in
+that bucket. The buckets hold only build inputs, but the owner asked to avoid this unless necessary, and it is not
+necessary once §10 is done.
+
+## 11. Path to the first real video (25 October 2026)
+
+Owner decision: keep `savannah-worker-2` until Stage B. Priority: the first controlled real render and private upload.
+Nothing in this section has been executed in production.
+
+### 11.1 State, re-checked 25 Oct 00:20 UTC
+
+| Item | Result |
+|---|---|
+| Production dispatcher | `/health` 200. An authenticated read-only status call found the last render (SUCCEEDED, artifact and probe present). Revision 00008-btl, v11, 100% traffic; 0 errors |
+| Render job | v7, `savannah-render-job@`, generation 9. No execution since 18 Aug |
+| Remaining Cloud Run services | Only the dispatcher (Stage D done) |
+| Railway key | Disabled (Stage A) |
+| Branches | PR #24 contains the integration tip `47b1773` plus its own commits; no conflicts. PR #24 and #15 CI green |
+| Production Apps Script | Still v89 (read-only clone): 112 files, the same five OAuth scopes as v1.4, web app `ANYONE_ANONYMOUS` |
+
+### 11.2 Verification run for this section (no production change)
+
+| Check | Result |
+|---|---|
+| Worker tests (Node 24) | 89/89 |
+| App suites (`node node-tests/run-local.cjs`) | Exit 0, every suite green |
+| Rotation tool tests | 7/7 |
+| Image smoke under Node 22.23.4 (v12 contents: `package*.json` + `src/`, `npm ci --omit=dev`) | **12/12**. Includes the overlap: new and previous secrets both pass auth, any other value gets 401, and a malformed `_PREVIOUS` is refused at start-up without being echoed |
+| Cloud Build upload set | 31 files, no credentials, no tests, no `node_modules` |
+| Secret scan of tracked files | No key patterns; no credential files tracked |
+| `npm audit --omit=dev` | Was 1 critical, 2 high, 7 moderate. The public dispatcher was exposed to `body-parser` (unauthenticated DoS) because it parses JSON before auth. Fixed by patch-level lockfile updates (`d35b1ef`; `package.json` unchanged). **5 moderate remain** (major upgrades only; the `uuid` advisory does not apply to the v4 API used) |
+| Manifest, v89 → v1.4 | Identical scopes, so **no re-authorisation**. Only change: web app `ANYONE_ANONYMOUS` → `MYSELF`, which is why the bridge must come first (P0-1) |
+| Files, v89 → v1.4 push set | Nothing removed; 24 files added |
+| Sheet headers, v89 → v1.4 | Unchanged for Render Jobs, Publishing Jobs, Production Tasks, Scripts, SEO, Approval and Analytics. The only new tab, Render Callback Inbox, is created by the bridge's first receipt |
+| Which secret v89 uses for dispatcher auth | The separate `MEDIA_WORKER_JOB_SUBMIT_SECRET`, as v1.4 does, so the rotation can run **before** the app cut-over |
+| Bucket prerequisites | `music/default-bed.mp3` present (the silent placeholder, P1-9). One stale `job-requests/` object from August (harmless) |
+
+**Known build risk:** the Dockerfile uses `node:22-slim` unpinned and `apt-get install ffmpeg`. v12 gets whichever Node 22.x
+and Debian ffmpeg are current at build time. The smoke ran on 22.23.4; the post-deploy job smoke (§11.3 step 5) is the check.
+
+### 11.3 Combined runbook: worker v12 + `JOB_SUBMIT_SECRET` rotation (one approval, about 45 minutes)
+
+Supersedes the separate §8.5 and §10.1 sequences; their commands are unchanged.
+- **Build source:** a clean checkout of the approved commit, so no local file can enter the build:
+  ```powershell
+  git -C C:\Users\dean9\Documents\GitHub\Project-Savannah worktree add $env:TEMP\savannah-v12 <approved commit>
+  ```
+  The approved commit is the PR #24 head, or the integration branch after #24 is merged into it (the owner's choice;
+  either way, record the commit in issue #6).
+- **Evidence:** after every step, the read-only production check (dispatcher health, revision and traffic, render job,
+  authenticated status call, bucket IAM, Cloud Run errors) is run and recorded.
+
+| # | Who | Action | Pass condition | If it fails |
+|---|---|---|---|---|
+| 0 | Owner + Claude | No render running (execution list; Production page idle). **Owner:** copy `MEDIA_WORKER_JOB_SUBMIT_SECRET` from production Project Settings → Script properties, then run `node tools/security/job-submit-secret-rotation.cjs check-clipboard 1`. Clear the clipboard | **MATCHES** version 1 | **Stop.** Production cannot be submitting today; investigate before anything else |
+| 1 | Claude | `gcloud builds submit $env:TEMP\savannah-v12\media-worker --tag …/media-worker:v12` | Build SUCCESS; image in the registry | Nothing deployed; fix and rebuild |
+| 2 | Claude | Dispatcher canary, no traffic, pinned to today's secret: `--image v12 --no-traffic --tag candidate --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:1` | Candidate URL: `/health` 200; `/jobs` without auth 401; status call with version 1 → 200 | Delete the tag; production untouched (still 00008-btl) |
+| 3 | Claude | `update-traffic --to-latest` | Production URL: same three checks | `update-traffic --to-revisions savannah-media-worker-dispatcher-00008-btl=100` |
+| 4 | Claude | `gcloud run jobs update savannah-render-job --image v12` | Job describes v12 | `jobs update --image …:v7` |
+| 5 | Claude | `gcloud run jobs execute savannah-render-job --wait` (no `JOB_ID`) | Execution FAILS with "JOB_ID env var is required"; no secret-format error; seconds of compute, no provider call | Roll the job back to v7 |
+| 6 | Claude | `rotation.cjs new`; `gcloud secrets versions add job-submit-secret --data-file=<file>`; `rotation.cjs verify 2` | MATCHES, no whitespace warning | `versions disable 2`. Nothing reads it yet |
+| 7 | Claude | Open the overlap: `--update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2,JOB_SUBMIT_SECRET_PREVIOUS=job-submit-secret:1` | Status call with version 1 → 200 **and** version 2 → 200 | Before step 8 only: back to `:1` and `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS`. **After step 8 the overlap is the safe state.** To undo completely, the owner pastes version 1 back first, then go to `:1` only |
+| 8 | **Owner** | `rotation.cjs copy`. Paste into production `MEDIA_WORKER_JOB_SUBMIT_SECRET` and Save. Copy it back out, then `rotation.cjs check-clipboard`. Clear the clipboard | **MATCHES** the rotation file | Paste version 1 back; the overlap still accepts it |
+| 9 | Claude | Close the overlap: `--remove-secrets=JOB_SUBMIT_SECRET_PREVIOUS` | Version 1 → **401**, version 2 → 200; no 401s in dispatcher request logs afterwards | Step 7 command again |
+| 10 | Claude | `secrets versions disable 1`; `jobs update --update-secrets=JOB_SUBMIT_SECRET=job-submit-secret:2`; delete `%USERPROFILE%\.savannah-rotation` | Listed versions: 1 disabled, 2 enabled | `versions enable 1` **first**: a revision that references a disabled version cannot start, so the overlap (step 7) can only be reopened after this |
+
+**Never interrupted:** production v89 sends version 1 until step 8, and version 1 is accepted until step 9. It sends
+version 2 from step 8, and version 2 is accepted from step 7. Callbacks use the separate, unexposed callback secret,
+so renders are never affected.
+
+**Rollback by phase:**
+- Steps 2–5: back to revision 00008-btl or job v7 (seconds).
+- Steps 7–9: only to a v12 revision pinned to `:2`, or the step-7 command. v11 reads `latest` = version 2 and would
+  reject version 1, which production still holds until step 8.
+- After step 10: any revision pinned to `:2`, or v11.
+
+**Cost:** under £0.10 one-off (one build, inside the free build minutes; seconds of job compute), plus about £0.03 per
+month for the extra image. No provider call, no render, no upload.
+
+### 11.3a ElevenLabs and Pexels before the first paid video (owner decision, 25 Oct; not executed)
+
+Only the render job uses these keys, and it reads `latest` when each execution starts. With no render running, nothing
+is interrupted.
+- `savannah-worker-2` still holds copies of the old keys. They stop working once the old key is revoked at the provider.
+- ElevenLabs is the first paid step of a render. A bad new key fails there, before any charge.
+
+**ElevenLabs (rotate):**
+
+| # | Who | Action | Pass condition | Undo |
+|---|---|---|---|---|
+| E1 | Owner | ElevenLabs → API keys → **create a new key** (for example `savannah-render-2026-10`). Allow at least **Text to Speech**, plus **User read** so it can be verified for free. Set a monthly credit limit if offered (for example 10,000). **No expiry.** Do **not** delete the old key yet | Key created | Delete it |
+| E2 | Owner | Secret Manager → `elevenlabs-api-key` → **New version** → paste → Add | Version 2 exists | `gcloud secrets versions disable 2 --secret elevenlabs-api-key` (latest falls back to 1) |
+| E3 | Claude | Read-only: version 2 has no surrounding whitespace; its fingerprint differs from version 1; `GET /v1/user` with it returns 200 (403 means valid but scope-limited; **401 means invalid**, so undo E2) | Clean, different, not 401 | As E2 |
+| E4 | Owner | With no render running: delete the **old** key in ElevenLabs. Then Claude disables secret version 1 | Old key gone | None for the old key. A broken new key is replaced by creating another |
+
+**Pexels (cannot be rotated safely today):** Pexels states that "new API key issuance is currently paused", and its docs
+describe no regenerate or revoke. The worker treats a failed Pexels search as an error (no image fallback), so revoking the
+key would break every render.
+- **Do not revoke it.**
+- **Owner:** check the Pexels API dashboard for a regenerate option. If there is one, use the ElevenLabs pattern
+  (E1–E4). If not, ask Pexels support for a key reset.
+- **Residual risk is low:** the API is free, and misuse can only consume the account's 200 requests per hour and 20,000
+  per month. The worst case is renders failing at the visuals step until the key is replaced.
+
+**Suggested order:** §11.3 → E1–E4 → (Pexels if possible) → §11.4 → the first video.
+
+### 11.4 Production bridge and Apps Script cut-over (after §11.3; owner-run; not executed)
+
+This refines §4. The production script ID may only be pushed by the owner (standing rule). Do this with no render in
+progress.
+
+1. **Record rollback facts:**
+   - the current `MEDIA_WORKER_CALLBACK_URL` value (a private note);
+   - that version 89 is listed under Deploy → Manage deployments;
+   - the deployment ID (`AKfycbzfD4…`).
+2. **Create the bridge** (about 15 minutes; `CALLBACK_INBOX_STAGING.md` Part 4, with the §4 differences):
+   - From a folder containing **only** `CallbackBridge/` files, run
+     `npx @google/clasp@3.4.1 create --type standalone --title "Savannah bridge"`, then `… push`.
+   - Script properties, exactly two:
+     - `MEDIA_WORKER_SHARED_SECRET`, copied from the production main app;
+     - `RENDER_JOBS_SPREADSHEET_ID`, the production spreadsheet's ID.
+   - **Never** add `SAVANNAH_ENVIRONMENT`.
+   - Run **Authorize access**. Deploy as a web app (anyone, anonymous). Note the `/exec` URL.
+   - **Check:** a POST with a wrong secret is refused and writes nothing; the bridge's executions page shows it.
+3. **Push v1.4 to production HEAD only.** From a clean worktree of the approved commit, run
+   `npx @google/clasp@3.4.1 push`. That folder's `.clasp.json` targets production. HEAD is not the deployed version,
+   so users and callbacks still run v89.
+4. **Callback URL, then deploy:**
+   - Set `MEDIA_WORKER_CALLBACK_URL` to the bridge `/exec` URL exactly. From this moment, callbacks wait in the inbox.
+   - Then Deploy → Manage deployments → edit the existing deployment → **New version** → Deploy. The URL is unchanged;
+     access becomes "only me".
+5. **Readiness:** Settings → Release readiness → Run.
+   - Pass: no BLOCK; the spreadsheet suffix equals the end of the bridge's `RENDER_JOBS_SPREADSHEET_ID`.
+   - The only expected warnings are "No Render Callback Inbox tab yet" and the background-queue scope (P1-7).
+6. **Rollback:** restore the old `MEDIA_WORKER_CALLBACK_URL`, and edit the deployment back to version 89. Inbox receipts
+   are kept and applied when v1.4 returns.
+
+### 11.5 Workflow: Ideas → Scripts → Approval → SEO → Rendering → Quality → Private upload
+
+| Stage | Evidence now | Live proof still needed |
+|---|---|---|
+| Ideas | Code path §2. A manual idea row is supported by the repository format (`tools/first-video/README.md`) | Runs in the first video (or a manual row) |
+| Scripts | `Script_Validator` validated the prepared Chefchaouen script (104 words, 6 scenes, 55 s) | AI generation, about 1p |
+| Approval | 8 approval-gate tests; every render entry point requires APPROVED | Owner approves in the UI |
+| SEO | Code path §2. The AI-voice disclosure is appended at upload regardless of SEO text | AI generation, about 1p |
+| Rendering | Beats from the prepared script pass the dispatcher's `validateBeats`; all 6 Pexels queries return genuine Chefchaouen portrait clips (no paid image fallback expected); image smoke 12/12; staging inbox e2e passed (§7) | **The first real render through v12, the bridge and the inbox** |
+| Quality checks | Probe gates (resolution, silence, black frames) passed on the August render; human review screen tested | Review of the new video |
+| Private upload | Defaults to private; duplicate-upload guards tested (48 recovery cases); disclosure appended | **The first private upload** |
+
+### 11.6 Exact remaining blockers to the first real video
+
+| # | Blocker | Who | Approval needed |
+|---|---|---|---|
+| 1 | §11.3: worker v12 plus `JOB_SUBMIT_SECRET` rotation | Claude runs it; owner does steps 0 and 8 | **Yes** |
+| 2 | Choose the build commit: the PR #24 head, or merge #24 into the integration branch first | Owner | Yes (merge) |
+| 3 | §11.4: production bridge, v1.4 push, callback URL, new deployment version | Owner (production script ID) | Yes |
+| 4 | Confirm uploads go to **Savannah Atlas**: the deploying account's YouTube channel. Check the channel name on the app's Analytics page | Owner, read-only | No |
+| 5 | Confirm ElevenLabs has at least 1,000 credits left (the video needs about 635) | Owner, dashboard | No |
+| 6 | Accept the silent music placeholder for this private test, or supply a licensed track (P1-9) | Owner decision | — |
+| 7 | First video (`tools/first-video/README.md`, then `LIVE_ACCEPTANCE.md` §5–8): idea row, script and SEO generation, approval, **one paid render** (about £0.05 plus 635 ElevenLabs credits), review, **one private upload** | Owner, with Claude watching logs | **Yes** |
+
+**Added by owner decision (25 Oct):** rotate ElevenLabs **before** the first paid video (§11.3a E1–E4). For Pexels:
+regenerate if the dashboard allows it, otherwise keep the key and ask support (issuance is paused).
+
+Not blocking the first video: §10.3 (OpenAI old-key revocation), Stage B and the `savannah-worker-2` shutdown, Stage E, the `script.scriptapp`
+scope (P1-7), and merging the PR stack to `main` (recommended only after live acceptance passes, so `main` gets only
+proven code).
+
+### 11.7 Execution record: worker v12 and the JOB_SUBMIT_SECRET rotation (28 October 2026)
+
+Executed under the owner's approval of §11.3 steps 0–10. Nothing else was changed: no Apps Script deployment, no bridge,
+no ElevenLabs, Pexels or OpenAI rotation, no paid render, no upload, no archive deletion, no `savannah-worker-2` shutdown,
+no PR merge.
+
+| Step | Result |
+|---|---|
+| 0 | PASS. The owner's copy of `MEDIA_WORKER_JOB_SUBMIT_SECRET` matched Secret Manager version 1. An earlier DIFFERS result was superseded by this re-check. |
+| 1 | PASS. Upload set from a clean worktree at `84aaab8`: 31 files, no `.env`, key, credential or test file. Cloud Build SUCCESS; image `media-worker:v12`, digest `sha256:72a8f7acefc40eb1c6757eff2d37dbcd38a618a1ad57491404d8a98734a39eb6`. |
+| 2 | PASS. Canary `savannah-media-worker-dispatcher-00009-man` at 0%. Env names, resources and scaling matched production. Health 200; unauthenticated 401; version 1 accepted (400 on a deliberately fake job ID, which proves auth passed). |
+| 3 | PASS. `00009-man` promoted to 100%. Rollback revision `00008-btl` retained. |
+| 4 | PASS. Render job moved from `media-worker:v7` to the v12 digest. Env names and secret references unchanged. |
+| 5 | PASS. Smoke execution `savannah-render-job-zm59d` failed with exactly `JOB_ID env var is required` (exit 1). No provider call and no callback. |
+| 6 | PASS. Rotation secret stored as Secret Manager `job-submit-secret` version 2 (43 bytes, no newline); verified MATCHES the local file. |
+| 7 | PASS. Overlap opened: `00010-ndp`, `JOB_SUBMIT_SECRET` = version 2, `JOB_SUBMIT_SECRET_PREVIOUS` = version 1. Both accepted; a wrong value refused with 401. |
+| 8 | PASS (owner). Production Apps Script property `MEDIA_WORKER_JOB_SUBMIT_SECRET` saved; copied back and checked: MATCHES version 2. |
+| 9 | PASS. Overlap closed: `00011-ctz` at 100%, `JOB_SUBMIT_SECRET_PREVIOUS` removed. Version 1 refused (401), version 2 accepted. Dispatcher logs in the following 30 minutes showed no 4xx other than these test calls. No Apps Script traffic was observed in that window, so no live production submission was verified. |
+| 10 | PASS. Secret version 1 disabled. Render job pinned to `job-submit-secret:2`. Local rotation folder deleted. |
+
+**Final state (28 Oct):** dispatcher `00011-ctz` at 100% on the v12 digest, `JOB_SUBMIT_SECRET` = version 2 only.
+Health 200; unauthenticated 401; version 2 accepted; wrong value 401. Render job on the v12 digest pinned to version 2.
+
+**Rollback state:**
+- Revision `00009-man` (v12, pinned to version 1) cannot start while version 1 is disabled. It is not a rollback target.
+- Revision `00008-btl` (v11, reads `latest` = version 2) remains available and accepts version 2. This is the rollback target.
+- Re-enabling version 1 (`gcloud secrets versions enable 1`) restores `00009-man`, but only after the production Apps Script property is set back to version 1.
+
+**Open:** no production submission has been observed since the overlap closed. The §10.1 step 6 "no 401s over the next day" check remains to be confirmed from dispatcher logs.
