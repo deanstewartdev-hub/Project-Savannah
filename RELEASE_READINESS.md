@@ -838,3 +838,33 @@ regenerate if the dashboard allows it, otherwise keep the key and ask support (i
 Not blocking the first video: §10.3 (OpenAI old-key revocation), Stage B and the `savannah-worker-2` shutdown, Stage E, the `script.scriptapp`
 scope (P1-7), and merging the PR stack to `main` (recommended only after live acceptance passes, so `main` gets only
 proven code).
+
+### 11.7 Execution record: worker v12 and the JOB_SUBMIT_SECRET rotation (28 October 2026)
+
+Executed under the owner's approval of §11.3 steps 0–10. Nothing else was changed: no Apps Script deployment, no bridge,
+no ElevenLabs, Pexels or OpenAI rotation, no paid render, no upload, no archive deletion, no `savannah-worker-2` shutdown,
+no PR merge.
+
+| Step | Result |
+|---|---|
+| 0 | PASS. The owner's copy of `MEDIA_WORKER_JOB_SUBMIT_SECRET` matched Secret Manager version 1. An earlier DIFFERS result was superseded by this re-check. |
+| 1 | PASS. Upload set from a clean worktree at `84aaab8`: 31 files, no `.env`, key, credential or test file. Cloud Build SUCCESS; image `media-worker:v12`, digest `sha256:72a8f7acefc40eb1c6757eff2d37dbcd38a618a1ad57491404d8a98734a39eb6`. |
+| 2 | PASS. Canary `savannah-media-worker-dispatcher-00009-man` at 0%. Env names, resources and scaling matched production. Health 200; unauthenticated 401; version 1 accepted (400 on a deliberately fake job ID, which proves auth passed). |
+| 3 | PASS. `00009-man` promoted to 100%. Rollback revision `00008-btl` retained. |
+| 4 | PASS. Render job moved from `media-worker:v7` to the v12 digest. Env names and secret references unchanged. |
+| 5 | PASS. Smoke execution `savannah-render-job-zm59d` failed with exactly `JOB_ID env var is required` (exit 1). No provider call and no callback. |
+| 6 | PASS. Rotation secret stored as Secret Manager `job-submit-secret` version 2 (43 bytes, no newline); verified MATCHES the local file. |
+| 7 | PASS. Overlap opened: `00010-ndp`, `JOB_SUBMIT_SECRET` = version 2, `JOB_SUBMIT_SECRET_PREVIOUS` = version 1. Both accepted; a wrong value refused with 401. |
+| 8 | PASS (owner). Production Apps Script property `MEDIA_WORKER_JOB_SUBMIT_SECRET` saved; copied back and checked: MATCHES version 2. |
+| 9 | PASS. Overlap closed: `00011-ctz` at 100%, `JOB_SUBMIT_SECRET_PREVIOUS` removed. Version 1 refused (401), version 2 accepted. Dispatcher logs in the following 30 minutes showed no 4xx other than these test calls. No Apps Script traffic was observed in that window, so no live production submission was verified. |
+| 10 | PASS. Secret version 1 disabled. Render job pinned to `job-submit-secret:2`. Local rotation folder deleted. |
+
+**Final state (28 Oct):** dispatcher `00011-ctz` at 100% on the v12 digest, `JOB_SUBMIT_SECRET` = version 2 only.
+Health 200; unauthenticated 401; version 2 accepted; wrong value 401. Render job on the v12 digest pinned to version 2.
+
+**Rollback state:**
+- Revision `00009-man` (v12, pinned to version 1) cannot start while version 1 is disabled. It is not a rollback target.
+- Revision `00008-btl` (v11, reads `latest` = version 2) remains available and accepts version 2. This is the rollback target.
+- Re-enabling version 1 (`gcloud secrets versions enable 1`) restores `00009-man`, but only after the production Apps Script property is set back to version 1.
+
+**Open:** no production submission has been observed since the overlap closed. The §10.1 step 6 "no 401s over the next day" check remains to be confirmed from dispatcher logs.
