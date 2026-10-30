@@ -943,3 +943,23 @@ Checked by web search on 30 October 2026. Every figure below must be confirmed o
 - The Pexels key stays in place. A Pexels rotation needs Pexels support, which is an owner action.
 - The ElevenLabs cost estimate for the first video (about 635 credits) must be re-derived from the official rate for the model the worker uses before approval A5.
 - The licence allows the planned use. Keep the rule against implying endorsement and against redistributing footage on its own.
+
+### 12.6 A1 execution record: worker v13 (30 October 2026)
+
+Approved and executed: deploy worker v13 from \security/callback-secret-in-body\ (commit \835709c\). Main app, bridge and
+\MEDIA_WORKER_CALLBACK_URL\ were not changed.
+
+| Step | Result |
+|---|---|
+| Upload set | 31 files from a clean worktree at \835709c\. The only matches for credential patterns are package files and \.env.example\, which holds three non-secret settings (PORT, bucket name, music path). |
+| Build | Cloud Build SUCCESS. Image \media-worker:v13\, digest \sha256:67fe1551…4902\. |
+| Dispatcher canary | Revision \ 0013-jin\, 0% then 100%. Secret pinned to version 2 only; health 200; unauthenticated 401; wrong value 401; version 2 accepted (400 on a fake job ID). |
+| Render job | Moved from the v12 digest to the v13 digest. Environment unchanged. |
+| No-render smoke | Execution \savannah-render-job-wq62t\ failed with \JOB_ID env var is required\, exit 1. No provider call. |
+| Logs | Dispatcher POSTs since promotion: only this session's test calls. No Apps Script traffic, no unexpected 401s. |
+
+**Rollback:** revision \ 0011-ctz\ (v12, version 2) or \ 0009-man\ is not valid (version 1 disabled). Use \ 0011-ctz\ for the
+dispatcher. For the job, pin the v12 digest \sha256:72a8f7ac…39eb6\. v13 is backward compatible: without a \callbackSecret\
+it posts the payload unchanged.
+
+**Still open:** main app v1.4 (A3) does not send \callbackSecret\ yet, and the bridge (A2) is still the URL-based version.
