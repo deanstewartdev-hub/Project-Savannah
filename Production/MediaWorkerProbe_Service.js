@@ -37,10 +37,12 @@ const MediaWorkerProbeService = (() => {
   return { probeBridge: probeBridge };
 })();
 
-// Editor entry point for the owner. The trailing underscore makes Apps Script treat it as private, so
-// google.script.run cannot call it. It probes the bridge URL already stored in MEDIA_WORKER_CALLBACK_URL,
-// and logs only the outcome.
-function runBridgeSecretProbe_() {
+// Editor entry point for the owner. Apps Script lists top-level functions in the Run dropdown, and a
+// trailing underscore hides a function from it, so this one has none. The web app is restricted to its
+// owner (appsscript.json access MYSELF), so only the owner's own session can call it. It probes the bridge
+// URL already stored in MEDIA_WORKER_CALLBACK_URL and returns only PASS or FAIL: no secret, no response
+// text, and no spreadsheet access. Results are logged with the outcome reason only.
+function runBridgeSecretProbe() {
   const bridgeUrl = Secrets.getMediaWorkerCallbackUrl();
   const result = MediaWorkerProbeService.probeBridge(bridgeUrl);
   Logger.log("Bridge secret probe: " + (result.verified ? "PASS" : "FAIL") + " - " + result.reason);

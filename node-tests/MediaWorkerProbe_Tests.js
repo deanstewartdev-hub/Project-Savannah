@@ -65,9 +65,10 @@ const cases = [
     assert.ok(!/^function\s+probeBridge/m.test(source));
     assert.ok(/const MediaWorkerProbeService/.test(source));
   }],
-  ['the editor entry point is private (trailing underscore) and only reads the stored bridge URL', () => {
+  ['the editor entry point returns only PASS or FAIL and reads only the stored bridge URL', () => {
     const source = fs.readFileSync(path.join(root, 'Production', 'MediaWorkerProbe_Service.js'), 'utf8');
-    assert.ok(/^function runBridgeSecretProbe_()/m.test(source));
+    assert.ok(/^function runBridgeSecretProbe()/m.test(source), 'top-level entry point must be listed by the editor (no trailing underscore)');
+    assert.ok(!source.includes('runBridgeSecretProbe_('), 'no underscore-suffixed entry point may remain');
     assert.ok(source.includes('Secrets.getMediaWorkerCallbackUrl()'));
   }],
 ];
