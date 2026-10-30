@@ -1048,3 +1048,47 @@ px @google/clasp@3.4.1 push\ **only** from that folder, whose \.clasp.json\ targ
    matching rollback.)
 3. Leave the worker on v13: it is backward compatible with the URL-secret callbacks that v89 sends.
 4. Receipts already in the bridge's inbox are kept and applied when the main app returns to the bridge URL.
+
+## 14. Credential handling without the clipboard (investigation, 30 October 2026)
+
+**Goal:** remove the manual clipboard step from secret verification and rotation, without weakening any protection and without new paid infrastructure.
+
+### 14.1 What the platform allows (checked against behaviour observed in this project)
+
+| Store | Can it be written without a person in the Console? | Finding |
+|---|---|---|
+| Secret Manager (Cloud Run side) | Yes, by an authorised identity | Versions were added and verified by fingerprint in §11.3 and §11.7 with no clipboard. The worker and job read \latest\ or a pinned version. |
+| Apps Script Script Properties (main app, bridge) | **Not from outside the script** | The Apps Script API cannot set a property directly. A property can only be set by code running inside the project, or by a person in the editor. |
+| Reading a value into Apps Script | Only with a Cloud scope | Fetching a Secret Manager value from Apps Script needs \https://www.googleapis.com/auth/cloud-platform\ in the manifest. Adding a scope changes the consent the app has (see P1-7), so it is an owner decision, not a silent change. |
+
+**Conclusion:** the one manual step that cannot be removed without a scope change is writing a value into a Script Property.
+
+### 14.2 Recommended design (no new scope)
+
+1. **Verification without copying: an authenticated self-test, not a comparison.** The main app already holds
+   \MEDIA_WORKER_SHARED_SECRET\. Add a read-only admin function that sends a **signed probe** to the bridge with a
+   \erify\ route. The bridge checks the body secret in constant time and replies with a result: \{"success":true,"verified":true}\
+   when it matches, \Unauthorized.\ otherwise. It writes **nothing**, so the probe cannot create a receipt. This proves
+   the two stores hold the same value, without anyone copying it. Owner-triggered; no secret is printed or stored.
+2. **Rotation with one unavoidable step.** The owner still pastes the new value into the Script Property, but no clipboard is
+   needed to verify it: the self-test in (1) confirms it, and the Secret Manager version is checked by fingerprint from
+   Cloud (the existing \erify\ tool). The pasted value never leaves the owner's session.
+3. **Deploy approvals without copying codes.** Deployments are verified by read-only checks (version, deployment ID,
+   health, the self-test), so approval is a yes/no on a stated plan rather than a copy step.
+
+### 14.3 Options not recommended
+
+- Adding \cloud-platform\ to the production main app to read secrets directly: it widens what the app can access, and it
+  forces re-consent for the whole app. Reserve this for a separate, explicit decision.
+- A separate "secret sync" Apps Script that copies values between projects: it would hold secrets in a second place.
+
+### 14.4 Work this section implies (not started, needs approval to change production)
+
+- Bridge: a \erify\ route that returns a result and writes nothing (repo change, tested locally; deploy needs A2-style approval).
+- Main app: an admin self-test function (repo change, tested locally; deploy needs A3-style approval).
+- A single procedure document covering verification, rotation and rollback for each secret.
+
+### 14.5 Rollback
+
+Each piece is additive. If the \erify\ route misbehaves, the bridge reverts to the version before it; the bridge's
+authentication is unchanged by this design. No secret is stored, printed or moved by this design.
