@@ -926,3 +926,20 @@ item (§12.3).
   with Unauthorized.
 - **Bridge:** if the cutover is rolled back, set `MEDIA_WORKER_CALLBACK_URL` back to the previous `/exec` URL. The bridge
   holds receipts; they are applied when the main app returns (§11.4 rollback).
+
+## 13. First-video cost and licence check (30 October 2026, secondary sources)
+
+Checked by web search on 30 October 2026. Every figure below must be confirmed on the official page before any paid call.
+
+| Item | Finding | Source | Status |
+|---|---|---|---|
+| Pexels API keys | Pexels states "New API key issuance is currently paused". The Pexels key cannot be rotated while this holds. | [Pexels API page](https://www.pexels.com/api/?locale=en-US) | Confirmed on Pexels' site |
+| Pexels key changes | Help centre: API keys cannot be changed by the user; contact info@pexels.com. | [Pexels help: change API key](https://help.pexels.com/hc/en-us/articles/47739416247833-How-do-I-change-my-API-key) | Secondary, dated Oct 2025 |
+| Pexels licence | Free for commercial and non-commercial use; attribution not required under the Pexels License. Using content to build a competing service or to train ML models through the API is not allowed. | [Pexels Terms of Service](https://pexels.com/terms-of-service), [Pexels help](https://help.pexels.com/hc/en-us/articles/360042295174) | Terms checked; the API attribution line is unconfirmed |
+| Pexels API rate limits | Default 200 requests per hour and 20,000 per month; higher limits on request. | Secondary only | Unverified |
+| ElevenLabs cost | Sources disagree. One gives $0.10 per 1,000 characters for Multilingual v2 and $0.05 for Flash or Turbo. A later one gives $0.08 for Eleven v4 and $0.04 for v4 Turbo. The Creator plan is listed at $22 a month with 100,000 or 121,000 credits. | [HappyRobot](https://www.happyrobot.ai/hub/elevenlabs-pricing), [Layer3 Labs, updated 7 Jul 2026](https://www.layer3labs.io/guides/elevenlabs-pricing) | **Unresolved: check elevenlabs.io/pricing** |
+
+**Consequences for the plan**
+- The Pexels key stays in place. A Pexels rotation needs Pexels support, which is an owner action.
+- The ElevenLabs cost estimate for the first video (about 635 credits) must be re-derived from the official rate for the model the worker uses before approval A5.
+- The licence allows the planned use. Keep the rule against implying endorsement and against redistributing footage on its own.
