@@ -963,3 +963,26 @@ dispatcher. For the job, pin the v12 digest \sha256:72a8f7ac…39eb6\. v13 is ba
 it posts the payload unchanged.
 
 **Still open:** main app v1.4 (A3) does not send \callbackSecret\ yet, and the bridge (A2) is still the URL-based version.
+
+### 12.7 A2 execution record: bridge version 4 (30 October 2026)
+
+Approved and executed: the bridge project was given the body-secret code from commit \871d4c0\ (\CallbackBridge.js\ and
+\ppsscript.json\, pushed with clasp to the standalone bridge project, not the production main app). Version 4 was
+created and the existing web app deployment was pointed at it, so the endpoint URL is unchanged.
+
+| Check | Result |
+|---|---|
+| Staged code | No URL-secret reads (\parameters.secret\ count 0). File without a byte-order mark. |
+| Deployment | The existing web app deployment moved from version 3 to version 4. |
+| No secret | \{"success":false,"error":"Unauthorized."}\ |
+| URL secret (wrong value) | \Unauthorized.\ |
+| Wrong body secret | \Unauthorized.\ |
+| Unknown route | \Unknown callback route.\ |
+| Authenticated callback | **Not run.** It needs the shared secret on the owner's clipboard and would write a receipt. Refusal of a correct URL secret is covered locally by SAV-18.1. |
+
+**Rollback:** redeploy the web app deployment to version 3 (\clasp redeploy <deployment> --versionNumber 3\). Version 3 is the
+URL-secret code that is currently live in the main app's callback URL, so the rollback must be paired with reverting the
+main app (A3) if it has been deployed.
+
+**Still open:** the authenticated callback test, the receipt check, and the spreadsheet title check. Those need the owner's
+clipboard step before A3.
