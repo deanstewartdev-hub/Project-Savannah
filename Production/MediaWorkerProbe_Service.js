@@ -36,3 +36,13 @@ const MediaWorkerProbeService = (() => {
 
   return { probeBridge: probeBridge };
 })();
+
+// Editor entry point for the owner. The trailing underscore makes Apps Script treat it as private, so
+// google.script.run cannot call it. It probes the bridge URL already stored in MEDIA_WORKER_CALLBACK_URL,
+// and logs only the outcome.
+function runBridgeSecretProbe_() {
+  const bridgeUrl = Secrets.getMediaWorkerCallbackUrl();
+  const result = MediaWorkerProbeService.probeBridge(bridgeUrl);
+  Logger.log("Bridge secret probe: " + (result.verified ? "PASS" : "FAIL") + " - " + result.reason);
+  return result.verified ? "PASS" : "FAIL";
+}
