@@ -93,7 +93,10 @@ var CALLBACK_INBOX_HEADERS = ["Receipt ID", "Render ID", "Status", "Payload JSON
 function doPost(event) {
   var parameters = resolveParameters_(event);
   var route = resolveRoute_(parameters);
-  var result = route === "media-worker-callback" ? handleCallback_(event, parameters) : { success: false, error: "Unknown callback route." };
+  var result;
+  if (route === "media-worker-callback") result = handleCallback_(event, parameters);
+  else if (route === "verify") result = handleVerify_(event, parameters);
+  else result = { success: false, error: "Unknown callback route." };
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -150,6 +153,24 @@ function headersMatchExpected_(actualHeaders) {
     if (String(actualHeaders[i]) !== RENDER_JOBS_HEADERS[i]) return false;
   }
   return true;
+}
+
+// Read-only secret check for the owner's self-test. It authenticates the body secret exactly as a
+// callback does, then returns. It never reads or writes the spreadsheet, so it cannot create a receipt.
+function handleVerify_(event, parameters) {
+  try {
+    var raw = (event && event.postData && event.postData.contents) || "";
+    var body;
+    try { body = JSON.parse(raw); } catch (parseError) { body = null; }
+    var expectedSecret = PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
+    if (!body || !isAuthorizedCallback_({ secret: body.callbackSecret }, expectedSecret)) {
+      return { success: false, error: "Unauthorized." };
+    }
+    return { success: true, verified: true };
+  } catch (caught) {
+    Logger.log("CallbackBridge verify failed: " + (caught && caught.message || caught));
+    return { success: false, error: "Verification failed." };
+  }
 }
 
 function handleCallback_(event, parameters) {

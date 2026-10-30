@@ -107,7 +107,7 @@ function runCallbackBridgeTests() {
     const declaredFunctions = Array.from(bridgeSource.matchAll(/^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/gm)).map((m) => m[1]);
     const expected = ["doPost", "resolveParameters_", "resolveRoute_", "isAuthorizedCallback_", "isValidRenderId_",
       "isValidCallbackStatus_", "headersMatchExpected_", "handleCallback_", "appendCallbackReceipt_", "updateRenderJobByRenderId_",
-      "writeCompletionColumns_", "completedChanges_", "failedChanges_"];
+      "writeCompletionColumns_", "completedChanges_", "failedChanges_", "handleVerify_"];
     const unexpected = declaredFunctions.filter((name) => !expected.includes(name));
     if (unexpected.length) {
       throw new Error("CallbackBridge.js defines unexpected global function(s): " + unexpected.join(", "));
@@ -622,6 +622,42 @@ function runCallbackBridgeTests() {
     if (/parameters\.secret|parameters\[\s*["']secret["']\s*\]/.test(bridgeSource)) {
       throw new Error("CallbackBridge.js must not read the callback secret from the request URL.");
     }
+  });
+
+  // ============================================================
+  // SAV-19: the read-only verify route authenticates the body secret and never touches the sheet.
+  // ============================================================
+
+  test("SAV-19.1 a correct body secret is verified, and the spreadsheet is never opened", () => {
+    const sheet = { touched: false };
+    const { script, received } = bridgeHarness("synthetic-secret", sheet);
+    const result = script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "synthetic-secret" }) } }, {});
+    if (!result.success || result.verified !== true || received.length || sheet.touched) {
+      throw new Error("A correct body secret must verify without touching the sheet.");
+    }
+  });
+
+  test("SAV-19.2 an incorrect, missing or URL-only secret is refused and the sheet is never opened", () => {
+    const cases = [
+      [{ callbackSecret: "synthetic-secreT" }, {}],
+      [{}, {}],
+      [{}, { secret: "synthetic-secret" }],
+    ];
+    for (const [body, parameters] of cases) {
+      const sheet = { touched: false };
+      const { script, received } = bridgeHarness("synthetic-secret", sheet);
+      const result = script.handleVerify_({ postData: { contents: JSON.stringify(body) } }, parameters);
+      if (result.success || result.error !== "Unauthorized." || received.length || sheet.touched) {
+        throw new Error("Verify accepted a bad credential: " + JSON.stringify(body));
+      }
+    }
+  });
+
+  test("SAV-19.3 a malformed body or an unconfigured bridge is refused", () => {
+    const sheet = { touched: false };
+    const bad = bridgeHarness("synthetic-secret", sheet).script.handleVerify_({ postData: { contents: "{not json" } }, {});
+    const unconfigured = bridgeHarness("", { touched: false }).script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "" }) } }, {});
+    if (bad.success || unconfigured.success) throw new Error("Verify must refuse malformed bodies and unconfigured bridges.");
   });
 
   const failures = results.filter((r) => !r.passed);
