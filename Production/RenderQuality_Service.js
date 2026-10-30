@@ -39,6 +39,7 @@ const RenderQualityService = (() => {
       durationInRange: true,
       vertical: true,
       fullHdVertical: true,
+      audioPresent: true,
       silenceClean: true,
       blackFrameClean: true,
       loudnessOnTarget: true,
@@ -63,6 +64,11 @@ const RenderQualityService = (() => {
       issues.push(
         "Finished video does not meet the " + MINIMUM_WIDTH + "x" + MINIMUM_HEIGHT + " resolution gate."
       );
+    }
+    // Only an explicit false fails: probes recorded before this check existed carry no hasAudio field.
+    if (probe.hasAudio === false) {
+      checks.audioPresent = false;
+      issues.push("Finished video has no audio track.");
     }
     if (!probe.passesSilenceGate) {
       checks.silenceClean = false;
