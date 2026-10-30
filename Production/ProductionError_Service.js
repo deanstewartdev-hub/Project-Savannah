@@ -55,6 +55,12 @@ const ProductionErrorService = (() => {
       recoveryAction: "Review the listed quality issues, correct the affected scene or provider setting, then create a replacement render."
     },
     {
+      code: "PRODUCTION_WORKER_RESULT_INVALID", category: "worker", statusCode: 502,
+      retryable: false, retryAfterSeconds: 0,
+      pattern: /malformed callback|worker returned|unusable result|did not return a usable/i,
+      recoveryAction: "The media worker returned a result Savannah cannot use. Check Logs for this request ID and reconcile the render before retrying. Do not re-render until the cause is known."
+    },
+    {
       code: "PRODUCTION_NOT_FOUND", category: "resource", statusCode: 404,
       retryable: false, retryAfterSeconds: 0,
       pattern: /was not found|no .* was found/i,
