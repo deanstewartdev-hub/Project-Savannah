@@ -986,3 +986,65 @@ main app (A3) if it has been deployed.
 
 **Still open:** the authenticated callback test, the receipt check, and the spreadsheet title check. Those need the owner's
 clipboard step before A3.
+
+### 12.8 Authenticated bridge verification and A3 owner runbook (30 October 2026)
+
+#### Evidence
+
+| Check | Result | Evidence type |
+|---|---|---|
+| Target spreadsheet ID matches the bridge property | Yes | **Owner-verified** (manual check; the Drive and Sheets connectors cannot read it) |
+| Spreadsheet is production "Project Savannah", not STAGING | Yes | **Owner-verified** |
+| Authenticated body-secret callback accepted | \{"success":true,"queued":true}\ | **Agent-verified** (response of one POST from this session; secret read in-process, never printed or put in a URL) |
+| Exactly one receipt written, render ID \cr-040b888e-3a9c-41e5-95ad-5c3ccbf24551\ | One visible row | **Owner-verified** (visual check of the inbox). Row count before and after was **not** recorded, so "exactly one" is not independently proven |
+| No Render Jobs record matches the test ID | Yes; 25 existing rows, none matching | **Owner-verified** (visual). No before-snapshot exists |
+| Payload contains no callbackSecret | Code-level evidence: \ppendCallbackReceipt_\ writes only \jobId, status, video, probe, error, synthetic\ (commit \ef0d4a3\). **Cell check still needed** | Code-verified; owner to confirm in the cell |
+| No unrelated production data changed | **Not independently verified**: no before-snapshot was taken | Owner visual only |
+| Clipboard cleared | Replaced with a placeholder by this session | Agent-verified |
+
+**Not yet done:** the before-and-after row count and a full snapshot of Render Jobs and other tabs. These can't be recovered
+after the fact; they are a gap in this record.
+
+#### Owner checks on the receipt (no secret values are to be pasted into chat)
+
+1. Open the Render Callback Inbox. Find the row with Render ID \cr-040b888e-3a9c-41e5-95ad-5c3ccbf24551\.
+2. Look at the **Payload JSON** cell. Its keys should be exactly \jobId, status, video, probe, error, synthetic\. Confirm the
+   text does not contain the word \callbackSecret\, and that it does not contain the shared secret. Report only "keys as
+   expected, no secret" or "not as expected".
+3. Confirm the Status column reads \ailed\ and the Handled At cell is empty. The main app has not read the inbox yet, so
+   nothing is applied.
+
+#### A3 owner runbook (not approved; do not run until you approve A3 separately)
+
+**Pre-deployment checks (all must pass):**
+1. Worker v13 live (A1): dispatcher on revision \ 0013-jin\, render job on the v13 digest.
+2. Bridge version 4 live (A2): refusals verified; one authenticated receipt verified (this section).
+3. Main app source: the approved commit is \2dd607a\ or later on \security/callback-secret-in-body\. Export it to a clean
+   worktree and confirm \git status\ is clean there.
+4. Current production state recorded: \MEDIA_WORKER_CALLBACK_URL\ (copy the value into your private notes, not chat), and
+   production version 89 listed under Deploy → Manage deployments.
+5. No render in progress: the Production page shows no active render and the queue is idle.
+6. Cut-over window agreed. Nothing else changes in production during it.
+
+**Steps (owner):**
+1. From the clean worktree, run \
+px @google/clasp@3.4.1 push\ **only** from that folder, whose \.clasp.json\ targets the
+   production main app. Check the file list before pushing (no \.env\, no keys, no test files).
+2. In the production Apps Script project, Project Settings → Script properties: confirm \MEDIA_WORKER_SHARED_SECRET\ is
+   unchanged and present. Do not edit it.
+3. Set \MEDIA_WORKER_CALLBACK_URL\ to the bridge's \/exec\ URL (the same URL used in the test). Save.
+4. Deploy → Manage deployments → edit the existing deployment → New version → Deploy. The URL does not change.
+5. Settings → Release readiness → Run. Pass: no BLOCK. Expected warnings only: "No Render Callback Inbox tab yet" (if the
+   tab is absent) and the background-queue scope (P1-7).
+6. Send no paid render and no upload. Wait for the owner's go-ahead for A5 before any render.
+
+**Verification after deployment:**
+- Dispatcher and render job health unchanged; no new 401s in dispatcher logs.
+- Settings → Release readiness shows no BLOCK.
+
+**Rollback (in this order):**
+1. Set \MEDIA_WORKER_CALLBACK_URL\ back to the value recorded in pre-check 4.
+2. Deploy → Manage deployments → edit → choose **version 89** → Deploy. (Version 89 reads the URL secret, so this is the
+   matching rollback.)
+3. Leave the worker on v13: it is backward compatible with the URL-secret callbacks that v89 sends.
+4. Receipts already in the bridge's inbox are kept and applied when the main app returns to the bridge URL.
