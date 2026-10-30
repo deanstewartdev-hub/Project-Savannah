@@ -1092,3 +1092,26 @@ px @google/clasp@3.4.1 push\ **only** from that folder, whose \.clasp.json\ targ
 
 Each piece is additive. If the \erify\ route misbehaves, the bridge reverts to the version before it; the bridge's
 authentication is unchanged by this design. No secret is stored, printed or moved by this design.
+
+### 14.6 Rotation options compared (for MEDIA_WORKER_SHARED_SECRET)
+
+| | A. One owner paste (recommended) | B. Owner-run Apps Script that reads Secret Manager |
+|---|---|---|
+| How the value gets in | You copy it in the Secret Manager console and paste it into the Script Property. Nothing is shown in chat. | A function inside the project fetches the value from Secret Manager with a Cloud scope and writes it to the Script Property. |
+| Permissions | No new scope. The project keeps its current consent. | Needs \`cloud-platform\` in the manifest. That widens the whole app's access and forces every user to re-consent. |
+| Standing access | None. Secret Manager is not reachable from the web app. | The function is only run from the editor, but the scope stays on the project unless the manifest is reverted. |
+| Reliability | High. The paste is the only manual step. | Medium. Depends on OAuth consent and a second deployment step. |
+| Complexity | Low. Already documented in §11.3. | Higher. A temporary scope change, a one-off function, then a revert. |
+| Verification | The read-only bridge probe (§14.2) proves the two stores match. | Same probe. |
+| Rollback | Re-paste the previous version; the old value stays in Secret Manager until disabled. | Same as A, plus reverting the manifest. |
+
+**Recommendation:** option A with the read-only probe. It keeps the permissions the app already has, and the probe removes
+the clipboard check. Option B would be worth it only if you want the paste gone entirely, and it needs its own approval
+because it changes what the production app can access.
+
+### 14.7 Owner actions remaining (none started)
+
+1. Decide whether to accept option A (recommended) or option B.
+2. Approve deploying the bridge with the verify route (a new bridge version, same URL).
+3. Approve deploying the main app with the probe service (a new version; the probe is not reachable from the web app).
+4. Only after 2 and 3: run the probe, then the rotation (create version, pin the bridge and main app, probe again, disable the old version).
