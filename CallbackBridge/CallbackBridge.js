@@ -115,18 +115,35 @@ function resolveRoute_(parameters) {
 // configured, or a mismatched/missing secret on the request, both reject.
 // `candidate` is the request's JSON body fields (candidate.secret is body.callbackSecret),
 // never the URL's query parameters.
-function isAuthorizedCallback_(candidate, expectedSecret) {
-  if (!expectedSecret) return false;
+function isAuthorizedCallback_(candidate, expectedSecrets) {
   var supplied = String((candidate && candidate.secret) || "");
-  var expected = String(expectedSecret);
-  // Constant-time comparison: the time taken must not reveal how many leading
-  // characters of a guess were right. Kept inline - this project's set of
-  // global functions is fixed (see CallbackBridge_Tests.js).
-  var difference = supplied.length ^ expected.length;
-  for (var i = 0; i < expected.length; i++) {
-    difference |= expected.charCodeAt(i) ^ (i < supplied.length ? supplied.charCodeAt(i) : 0);
+  var list = Array.isArray(expectedSecrets) ? expectedSecrets : [expectedSecrets];
+  var accepted = false;
+  // Every configured secret is compared, with no early exit, so the time taken does not reveal which
+  // one matched. Each comparison is constant-time: the time must not reveal how many leading characters
+  // of a guess were right. Kept inline - this project's set of global functions is fixed (see CallbackBridge_Tests.js).
+  for (var k = 0; k < list.length; k++) {
+    if (!list[k]) continue;
+    var expected = String(list[k]);
+    var difference = supplied.length ^ expected.length;
+    for (var i = 0; i < expected.length; i++) {
+      difference |= expected.charCodeAt(i) ^ (i < supplied.length ? supplied.charCodeAt(i) : 0);
+    }
+    if (difference === 0) accepted = true;
   }
-  return difference === 0;
+  return accepted;
+}
+
+// The secrets the bridge accepts right now: the current value, plus the previous value only while
+// MEDIA_WORKER_SHARED_SECRET_PREVIOUS is set (the rotation overlap). Empty values are never accepted.
+function acceptedSecrets_() {
+  var props = PropertiesService.getScriptProperties();
+  var accepted = [];
+  var current = props.getProperty("MEDIA_WORKER_SHARED_SECRET");
+  var previous = props.getProperty("MEDIA_WORKER_SHARED_SECRET_PREVIOUS");
+  if (current) accepted.push(String(current));
+  if (previous) accepted.push(String(previous));
+  return accepted;
 }
 
 // Pure (SAV-16). Rejects anything that isn't exactly cr-<UUID> - path separators,
@@ -162,8 +179,7 @@ function handleVerify_(event, parameters) {
     var raw = (event && event.postData && event.postData.contents) || "";
     var body;
     try { body = JSON.parse(raw); } catch (parseError) { body = null; }
-    var expectedSecret = PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
-    if (!body || !isAuthorizedCallback_({ secret: body.callbackSecret }, expectedSecret)) {
+    if (!body || !isAuthorizedCallback_({ secret: body.callbackSecret }, acceptedSecrets_())) {
       return { success: false, error: "Unauthorized." };
     }
     return { success: true, verified: true };
@@ -181,8 +197,7 @@ function handleCallback_(event, parameters) {
     var raw = (event && event.postData && event.postData.contents) || "";
     var body;
     try { body = JSON.parse(raw); } catch (parseError) { body = null; }
-    var expectedSecret = PropertiesService.getScriptProperties().getProperty("MEDIA_WORKER_SHARED_SECRET");
-    if (!body || !isAuthorizedCallback_({ secret: body.callbackSecret }, expectedSecret)) {
+    if (!body || !isAuthorizedCallback_({ secret: body.callbackSecret }, acceptedSecrets_())) {
       return { success: false, error: "Unauthorized." };
     }
 

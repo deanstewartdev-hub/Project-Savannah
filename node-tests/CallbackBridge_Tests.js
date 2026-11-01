@@ -107,7 +107,7 @@ function runCallbackBridgeTests() {
     const declaredFunctions = Array.from(bridgeSource.matchAll(/^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/gm)).map((m) => m[1]);
     const expected = ["doPost", "resolveParameters_", "resolveRoute_", "isAuthorizedCallback_", "isValidRenderId_",
       "isValidCallbackStatus_", "headersMatchExpected_", "handleCallback_", "appendCallbackReceipt_", "updateRenderJobByRenderId_",
-      "writeCompletionColumns_", "completedChanges_", "failedChanges_", "handleVerify_"];
+      "writeCompletionColumns_", "completedChanges_", "failedChanges_", "handleVerify_", "acceptedSecrets_"];
     const unexpected = declaredFunctions.filter((name) => !expected.includes(name));
     if (unexpected.length) {
       throw new Error("CallbackBridge.js defines unexpected global function(s): " + unexpected.join(", "));
@@ -658,6 +658,73 @@ function runCallbackBridgeTests() {
     const bad = bridgeHarness("synthetic-secret", sheet).script.handleVerify_({ postData: { contents: "{not json" } }, {});
     const unconfigured = bridgeHarness("", { touched: false }).script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "" }) } }, {});
     if (bad.success || unconfigured.success) throw new Error("Verify must refuse malformed bodies and unconfigured bridges.");
+  });
+
+  // ============================================================
+  // SAV-20: during a rotation the bridge accepts the current secret and, only while
+  // MEDIA_WORKER_SHARED_SECRET_PREVIOUS is set, the previous one. Nothing else is accepted.
+  // ============================================================
+
+  function bridgeWithPrevious(current, previous, sheetTouched) {
+    const received = [];
+    const script = {
+      PropertiesService: { getScriptProperties: () => ({ getProperty: name => ({
+        MEDIA_WORKER_SHARED_SECRET: current,
+        MEDIA_WORKER_SHARED_SECRET_PREVIOUS: previous,
+        RENDER_JOBS_SPREADSHEET_ID: "test-id"
+      })[name] }) },
+      SpreadsheetApp: { openById: () => { sheetTouched.touched = true; return { getSheetByName: () => ({
+        getLastRow: () => 1 + received.length,
+        getRange: () => ({ getDisplayValues: () => [sandbox.CALLBACK_INBOX_HEADERS.slice()], setValues: v => received.push(v[0]) })
+      }) }; } },
+      Utilities: { getUuid: () => "RECEIPT-TEST" },
+      LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
+      Logger: { log: () => {} }
+    };
+    vm.createContext(script);
+    vm.runInContext(bridgeSource, script);
+    return script;
+  }
+
+  test("SAV-20.1 during a rotation the previous secret is accepted by verify", () => {
+    const sheet = { touched: false };
+    const script = bridgeWithPrevious("new-secret", "old-secret", sheet);
+    const result = script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "old-secret" }) } }, {});
+    if (!result.success || result.verified !== true) throw new Error("Previous secret must be accepted during a rotation.");
+  });
+
+  test("SAV-20.2 the current secret is still accepted while a previous one is set", () => {
+    const sheet = { touched: false };
+    const script = bridgeWithPrevious("new-secret", "old-secret", sheet);
+    const result = script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "new-secret" }) } }, {});
+    if (!result.success || result.verified !== true) throw new Error("Current secret must be accepted during a rotation.");
+  });
+
+  test("SAV-20.3 an unrelated value is refused even when a previous secret is set", () => {
+    const sheet = { touched: false };
+    const script = bridgeWithPrevious("new-secret", "old-secret", sheet);
+    for (const candidate of ["old-secre", "old-secrett", "", "other"]) {
+      const result = script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: candidate }) } }, {});
+      if (result.success || result.error !== "Unauthorized.") throw new Error("Accepted " + JSON.stringify(candidate));
+    }
+  });
+
+  test("SAV-20.4 with no previous secret set, the previous value is refused (the window closes cleanly)", () => {
+    const sheet = { touched: false };
+    const script = bridgeWithPrevious("new-secret", "", sheet);
+    const result = script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "old-secret" }) } }, {});
+    if (result.success || result.error !== "Unauthorized.") throw new Error("Previous secret must be refused once the overlap is closed.");
+  });
+
+  test("SAV-20.5 a previous secret never reaches the response or the log", () => {
+    const sheet = { touched: false };
+    const logged = [];
+    const script = bridgeWithPrevious("new-secret", "old-secret", sheet);
+    script.Logger = { log: m => logged.push(String(m)) };
+    const bad = script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "wrong-value" }) } }, {});
+    const good = script.handleVerify_({ postData: { contents: JSON.stringify({ callbackSecret: "old-secret" }) } }, {});
+    const everything = JSON.stringify([bad, good]) + logged.join("|");
+    if (everything.includes("old-secret") || everything.includes("new-secret")) throw new Error("A secret value leaked into a response or log.");
   });
 
   const failures = results.filter((r) => !r.passed);
