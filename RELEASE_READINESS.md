@@ -1115,3 +1115,70 @@ because it changes what the production app can access.
 2. Approve deploying the bridge with the verify route (a new bridge version, same URL).
 3. Approve deploying the main app with the probe service (a new version; the probe is not reachable from the web app).
 4. Only after 2 and 3: run the probe, then the rotation (create version, pin the bridge and main app, probe again, disable the old version).
+
+## 15. First-video readiness and GO/NO-GO for A5 (1 November 2026)
+
+No paid call, render, upload or credential change was made to prepare this section.
+
+### 15.1 Shared-secret rotation: the maintenance design (no deployment yet)
+
+- The bridge now accepts the previous shared secret **only** while `MEDIA_WORKER_SHARED_SECRET_PREVIOUS` is set
+  (commit `4ce1ce3`, tests `CallbackBridge_Tests` SAV-20, 5 cases). Unset, the previous value is refused.
+- Procedure: (1) write the new value to Secret Manager as a new version, without printing it; (2) set the bridge's
+  `MEDIA_WORKER_SHARED_SECRET_PREVIOUS` to the old value and `MEDIA_WORKER_SHARED_SECRET` to the new one (owner paste);
+  (3) set the main app's `MEDIA_WORKER_SHARED_SECRET` to the new value (owner paste); (4) run `runBridgeSecretProbe`
+  (PASS); (5) clear `MEDIA_WORKER_SHARED_SECRET_PREVIOUS` on the bridge (owner); (6) run the probe again (PASS).
+- Rollback: restore the previous value in the main app while the bridge still holds it as PREVIOUS.
+- **Not deployed.** The bridge change needs a new bridge version, which needs approval.
+- Still needs one owner paste per store. Removing those pastes would need a broader Apps Script scope, so it stays out.
+
+### 15.2 Duplicate-render and duplicate-upload safeguards (existing coverage, read by this review)
+
+| Safeguard | Where | Test coverage |
+|---|---|---|
+| Render submission claimed under the script lock (READY → SUBMITTING) | \`App/ProductionController.js\` \`submitPrepared\` | \`RenderSubmissionIdempotency_Tests\`, \`QueueSubmissionInterplay_Tests\` |
+| Render ID reserved before submission | \`Production/VideoProcessingProvider.js\` \`reserveRenderId\` | \`RenderSubmissionIdempotency_Tests\` |
+| Upload refused if the render, or another render of the same script, is published, uploading or uncertain | \`App/ProductionController.js\` \`publish\` | Upload recovery suite (48 cases) |
+| Duplicate callbacks are idempotent; a late failure cannot overwrite a success | \`MediaWorkerCallback_Service.js\`, bridge inbox | \`MediaWorkerCallback_Tests\`, \`CallbackBridge_Tests\` SAV-17 |
+
+No defect was found in these paths by reading and by the existing tests.
+
+### 15.3 Configuration (names only, values not recorded here)
+
+The main app reads these properties: \`MEDIA_WORKER_URL\`, \`MEDIA_WORKER_JOB_SUBMIT_SECRET\`, \`MEDIA_WORKER_SHARED_SECRET\`,
+\`MEDIA_WORKER_CALLBACK_URL\`, \`OPENAI_API_KEY\`, \`VIDEO_PROVIDER\`, \`PRODUCTION_VOICE\`, \`PRODUCTION_QUEUE_ENABLED\`.
+The owner must confirm:
+- \`SAVANNAH_ENVIRONMENT\` is **absent** (or not \`staging\`) on the production main app, and absent on the bridge.
+- \`MEDIA_WORKER_CALLBACK_URL\` is the bridge's \`/exec\` URL (\`AKfycbyqd…\`). The main app's own URL was the cause of the earlier FAIL.
+
+The read-only readiness check (Settings → Release readiness → Run) also checks these and blocks the wrong callback URL.
+**The owner has not run it since the callback URL was corrected. It is still to do.**
+
+### 15.4 Cost estimate for the first video (range; rate still to confirm)
+
+| Item | Estimate | Basis |
+|---|---|---|
+| ElevenLabs narration | about £0.02 to £0.06 | about 635 characters. $0.05 to $0.10 per 1,000 characters, per the conflicting secondary sources in §13 |
+| OpenAI script and SEO | about £0.01 | one small call each (owner's estimate in \`tools/first-video/README.md\`) |
+| Pexels footage | £0 | free under the Pexels licence (§13) |
+| Cloud Run render and storage | pennies | one job run; Cloud Run pricing not re-checked here |
+| **Total** | **under about £0.10** | the ElevenLabs rate must be confirmed on the official page before A5 |
+
+### 15.5 First-render acceptance checklist (links to existing sections; nothing copied)
+
+1. Readiness run (§15.3) shows no BLOCK.
+2. Idea, script and SEO generated and approved in the app (\`tools/first-video/README.md\`).
+3. One render submitted; the callback arrives at the bridge and a receipt is written (\`LIVE_ACCEPTANCE.md\` §5–8).
+4. Quality gate passes, including the audio check added in \`b02c609\`.
+5. Human review of the finished video against the standards in the project brief.
+6. Private upload to Savannah Atlas only after the owner's separate approval (A6).
+
+### 15.6 GO/NO-GO for A5 (the paid render)
+
+**NO-GO today.** Blockers, in order:
+1. The owner has not yet run the release-readiness check (§15.3) since the callback URL was fixed.
+2. The ElevenLabs rate is unconfirmed (§15.4).
+3. The rotation procedure (§15.1) is built but not deployed, and the main app and bridge still hold their current values.
+4. No render has yet been through the bridge end to end. This is the first real test of the new callback path.
+
+Once 1 and 2 are done and no BLOCK shows, A5 can be reconsidered. It still needs its own approval.
