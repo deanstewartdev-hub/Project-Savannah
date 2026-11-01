@@ -168,10 +168,15 @@ const ScriptRevisionMaintenance = (() => {
 
 // Editor entry points. Dry run first; the apply function writes exactly one record, after a backup.
 // They are top-level, so the editor's Run menu lists them. The web app is restricted to its owner.
+// The editor's Run button shows only the execution log, so the result is logged as JSON.
 function reviseChefchaouenScriptDryRun() {
-  return ScriptRevisionMaintenance.runForIdea({ apply: false });
+  const result = ScriptRevisionMaintenance.runForIdea({ apply: false });
+  Logger.log("Script revision DRY RUN: " + JSON.stringify(result.summary));
+  return result;
 }
 
 function reviseChefchaouenScriptApply() {
-  return ScriptRevisionMaintenance.runForIdea({ apply: true });
+  const result = ScriptRevisionMaintenance.runForIdea({ apply: true });
+  Logger.log("Script revision APPLIED: " + JSON.stringify(result.summary) + " backupRow=" + result.backupRow + " saved=" + result.saved);
+  return result;
 }

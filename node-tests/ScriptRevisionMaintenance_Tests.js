@@ -127,6 +127,14 @@ const cases = [
     assert.throws(() => h.maintenance.runForIdea({ apply: true }), /Expected exactly one script/);
     assert.equal(h.writes.length, 0);
   }],
+  ['the editor entry points log their result, so Run shows it', () => {
+    const logged = [];
+    const h = harness(baseRecord());
+    const script = fs.readFileSync(path.join(root, 'Scripts', 'Script_Revision_Maintenance.js'), 'utf8');
+    assert.ok(/Logger.log("Script revision DRY RUN: "/.test(script));
+    assert.ok(/Logger.log("Script revision APPLIED: "/.test(script));
+    assert.ok(h.maintenance.runForIdea({ apply: false }).applied === false);
+  }],
 ];
 
 let failed = 0;
