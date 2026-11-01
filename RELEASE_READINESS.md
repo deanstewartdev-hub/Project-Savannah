@@ -1182,3 +1182,28 @@ The read-only readiness check (Settings → Release readiness → Run) also chec
 4. No render has yet been through the bridge end to end. This is the first real test of the new callback path.
 
 Once 1 and 2 are done and no BLOCK shows, A5 can be reconsidered. It still needs its own approval.
+
+### 15.7 Preflight results (1 November 2026)
+
+| Check | Result | Evidence type |
+|---|---|---|
+| Release-readiness check | Ready with warnings; no BLOCK | Owner-run in the app |
+| \`SAVANNAH_ENVIRONMENT\` absent | Absent on the main app and the bridge | Owner-verified |
+| ElevenLabs characters | Creator tier; 362,686 remaining of 362,686 (0 used) | Agent-verified (read-only \`/v1/user/subscription\`, counts only) |
+| Expected narration length | about 635 characters (\`tools/first-video/README.md\`) | Earlier local validation |
+| Expected marginal cost | Within the Creator allowance: no extra per-character charge. Plan fee already payable. OpenAI and Cloud Run: pennies | Derived; the rate sources in §13 no longer change this |
+| Duplicate-render protection | Lock-protected claim, render ID reserved before submit, upload guard across all attempts | Code review and existing tests (§15.2) |
+| Pending callbacks | Callbacks queue in the bridge inbox and are applied when the main app drains them, which happens when Production is opened (P1-7 scope is not granted). Owner to confirm the inbox has no pending receipts before the render | Partly owner-verified |
+
+**Open for the owner before a render:**
+1. List the warnings the readiness check showed. Expected: "no Render Callback Inbox tab yet" (if absent) and the background-queue scope (P1-7).
+2. Confirm the inbox has no pending receipts, apart from the authenticated test receipt `cr-040b888e-3a9c-41e5-95ad-5c3ccbf24551`.
+
+### 15.8 A5 GO/NO-GO
+
+**GO for the preflight; the paid render itself still needs your explicit approval.**
+
+Remaining essential actions:
+1. Send the readiness warnings list and confirm the inbox has no pending receipts.
+2. Approve A5 explicitly. Nothing will be rendered until then.
+3. After the render, review the video and approve A6 (private upload) separately.
