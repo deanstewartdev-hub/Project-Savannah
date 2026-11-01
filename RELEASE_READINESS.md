@@ -1098,7 +1098,7 @@ authentication is unchanged by this design. No secret is stored, printed or move
 | | A. One owner paste (recommended) | B. Owner-run Apps Script that reads Secret Manager |
 |---|---|---|
 | How the value gets in | You copy it in the Secret Manager console and paste it into the Script Property. Nothing is shown in chat. | A function inside the project fetches the value from Secret Manager with a Cloud scope and writes it to the Script Property. |
-| Permissions | No new scope. The project keeps its current consent. | Needs \`cloud-platform\` in the manifest. That widens the whole app's access and forces every user to re-consent. |
+| Permissions | No new scope. The project keeps its current consent. | Needs `cloud-platform` in the manifest. That widens the whole app's access and forces every user to re-consent. |
 | Standing access | None. Secret Manager is not reachable from the web app. | The function is only run from the editor, but the scope stays on the project unless the manifest is reverted. |
 | Reliability | High. The paste is the only manual step. | Medium. Depends on OAuth consent and a second deployment step. |
 | Complexity | Low. Already documented in §11.3. | Higher. A temporary scope change, a one-off function, then a revert. |
@@ -1136,20 +1136,20 @@ No paid call, render, upload or credential change was made to prepare this secti
 
 | Safeguard | Where | Test coverage |
 |---|---|---|
-| Render submission claimed under the script lock (READY → SUBMITTING) | \`App/ProductionController.js\` \`submitPrepared\` | \`RenderSubmissionIdempotency_Tests\`, \`QueueSubmissionInterplay_Tests\` |
-| Render ID reserved before submission | \`Production/VideoProcessingProvider.js\` \`reserveRenderId\` | \`RenderSubmissionIdempotency_Tests\` |
-| Upload refused if the render, or another render of the same script, is published, uploading or uncertain | \`App/ProductionController.js\` \`publish\` | Upload recovery suite (48 cases) |
-| Duplicate callbacks are idempotent; a late failure cannot overwrite a success | \`MediaWorkerCallback_Service.js\`, bridge inbox | \`MediaWorkerCallback_Tests\`, \`CallbackBridge_Tests\` SAV-17 |
+| Render submission claimed under the script lock (READY → SUBMITTING) | `App/ProductionController.js` `submitPrepared` | `RenderSubmissionIdempotency_Tests`, `QueueSubmissionInterplay_Tests` |
+| Render ID reserved before submission | `Production/VideoProcessingProvider.js` `reserveRenderId` | `RenderSubmissionIdempotency_Tests` |
+| Upload refused if the render, or another render of the same script, is published, uploading or uncertain | `App/ProductionController.js` `publish` | Upload recovery suite (48 cases) |
+| Duplicate callbacks are idempotent; a late failure cannot overwrite a success | `MediaWorkerCallback_Service.js`, bridge inbox | `MediaWorkerCallback_Tests`, `CallbackBridge_Tests` SAV-17 |
 
 No defect was found in these paths by reading and by the existing tests.
 
 ### 15.3 Configuration (names only, values not recorded here)
 
-The main app reads these properties: \`MEDIA_WORKER_URL\`, \`MEDIA_WORKER_JOB_SUBMIT_SECRET\`, \`MEDIA_WORKER_SHARED_SECRET\`,
-\`MEDIA_WORKER_CALLBACK_URL\`, \`OPENAI_API_KEY\`, \`VIDEO_PROVIDER\`, \`PRODUCTION_VOICE\`, \`PRODUCTION_QUEUE_ENABLED\`.
+The main app reads these properties: `MEDIA_WORKER_URL`, `MEDIA_WORKER_JOB_SUBMIT_SECRET`, `MEDIA_WORKER_SHARED_SECRET`,
+`MEDIA_WORKER_CALLBACK_URL`, `OPENAI_API_KEY`, `VIDEO_PROVIDER`, `PRODUCTION_VOICE`, `PRODUCTION_QUEUE_ENABLED`.
 The owner must confirm:
-- \`SAVANNAH_ENVIRONMENT\` is **absent** (or not \`staging\`) on the production main app, and absent on the bridge.
-- \`MEDIA_WORKER_CALLBACK_URL\` is the bridge's \`/exec\` URL (\`AKfycbyqd…\`). The main app's own URL was the cause of the earlier FAIL.
+- `SAVANNAH_ENVIRONMENT` is **absent** (or not `staging`) on the production main app, and absent on the bridge.
+- `MEDIA_WORKER_CALLBACK_URL` is the bridge's `/exec` URL (`AKfycbyqd…`). The main app's own URL was the cause of the earlier FAIL.
 
 The read-only readiness check (Settings → Release readiness → Run) also checks these and blocks the wrong callback URL.
 **The owner has not run it since the callback URL was corrected. It is still to do.**
@@ -1159,7 +1159,7 @@ The read-only readiness check (Settings → Release readiness → Run) also chec
 | Item | Estimate | Basis |
 |---|---|---|
 | ElevenLabs narration | about £0.02 to £0.06 | about 635 characters. $0.05 to $0.10 per 1,000 characters, per the conflicting secondary sources in §13 |
-| OpenAI script and SEO | about £0.01 | one small call each (owner's estimate in \`tools/first-video/README.md\`) |
+| OpenAI script and SEO | about £0.01 | one small call each (owner's estimate in `tools/first-video/README.md`) |
 | Pexels footage | £0 | free under the Pexels licence (§13) |
 | Cloud Run render and storage | pennies | one job run; Cloud Run pricing not re-checked here |
 | **Total** | **under about £0.10** | the ElevenLabs rate must be confirmed on the official page before A5 |
@@ -1167,9 +1167,9 @@ The read-only readiness check (Settings → Release readiness → Run) also chec
 ### 15.5 First-render acceptance checklist (links to existing sections; nothing copied)
 
 1. Readiness run (§15.3) shows no BLOCK.
-2. Idea, script and SEO generated and approved in the app (\`tools/first-video/README.md\`).
-3. One render submitted; the callback arrives at the bridge and a receipt is written (\`LIVE_ACCEPTANCE.md\` §5–8).
-4. Quality gate passes, including the audio check added in \`b02c609\`.
+2. Idea, script and SEO generated and approved in the app (`tools/first-video/README.md`).
+3. One render submitted; the callback arrives at the bridge and a receipt is written (`LIVE_ACCEPTANCE.md` §5–8).
+4. Quality gate passes, including the audio check added in `b02c609`.
 5. Human review of the finished video against the standards in the project brief.
 6. Private upload to Savannah Atlas only after the owner's separate approval (A6).
 
@@ -1188,9 +1188,9 @@ Once 1 and 2 are done and no BLOCK shows, A5 can be reconsidered. It still needs
 | Check | Result | Evidence type |
 |---|---|---|
 | Release-readiness check | Ready with warnings; no BLOCK | Owner-run in the app |
-| \`SAVANNAH_ENVIRONMENT\` absent | Absent on the main app and the bridge | Owner-verified |
-| ElevenLabs characters | Creator tier; 362,686 remaining of 362,686 (0 used) | Agent-verified (read-only \`/v1/user/subscription\`, counts only) |
-| Expected narration length | about 635 characters (\`tools/first-video/README.md\`) | Earlier local validation |
+| `SAVANNAH_ENVIRONMENT` absent | Absent on the main app and the bridge | Owner-verified |
+| ElevenLabs characters | Creator tier; 362,686 remaining of 362,686 (0 used) | Agent-verified (read-only `/v1/user/subscription`, counts only) |
+| Expected narration length | about 635 characters (`tools/first-video/README.md`) | Earlier local validation |
 | Expected marginal cost | Within the Creator allowance: no extra per-character charge. Plan fee already payable. OpenAI and Cloud Run: pennies | Derived; the rate sources in §13 no longer change this |
 | Duplicate-render protection | Lock-protected claim, render ID reserved before submit, upload guard across all attempts | Code review and existing tests (§15.2) |
 | Pending callbacks | Callbacks queue in the bridge inbox and are applied when the main app drains them, which happens when Production is opened (P1-7 scope is not granted). Owner to confirm the inbox has no pending receipts before the render | Partly owner-verified |
