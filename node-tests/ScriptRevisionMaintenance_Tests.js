@@ -131,8 +131,8 @@ const cases = [
     const logged = [];
     const h = harness(baseRecord());
     const script = fs.readFileSync(path.join(root, 'Scripts', 'Script_Revision_Maintenance.js'), 'utf8');
-    assert.ok(/Logger.log("Script revision DRY RUN: "/.test(script));
-    assert.ok(/Logger.log("Script revision APPLIED: "/.test(script));
+    assert.ok(script.includes('Logger.log("Script revision DRY RUN: "'));
+    assert.ok(script.includes('Logger.log("Script revision APPLIED: "'));
     assert.ok(h.maintenance.runForIdea({ apply: false }).applied === false);
   }],
 ];
