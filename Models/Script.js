@@ -525,7 +525,7 @@ const ScriptModel = (() => {
         );
       }
 
-      return {
+      const normalisedScene = {
         sceneNumber: normalisePositiveInteger_(
           scene.sceneNumber,
           index + 1
@@ -547,6 +547,14 @@ const ScriptModel = (() => {
           scene.estimatedSeconds
         )
       };
+
+      // Optional visual-search fields are kept only when present, so existing scripts keep their
+      // exact shape. The worker uses them to find location-specific footage.
+      const location = normaliseOptionalString_(scene.location);
+      const searchKeywords = normaliseOptionalString_(scene.searchKeywords);
+      if (location) normalisedScene.location = location;
+      if (searchKeywords) normalisedScene.searchKeywords = searchKeywords;
+      return normalisedScene;
     });
   }
 

@@ -196,7 +196,7 @@ const ScriptFormatter = (() => {
       "Visual direction for scene " + expectedSceneNumber
     );
 
-    return {
+    const formattedScene = {
       sceneNumber: normaliseSceneNumber_(
         scene.sceneNumber,
         expectedSceneNumber
@@ -209,6 +209,15 @@ const ScriptFormatter = (() => {
         "Estimated duration for scene " + expectedSceneNumber
       )
     };
+
+    // Optional visual-search fields are carried through unchanged, only when present.
+    if (typeof scene.location === "string" && scene.location.trim()) {
+      formattedScene.location = scene.location.trim();
+    }
+    if (typeof scene.searchKeywords === "string" && scene.searchKeywords.trim()) {
+      formattedScene.searchKeywords = scene.searchKeywords.trim();
+    }
+    return formattedScene;
   }
 
   /**

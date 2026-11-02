@@ -961,7 +961,7 @@ const ScriptValidator = (() => {
    * @return {Object} Normalised scene.
    */
   function normaliseScene_(scene) {
-    return {
+    const normalised = {
       sceneNumber:
         Number(scene.sceneNumber),
 
@@ -977,6 +977,15 @@ const ScriptValidator = (() => {
       estimatedSeconds:
         Number(scene.estimatedSeconds)
     };
+
+    // Optional visual-search fields are carried through, only when present.
+    if (typeof scene.location === "string" && scene.location.trim()) {
+      normalised.location = scene.location.trim();
+    }
+    if (typeof scene.searchKeywords === "string" && scene.searchKeywords.trim()) {
+      normalised.searchKeywords = scene.searchKeywords.trim();
+    }
+    return normalised;
   }
 
   /**
