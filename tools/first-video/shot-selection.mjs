@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { planBeatVisuals } from "../../media-worker/src/pipeline/visualSelection.js";
+import { planBeatVisuals, segmentLengths } from "../../media-worker/src/pipeline/visualSelection.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..", "..");
@@ -43,15 +43,24 @@ async function search(query) {
   return data.videos || [];
 }
 
-// Allow AI stills here only so every scene is reported. Stills are listed as coverage gaps,
-// never as footage.
-const beats = plan.scenes.map((scene) => ({
+// Beat durations are estimated from the probed length of the last render (42.27 s) split by
+// word count. The real split comes from Whisper alignment at render time, so this is a planning
+// estimate; the report shows it so the shot list can be checked against the real timing later.
+const probedSeconds = 42.27;
+const wordCounts = plan.scenes.map((scene) => scene.narration.split(/\s+/).filter(Boolean).length);
+const totalWords = wordCounts.reduce((a, b) => a + b, 0);
+const crossfade = 0.4;
+const beats = plan.scenes.map((scene, index) => ({
   text: scene.narration,
   visualQuery: scene.searchKeywords,
   imagePrompt: scene.searchKeywords,
   location: scene.location,
-  searchKeywords: scene.searchKeywords
+  searchKeywords: scene.searchKeywords,
+  estimatedSeconds: probedSeconds * wordCounts[index] / totalWords,
+  coverSeconds: probedSeconds * wordCounts[index] / totalWords + (index < plan.scenes.length - 1 ? crossfade : 0)
 }));
+// Allow AI stills here only so every scene is reported. Stills are listed as coverage gaps,
+// never as footage.
 const chosen = await planBeatVisuals(beats, search, { allowAiStills: true });
 
 const lines = [];
@@ -72,8 +81,16 @@ for (const entry of chosen) {
   lines.push("- Search fields: place `" + scene.location + "`, keywords `" + scene.searchKeywords + "`");
   lines.push("- Queries tried, in order: " + entry.queriesTried.map((q) => "`" + q + "`").join(", "));
   if (entry.type === "video") {
-    lines.push("- **Chosen clip:** [Pexels " + entry.pexelsId + "](" + entry.sourceUrl + ") (" + entry.sourceDurationSeconds + " s, query `" + entry.query + "`)");
-    lines.push("- Relevance: " + entry.reason);
+    lines.push("- Estimated beat length: " + beats[entry.beatIndex].estimatedSeconds.toFixed(1) + " s (cover " + beats[entry.beatIndex].coverSeconds.toFixed(1) + " s with crossfade)");
+    // Same piece lengths the assembler uses (media-worker assemble.js via segmentLengths).
+    const lengths = segmentLengths(entry.segments.map((s) => s.sourceDurationSeconds), beats[entry.beatIndex].coverSeconds);
+    let cursor = 0;
+    entry.segments.forEach((segment, k) => {
+      const length = lengths[k];
+      lines.push("- Cut " + (k + 1) + " (" + cursor.toFixed(1) + "-" + (cursor + length).toFixed(1) + " s, " + length.toFixed(1) + " s of a " + segment.sourceDurationSeconds + " s clip): [Pexels " + segment.pexelsId + "](" + segment.sourceUrl + "), query `" + segment.query + "`");
+      lines.push("  - Relevance: " + segment.reason);
+      cursor += length;
+    });
     lines.push("- Human review: **pending**");
   } else {
     gaps += 1;

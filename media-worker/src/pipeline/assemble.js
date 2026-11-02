@@ -1,6 +1,8 @@
+import { writeFile } from "node:fs/promises";
 import { ffmpeg } from "../lib/ffmpeg.js";
 import { writeWordPopAss } from "../lib/ass.js";
 import { config } from "../config.js";
+import { segmentLengths } from "./visualSelection.js";
 
 function escapeForFilter(filePath) {
   // The subtitles filter's own argument parser splits on ':' (filename:option=value),
@@ -15,7 +17,7 @@ function escapeForFilter(filePath) {
 // Normalizes one beat's resolved visual (real clip or AI still) into a silent clip of
 // exactly the beat's duration, filled and cropped to the target vertical frame. Stills
 // get a slow Ken Burns push so the hybrid mix doesn't read as "some clips move, some don't".
-async function normalizeBeatClip(visual, durationSeconds, outPath) {
+export async function normalizeBeatClip(visual, durationSeconds, outPath) {
   const { width, height, fps } = config.video;
   const frames = Math.max(1, Math.round(durationSeconds * fps));
 
@@ -39,16 +41,45 @@ async function normalizeBeatClip(visual, durationSeconds, outPath) {
     return outPath;
   }
 
+  return normalizeSegmentedClip(visual.segments, durationSeconds, outPath);
+}
+
+// Video beats are built from several clips cut in order, never looped: each piece is trimmed
+// to its share of the beat, encoded to the same frame format, then joined. The planner has
+// already checked that the segments cover the duration.
+async function normalizeSegmentedClip(segments, durationSeconds, outPath) {
+  const { width, height, fps } = config.video;
+  const lengths = segmentLengths(segments.map((s) => s.sourceDurationSeconds), durationSeconds);
+  if (lengths === null) {
+    throw new Error(`Visual segments do not cover ${durationSeconds.toFixed(2)} s; refusing to loop a clip`);
+  }
+
+  const pieces = [];
+  for (const [k, segment] of segments.entries()) {
+    if (k >= lengths.length) break;
+    const piecePath = outPath.replace(/\.mp4$/, `-piece-${k}.mp4`);
+    await ffmpeg([
+      "-i", segment.path,
+      "-t", lengths[k].toFixed(3),
+      "-vf", `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=${fps},format=yuv420p`,
+      "-an",
+      "-r", String(fps),
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-threads", "1",
+      piecePath
+    ]);
+    pieces.push(piecePath);
+  }
+
+  const listPath = outPath.replace(/\.mp4$/, "-pieces.txt");
+  await writeFile(listPath, pieces.map((p) => `file '${p.replace(/\\/g, "/")}'`).join("\n"));
   await ffmpeg([
-    "-stream_loop", "-1",
-    "-i", visual.path,
-    "-t", String(durationSeconds),
-    "-vf", `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=${fps},format=yuv420p`,
-    "-an",
-    "-r", String(fps),
-    "-c:v", "libx264",
-    "-preset", "veryfast",
-    "-threads", "1",
+    "-f", "concat",
+    "-safe", "0",
+    "-i", listPath,
+    "-c", "copy",
+    "-t", durationSeconds.toFixed(3),
     outPath
   ]);
   return outPath;

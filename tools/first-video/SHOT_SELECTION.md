@@ -9,9 +9,12 @@ Narration checked against the approved script: all 5 lines match.
 
 - Narration: In Morocco's Rif Mountains, a whole town is painted blue, and nobody agrees why. The town sits high on the hillside, and its alleys climb steeply between blue walls.
 - Search fields: place `Chefchaouen`, keywords `blue city aerial mountains rooftops`
-- Queries tried, in order: `chefchaouen blue city`
-- **Chosen clip:** [Pexels 34499652](https://www.pexels.com/video/stunning-blue-city-views-of-chefchaouen-34499652/) (9 s, query `chefchaouen blue city`)
-- Relevance: accepted: place name found; 2 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
+- Queries tried, in order: `chefchaouen blue city`, `chefchaouen aerial mountains`, `chefchaouen`, `blue city aerial`, `blue city`
+- Estimated beat length: 12.3 s (cover 12.7 s with crossfade)
+- Cut 1 (0.0-6.7 s, 6.7 s of a 9 s clip): [Pexels 34499652](https://www.pexels.com/video/stunning-blue-city-views-of-chefchaouen-34499652/), query `chefchaouen blue city`
+  - Relevance: accepted: place name found; 2 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
+- Cut 2 (6.7-12.7 s, 6.0 s of a 6 s clip): [Pexels 39338984](https://www.pexels.com/video/charming-blue-alley-in-chefchaouen-morocco-39338984/), query `chefchaouen blue city`
+  - Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
 - Human review: **pending**
 
 ## Scene 2
@@ -19,8 +22,9 @@ Narration checked against the approved script: all 5 lines match.
 - Narration: Some residents say the blue stands for peace. Others say it keeps mosquitoes away.
 - Search fields: place `Chefchaouen`, keywords `blue alley steps street`
 - Queries tried, in order: `chefchaouen blue alley`
-- **Chosen clip:** [Pexels 39338984](https://www.pexels.com/video/charming-blue-alley-in-chefchaouen-morocco-39338984/) (6 s, query `chefchaouen blue alley`)
-- Relevance: accepted: place name found; 2 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
+- Estimated beat length: 5.9 s (cover 6.3 s with crossfade)
+- Cut 1 (0.0-6.3 s, 6.3 s of a 23 s clip): [Pexels 34499565](https://www.pexels.com/video/exploring-chefchaouen-s-alluring-blue-alleys-34499565/), query `chefchaouen blue alley`
+  - Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
 - Human review: **pending**
 
 ## Scene 3
@@ -28,17 +32,21 @@ Narration checked against the approved script: all 5 lines match.
 - Narration: One commonly cited explanation links the blue to Jewish communities who settled here, though the exact origin is not firmly documented.
 - Search fields: place `Chefchaouen`, keywords `blue doorway wooden door`
 - Queries tried, in order: `chefchaouen blue doorway`
-- **Chosen clip:** [Pexels 34499563](https://www.pexels.com/video/exploring-the-blue-streets-of-chefchaouen-34499563/) (9 s, query `chefchaouen blue doorway`)
-- Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
+- Estimated beat length: 8.9 s (cover 9.3 s with crossfade)
+- Cut 1 (0.0-9.3 s, 9.3 s of a 10 s clip): [Pexels 34499551](https://www.pexels.com/video/stroll-through-chefchaouen-s-iconic-blue-streets-34499551/), query `chefchaouen blue doorway`
+  - Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
 - Human review: **pending**
 
 ## Scene 4
 
 - Narration: Residents continue repainting their walls, keeping the town's famous blue streets vibrant. From pale sky blue to deep indigo, almost every corner looks different.
 - Search fields: place `Chefchaouen`, keywords `blue wall painting street`
-- Queries tried, in order: `chefchaouen blue wall`
-- **Chosen clip:** [Pexels 34499551](https://www.pexels.com/video/stroll-through-chefchaouen-s-iconic-blue-streets-34499551/) (10 s, query `chefchaouen blue wall`)
-- Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
+- Queries tried, in order: `chefchaouen blue wall`, `chefchaouen painting street`, `chefchaouen`, `blue wall painting`, `blue wall`
+- Estimated beat length: 10.1 s (cover 10.5 s with crossfade)
+- Cut 1 (0.0-5.3 s, 5.3 s of a 9 s clip): [Pexels 34499563](https://www.pexels.com/video/exploring-the-blue-streets-of-chefchaouen-34499563/), query `chefchaouen blue wall`
+  - Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
+- Cut 2 (5.3-10.5 s, 5.3 s of a 6 s clip): [Pexels 39338983](https://www.pexels.com/video/exploring-the-blue-streets-of-chefchaouen-39338983/), query `chefchaouen blue wall`
+  - Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
 - Human review: **pending**
 
 ## Scene 5
@@ -46,8 +54,9 @@ Narration checked against the approved script: all 5 lines match.
 - Narration: So what's the real reason? Tell me your theory in the comments.
 - Search fields: place `Chefchaouen`, keywords `blue staircase rooftops street`
 - Queries tried, in order: `chefchaouen blue staircase`
-- **Chosen clip:** [Pexels 39338982](https://www.pexels.com/video/explore-the-blue-streets-of-chefchaouen-39338982/) (5 s, query `chefchaouen blue staircase`)
-- Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
+- Estimated beat length: 5.1 s (cover 5.1 s with crossfade)
+- Cut 1 (0.0-5.1 s, 5.1 s of a 9 s clip): [Pexels 34499601](https://www.pexels.com/video/exploring-the-blue-alleys-of-chefchaouen-morocco-34499601/), query `chefchaouen blue staircase`
+  - Relevance: accepted: place name found; 1 of 4 subject words found (Pexels metadata is supporting evidence, not proof of location)
 - Human review: **pending**
 
 ## Summary

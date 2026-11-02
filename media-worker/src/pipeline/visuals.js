@@ -50,15 +50,32 @@ async function generateFallbackStill(prompt, destPath) {
 // are generated. A beat with no acceptable footage either fails the job with a visual-coverage
 // error or, when allowAiStills is set, becomes a still that is labelled as AI-generated.
 export async function resolveBeatVisuals(beats, workDir, { allowAiStills = false, log = () => {} } = {}) {
-  const plan = await planBeatVisuals(beats, searchPexelsVideos, { allowAiStills });
+  // Each beat must be covered for its own length plus the crossfade it overlaps into the next
+  // beat (assemble.js pads every clip except the last by the crossfade).
+  const withCoverage = beats.map((beat, index) => ({
+    ...beat,
+    coverSeconds: (beat.end - beat.start) + (index < beats.length - 1 ? config.video.crossfadeSeconds : 0)
+  }));
+  const plan = await planBeatVisuals(withCoverage, searchPexelsVideos, { allowAiStills });
 
   return Promise.all(
     plan.map(async (entry) => {
       log(`visual beat ${entry.beatIndex + 1}: ${entry.type}${entry.synthetic ? " (AI, not footage)" : ""} - ${entry.reason || ""}`);
       if (entry.type === "video") {
-        const localPath = workDir.path(`beat-${entry.beatIndex}-source.mp4`);
-        await downloadTo(entry.link, localPath);
-        return { type: "video", path: localPath, pexelsId: entry.pexelsId, sourceUrl: entry.sourceUrl, query: entry.query, reason: entry.reason };
+        const segments = [];
+        for (const [k, segment] of entry.segments.entries()) {
+          const localPath = workDir.path(`beat-${entry.beatIndex}-seg-${k}.mp4`);
+          await downloadTo(segment.link, localPath);
+          segments.push({
+            path: localPath,
+            sourceDurationSeconds: segment.sourceDurationSeconds,
+            pexelsId: segment.pexelsId,
+            sourceUrl: segment.sourceUrl,
+            query: segment.query,
+            reason: segment.reason
+          });
+        }
+        return { type: "video", segments };
       }
       const localPath = workDir.path(`beat-${entry.beatIndex}-still.png`);
       await generateFallbackStill(entry.prompt, localPath);

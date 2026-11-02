@@ -77,6 +77,13 @@ test("a result that names the place and a subject word is accepted", () => {
   assert.ok(judgement.evidence.matchedKeywords.includes("blue"));
 });
 
+test("a clip that matches only a secondary subject word is rejected", () => {
+  // The place matches and "street" matches, but the scene's main subject "blue" does not.
+  const beat = { location: "Chefchaouen", searchKeywords: "blue alley steps street" };
+  const judgement = judgeVideo(clip(3001, "vibrant-street-scene-in-chefchaouen-morocco"), beat);
+  assert.equal(judgement.accepted, false);
+});
+
 test("multi-word places need every word in the metadata", () => {
   const beat = { location: "Rif Mountains", searchKeywords: "blue town" };
   assert.equal(judgeVideo(clip(1, "blue-town-in-the-rif-mountains"), beat).accepted, true);
@@ -118,7 +125,7 @@ test("planBeatVisuals tries the next query variant before giving up", async () =
   };
   const plan = await planBeatVisuals([DOOR_BEAT], search);
   assert.equal(plan[0].type, "video");
-  assert.equal(plan[0].query, "chefchaouen");
+  assert.equal(plan[0].segments[0].query, "chefchaouen");
   assert.ok(seen.length > 1, "more than one query was searched");
   assert.deepEqual(plan[0].queriesTried, seen);
 });
@@ -127,7 +134,7 @@ test("planBeatVisuals never reuses a clip across beats", async () => {
   const beats = [DOOR_BEAT, { ...DOOR_BEAT, text: "A second scene." }];
   const search = async () => [CHEFCHAOUEN_ALLEY, CHEFCHAOUEN_STREET];
   const plan = await planBeatVisuals(beats, search);
-  assert.notEqual(plan[0].pexelsId, plan[1].pexelsId);
+  assert.notEqual(plan[0].segments[0].pexelsId, plan[1].segments[0].pexelsId);
 });
 
 test("planBeatVisuals fails with a visual-coverage error when nothing is relevant", async () => {
@@ -157,5 +164,5 @@ test("the approved Chefchaouen door scene picks the Chefchaouen clip, not the Sa
   // variant returns the Chefchaouen clip, and the unrelated Santorini result is never used.
   const search = async (query) => (query.startsWith("chefchaouen") ? [SANTORINI_DOOR, CHEFCHAOUEN_ALLEY] : [SANTORINI_DOOR]);
   const plan = await planBeatVisuals([DOOR_BEAT], search);
-  assert.equal(plan[0].pexelsId, CHEFCHAOUEN_ALLEY.id);
+  assert.equal(plan[0].segments[0].pexelsId, CHEFCHAOUEN_ALLEY.id);
 });

@@ -95,8 +95,12 @@ export function judgeVideo(video, beat) {
   const hasPlace = evidence.locationMatch !== null;
   const subjectHits = evidence.matchedKeywords.length;
   const subjectNeeded = Math.min(2, evidence.keywordCount);
+  // The first keyword is the scene's main subject (for example "blue"). Matching only a
+  // secondary word such as "street" lets in clips of the wrong subject, so a clip must match
+  // the main subject or at least two subject words.
+  const primaryHit = evidence.keywordCount > 0 && evidence.matchedKeywords.includes(deriveKeywords(beat)[0]);
   const accepted = hasPlace
-    ? evidence.locationMatch && (evidence.keywordCount === 0 || subjectHits >= 1)
+    ? evidence.locationMatch && (evidence.keywordCount === 0 || primaryHit || subjectHits >= 2)
     : subjectHits >= subjectNeeded && subjectNeeded > 0;
   return { accepted, evidence, reason: explain(evidence, hasPlace, accepted, beat) };
 }
@@ -119,10 +123,11 @@ function portraitFile(video) {
 
 // Chooses the best acceptable, not-yet-used clip from one query's results. Returns null when
 // nothing qualifies, which makes the caller try the next query variant.
-export function selectClip(videos, beat, usedIds) {
+export function selectClip(videos, beat, usedIds, minSeconds = 0) {
   let best = null;
   for (const video of videos || []) {
     if (usedIds.has(video.id)) continue;
+    if (Number(video.duration) < minSeconds) continue;
     const file = portraitFile(video);
     if (!file) continue;
     const judgement = judgeVideo(video, beat);
@@ -146,31 +151,122 @@ export function selectClip(videos, beat, usedIds) {
 // Plans every beat in order. `search(query)` resolves to Pexels video objects. Clips are
 // de-duplicated across the whole job. When no clip qualifies for a beat, the plan either
 // falls back to a labelled AI still (allowAiStills) or fails with a visual-coverage error.
+// Pure helper: the piece lengths that cover `durationSeconds` from the source clips, in order.
+// The beat is shared evenly across the clips, so no cut is a short tail; a clip shorter than
+// its share gives its whole length and the rest is spread over the others. Each piece is no
+// longer than its source. Returns null when the sources are too short, so the caller reports
+// a gap instead of looping a clip.
+export function segmentLengths(sourceDurations, durationSeconds) {
+  const lengths = sourceDurations.map(() => 0);
+  let active = sourceDurations.map((_, index) => index);
+  let remaining = durationSeconds;
+  while (remaining > 0.001 && active.length > 0) {
+    const share = remaining / active.length;
+    for (const index of active) {
+      const add = Math.min(share, sourceDurations[index] - lengths[index]);
+      lengths[index] += add;
+      remaining -= add;
+    }
+    active = active.filter((index) => sourceDurations[index] - lengths[index] > 0.001);
+  }
+  return remaining <= 0.001 ? lengths : null;
+}
+
+// A beat may need several clips (cuts, not loops). Each clip is used once in the job.
+const MAX_SEGMENTS_PER_BEAT = 3;
+// A cut shorter than this reads as a flash, so a beat prefers one clip over a short tail.
+const MIN_CUT_SECONDS = 2.5;
+
+// Plans every beat in order. `search(query)` resolves to Pexels video objects. A beat with
+// `coverSeconds` collects clips until their durations cover it. When a beat cannot be covered
+// with relevant footage, the plan either falls back to a labelled AI still (allowAiStills)
+// or fails with a visual-coverage error.
 export async function planBeatVisuals(beats, search, options = {}) {
   const usedIds = new Set();
+  const cache = new Map();
+  const cachedSearch = async (query) => {
+    if (!cache.has(query)) cache.set(query, await search(query));
+    return cache.get(query);
+  };
+
   const plan = [];
   for (let index = 0; index < beats.length; index += 1) {
     const beat = beats[index];
+    const needed = beat.coverSeconds || 0;
     const queries = buildSearchQueries(beat);
     const tried = [];
-    let chosen = null;
-    for (const query of queries) {
-      tried.push(query);
-      const videos = await search(query);
-      chosen = selectClip(videos, beat, usedIds);
-      if (chosen) {
-        chosen.query = query;
-        break;
+    const segments = [];
+    const usedBeforeBeat = new Set(usedIds);
+    let covered = 0;
+
+    // First choice: one clip long enough for the whole beat, so the beat needs no cut.
+    if (needed > 0) {
+      for (const query of queries) {
+        tried.push(query);
+        const chosen = selectClip(await cachedSearch(query), beat, usedIds, needed);
+        if (chosen) {
+          chosen.query = query;
+          segments.push(chosen);
+          usedIds.add(chosen.pexelsId);
+          covered = chosen.sourceDurationSeconds;
+          break;
+        }
       }
     }
-    if (chosen) {
-      usedIds.add(chosen.pexelsId);
-      plan.push({ beatIndex: index, ...chosen, queriesTried: tried });
+
+    // Otherwise, several clips. Every cut except one that finishes the beat must be at least
+    // MIN_CUT_SECONDS long, so the video has no flashes of a fraction of a second.
+    if (needed > 0 && covered < needed) {
+      segments.length = 0;
+      usedIds.clear();
+      for (const id of usedBeforeBeat) usedIds.add(id);
+      covered = 0;
+      for (const query of queries) {
+        while (segments.length < MAX_SEGMENTS_PER_BEAT && covered < needed) {
+          const chosen = selectClip(await cachedSearch(query), beat, usedIds, MIN_CUT_SECONDS);
+          if (!chosen) break;
+          chosen.query = query;
+          segments.push(chosen);
+          usedIds.add(chosen.pexelsId);
+          covered += chosen.sourceDurationSeconds;
+        }
+        if (!tried.includes(query)) tried.push(query);
+        if (covered >= needed) break;
+      }
+    }
+
+    if (needed === 0) {
+      for (const query of queries) {
+        tried.push(query);
+        const chosen = selectClip(await cachedSearch(query), beat, usedIds);
+        if (chosen) {
+          chosen.query = query;
+          segments.push(chosen);
+          usedIds.add(chosen.pexelsId);
+          break;
+        }
+      }
+    }
+
+    const coverageOk = needed === 0
+      ? segments.length > 0
+      : segmentLengths(segments.map((s) => s.sourceDurationSeconds), needed) !== null;
+    if (coverageOk) {
+      plan.push({
+        beatIndex: index,
+        type: "video",
+        segments,
+        queriesTried: tried,
+        reason: segments.map((s) => s.reason).join(" / ")
+      });
       continue;
     }
+
+    // Release clips picked for this beat: the beat is not using them.
+    for (const segment of segments) usedIds.delete(segment.pexelsId);
     if (!options.allowAiStills) {
       throw new VisualCoverageError(
-        "No relevant footage for beat " + (index + 1) + " after queries: " + tried.join(" | "),
+        "No relevant footage covering " + needed.toFixed(1) + " s for beat " + (index + 1) + " after queries: " + tried.join(" | "),
         index
       );
     }
