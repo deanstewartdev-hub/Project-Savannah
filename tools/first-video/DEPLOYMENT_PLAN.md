@@ -1,56 +1,67 @@
 # Deployment plan: visual-coverage change for the second Chefchaouen render
 
-Status: **prepared, not executed.** Nothing here has been deployed, and no production script record has been changed. Each step needs the owner's separate approval.
+Status: **prepared, not executed.** Nothing here has been deployed, and the production script record has not been changed. Each step needs the owner's separate approval.
 
-Branch: `feat/visual-relevance-gate` (commits `4007bb6`, `9c17613`, `94f188f`).
+Branch: `feat/visual-relevance-gate` (latest commit `e8086ff`; all commits are pushed).
 
-## 1. Verified state (1–2 November 2026, read-only)
+## 1. Verified live state (read-only, 2 November 2026)
 
 | Component | Live state | How it was checked |
 |---|---|---|
-| Main app (web app deployment in production) | **version 94** (commit `cdabdab`, the maintenance dry-run logging) | `clasp deployments` and `clasp versions` |
-| Main app rollback target | **94**, not 92 | the deployment list above |
+| Main app, production web app deployment | **version 94** (commit `cdabdab`) | `clasp deployments` and `clasp versions` in the root project |
+| Main app rollback target | **94**, not 92 | the same listing |
+| Callback bridge, production project "Savannah bridge" | deployment at **version 5**, the verify-route build, as the handover records | `clasp deployments` from a temporary folder, pointed at the production bridge project (read-only) |
 | Worker dispatcher | revision `savannah-media-worker-dispatcher-00013-jin` at **100%** | `gcloud run services describe`, europe-west2 |
 | Render job | last execution `savannah-render-job-x8z8z` (the first Chefchaouen render), exit 0 | `gcloud run jobs executions list` |
-| Callback bridge | **not verified here.** The handover says version 5, but the bridge project in this repo lists only version 1, under a different deployment. The live bridge needs checking in its own Apps Script project before any change. | `clasp deployments` in `CallbackBridge/` |
 
-The deployed main app differs from this branch only in `Production/VideoProcessingProvider.js`, plus the three scene-builder files (`Models/Script.js`, `Scripts/Script_Formatter.js`, `Scripts/Script_Validator.js`). Approval records do not copy scene text, so the record update does not change any approval.
+**Config mismatch to fix before any push:** `CallbackBridge/.clasp.json` points to a different Apps Script project (one that has only version 1 and is not the production bridge). A `clasp push` from that folder would target the wrong project. This needs an owner decision. Nothing has been changed.
 
-## 2. Tests before deployment
+The deployed main app (version 94) differs from this branch only in `Production/VideoProcessingProvider.js` and the three scene-builder files (`Models/Script.js`, `Scripts/Script_Formatter.js`, `Scripts/Script_Validator.js`), plus the new `Scripts/Visual_Fields_Maintenance.js`. Approval records do not copy scene text, so the record update does not change any approval.
 
-- Worker: `cd media-worker && npm test`: **122/122** pass.
-- Main app: `node node-tests/run-local.cjs`: exit 0, **378** PASS lines.
-- Visual-field pipeline: `node node-tests/ScriptVisualFields_Tests.js`: **4/4** pass.
-- Shot selection, live read-only Pexels: `node tools/first-video/shot-selection.mjs`: 5 of 5 scenes covered.
+## 2. Tests before deployment (all pass)
 
-## 3. Order of operations
+- Worker: `cd media-worker && node --test` → **122/122**.
+- Main app: `node node-tests/run-local.cjs` → exit 0, **394** PASS lines. It includes:
+  - `ScriptVisualFields_Tests.js`: 4/4. The visual fields survive the validator, formatter and model; narration and timing are unchanged.
+  - `VisualFieldsMaintenance_Tests.js`: 16/16. Dry run, backup order, unrelated fields unchanged, other scripts untouched, each refusal, read-back mismatch, and restore.
+- Shot selection (live, read-only Pexels): `tools/first-video/shot-selection.mjs` → 5 of 5 scenes covered. The seven selected clips are in `tools/first-video/SHOT_SELECTION.md` for human review.
 
-The order matters, because the worker must not fail open with the current main app.
+## 3. Integration check (what is and is not proven)
 
-1. **Worker first.** The new worker only cuts footage per beat and fails closed: with no location fields, it derives keywords from the long scene direction, and if no clip passes the gate the job fails with `PRODUCTION_VISUAL_COVERAGE`. It does not substitute unrelated clips. Deploy as a new revision with **no traffic**, then smoke-test it.
-   - Smoke test: a dispatcher request with `dryRun: true`. In `media-worker/src/job-runner.js:43` dry-run loads the request and exits before any paid call. It still starts one Cloud Run execution, so it needs approval.
-2. **Production record update.** Run the dry run on an exported copy of the stored scenes (`tools/first-video/visual-fields-dry-run.mjs`), check the diff, back up the original through the Script Revision Backups sheet, then write the five `location` and `searchKeywords` fields. Narration, timing, IDs, status, approvals and SEO stay unchanged.
-3. **Main app.** `clasp push`, then `clasp version`, then update the production deployment to the new version. This ships `VideoProcessingProvider.js` and the three scene builders.
-4. **Verify without rendering.** Confirm the fields reach the worker: the record shows them, the provider passes them, and the worker plan lists them. No paid action.
-5. **Shift worker traffic** to the new revision (only after steps 1–4 pass).
-6. **Second render:** a separate approval, after the shot-list review.
+- **Script repository → provider:** the repository stores and returns scene JSON unchanged. The provider passes `location` and `searchKeywords` into each beat. Read by code and the pass-through test.
+- **Dispatcher → worker:** the dispatcher forwards whole beat objects. `validateBeats` does not reject extra fields.
+- **Worker planning and cutting:** unit tests cover the gate, coverage and cut distribution. An ffmpeg run of the segmented assembly produced 9.000 s at 1080×1920.
+- **Not proven:** the full path with the real stored record and a real render. That needs the deployment steps below.
 
-## 4. Rollback
+## 4. Order of operations
 
-Each step has a rollback that can run on its own.
+The order matters. The worker fails closed on its own, but the editor can only run the new maintenance function after the main-app code is deployed.
+
+1. **Worker, no traffic.** Deploy the new revision with no traffic. Smoke test with a dispatcher request with `dryRun: true`. The worker's dry-run path (`media-worker/src/job-runner.js:43`) loads the request and exits before any paid call. It still starts one Cloud Run execution, so it needs approval.
+2. **Main app code.** Resolve the `CallbackBridge/.clasp.json` mismatch first (it does not affect the main app push). Then `clasp push` from the root, `clasp version`, and update the production deployment to the new version. This ships the provider change, the scene builders, and the maintenance functions (inert until run).
+3. **Editor dry run (read-only).** Run `previewChefchaouenVisualFieldsDryRun` from the editor. It reads the saved record through the repository and logs the five changes and the unchanged-field check. Review the log.
+4. **Apply, with approval.** Run `applyChefchaouenVisualFields`. It backs up the original JSON to Script Revision Backups, saves once, and reads the record back. The result is logged with `verified=true`.
+5. **Verify without rendering.** Check that the stored record carries the five fields and version 8, status still APPROVED, and that the approval queue and SEO pack are unchanged.
+6. **Worker traffic shift** to the new revision, only after steps 1–5 pass.
+7. **Second render:** a separate approval, after the shot-list review.
+
+## 5. Rollback
+
+Each step can be rolled back on its own.
 
 | Step | Rollback | Notes |
 |---|---|---|
-| Worker traffic | `gcloud run services update-traffic savannah-media-worker-dispatcher --project savannah-media-worker --region europe-west2 --to-revisions=savannah-media-worker-dispatcher-00013-jin=100` | Restores the current live revision. |
-| Main app | `clasp redeploy <production-deployment-id> --versionNumber 94 --description "rollback to 94"` | Use the production deployment ID from `clasp deployments`. Version 94 is the last deployed version. |
-| Production record | Restore the `before.json` scene values from the backup row in Script Revision Backups, and verify with a read. | The backup holds the original JSON, not a summary. |
+| Worker traffic | `gcloud run services update-traffic savannah-media-worker-dispatcher --project savannah-media-worker --region europe-west2 --to-revisions=savannah-media-worker-dispatcher-00013-jin=100` | Restores the live revision. |
+| Main app | `clasp redeploy <production-deployment-id> --versionNumber 94 --description "rollback to 94"` | Get the deployment ID from `clasp deployments`. |
+| Production record | Editor: `previewChefchaouenVisualFieldsRestore`, then `restoreChefchaouenVisualFieldsFromBackup`. It restores the latest backup of this script with the next version number, backing up the replaced record first. | Verified by a read-back. |
 
-Only the command syntax was checked, using `clasp redeploy --help` and `gcloud run services update-traffic --help`. The rollback itself has not been run, because it would change production.
+Only the command syntax was checked, using `clasp redeploy --help` and `gcloud run services update-traffic --help`. The rollback commands have not been run, because they would change production. The editor restore path is covered by the 16 tests, which run against a mocked repository and backup sheet.
 
-## 5. Owner decisions needed
+## 6. Owner decisions needed
 
-1. Approve the worker deployment (new revision with no traffic) and the dry-run execution.
-2. Approve the production record update, after the dry-run diff is shown.
-3. Approve the main-app deployment.
-4. Confirm the live callback bridge version in its own project.
-5. Approve the second render separately, after reviewing the shot list.
+1. Approve the worker deployment (new revision, no traffic) and its dry-run execution.
+2. Decide the `CallbackBridge/.clasp.json` mismatch. Pointing it at the production bridge project is the likely fix.
+3. Approve the main-app push and deployment.
+4. Approve the editor dry run (read-only, no approval needed for the dry run itself; approval is needed to run the editor function if you want me to wait for it).
+5. Approve the record apply, after the dry-run log is reviewed.
+6. Approve the second render separately, after reviewing the seven clips.
