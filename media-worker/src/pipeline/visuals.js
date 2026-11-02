@@ -1,17 +1,18 @@
 import { writeFile } from "node:fs/promises";
 import OpenAI from "openai";
 import { config } from "../config.js";
+import { planBeatVisuals } from "./visualSelection.js";
 
 const openai = new OpenAI({ apiKey: config.openaiApiKey });
 
-async function searchPexelsVideo(query) {
+async function searchPexelsVideos(query) {
   const url = new URL("https://api.pexels.com/videos/search");
   url.searchParams.set("query", query);
   url.searchParams.set("orientation", "portrait");
   // "medium" (Full HD) not "large" (4K) - the final output is 1080x1920, so a 4K source
   // just costs extra decode/scale memory and CPU on the render worker for no visual gain.
   url.searchParams.set("size", "medium");
-  url.searchParams.set("per_page", "5");
+  url.searchParams.set("per_page", "8");
 
   const response = await fetch(url, {
     headers: { Authorization: config.pexelsApiKey }
@@ -20,20 +21,7 @@ async function searchPexelsVideo(query) {
     throw new Error(`Pexels search failed (${response.status})`);
   }
   const data = await response.json();
-
-  for (const video of data.videos || []) {
-    // Prefer the smallest rendition that still meets our 1080px target width, so we're
-    // not decoding/scaling a needlessly large file for a 1080x1920 output. Falls back to
-    // the largest available if nothing clears 1080 (rare, but better than no clip).
-    const portraitFiles = (video.video_files || [])
-      .filter((f) => f.height > f.width && f.file_type === "video/mp4")
-      .sort((a, b) => a.width - b.width);
-    const chosen = portraitFiles.find((f) => f.width >= 1080) || portraitFiles[portraitFiles.length - 1];
-    if (chosen) {
-      return { link: chosen.link, sourceDurationSeconds: video.duration };
-    }
-  }
-  return null;
+  return data.videos || [];
 }
 
 async function downloadTo(url, destPath) {
@@ -56,18 +44,25 @@ async function generateFallbackStill(prompt, destPath) {
   return destPath;
 }
 
-// Resolves one beat's visual: a real Pexels clip when a decent match exists, otherwise
-// an AI still (Ken Burns motion is added later in assemble.js). This is the "hybrid"
-// approach — real footage where it fits, AI stills as fallback, never the other way round.
-export async function resolveBeatVisual(beat, index, workDir) {
-  const match = await searchPexelsVideo(beat.visualQuery);
-  if (match) {
-    const localPath = workDir.path(`beat-${index}-source.mp4`);
-    await downloadTo(match.link, localPath);
-    return { type: "video", path: localPath };
-  }
+// Resolves every beat's visual in two steps. First, a plan: each beat tries its location-
+// specific query variants and keeps only Pexels clips that pass the relevance gate, with no
+// clip reused across beats. Second, the chosen files are fetched and any labelled AI stills
+// are generated. A beat with no acceptable footage either fails the job with a visual-coverage
+// error or, when allowAiStills is set, becomes a still that is labelled as AI-generated.
+export async function resolveBeatVisuals(beats, workDir, { allowAiStills = false, log = () => {} } = {}) {
+  const plan = await planBeatVisuals(beats, searchPexelsVideos, { allowAiStills });
 
-  const localPath = workDir.path(`beat-${index}-still.png`);
-  await generateFallbackStill(beat.imagePrompt || beat.visualQuery, localPath);
-  return { type: "still", path: localPath };
+  return Promise.all(
+    plan.map(async (entry) => {
+      log(`visual beat ${entry.beatIndex + 1}: ${entry.type}${entry.synthetic ? " (AI, not footage)" : ""} - ${entry.reason || ""}`);
+      if (entry.type === "video") {
+        const localPath = workDir.path(`beat-${entry.beatIndex}-source.mp4`);
+        await downloadTo(entry.link, localPath);
+        return { type: "video", path: localPath, pexelsId: entry.pexelsId, sourceUrl: entry.sourceUrl, query: entry.query, reason: entry.reason };
+      }
+      const localPath = workDir.path(`beat-${entry.beatIndex}-still.png`);
+      await generateFallbackStill(entry.prompt, localPath);
+      return { type: "still", path: localPath, synthetic: true, label: entry.label, queriesTried: entry.queriesTried };
+    })
+  );
 }

@@ -112,10 +112,16 @@ const CloudRunFFmpegProvider = (() => {
       const narration = String(scene && scene.narration || "").trim();
       if (!narration) throw error_("Scene " + (index + 1) + " has no narration text.");
       const visualDirection = String(scene && scene.visualDirection || "").trim();
+      // Optional search fields: a place name and short subject keywords. Scripts without
+      // them still send the scene direction, and the worker derives keywords from it.
+      const location = String(scene && scene.location || script.location || "").trim().slice(0, 60);
+      const searchKeywords = String(scene && scene.searchKeywords || "").trim().slice(0, 80);
       return {
         text: narration,
         visualQuery: (visualDirection || script.title || "travel").slice(0, 120),
-        imagePrompt: (visualDirection || narration).slice(0, 400)
+        imagePrompt: (visualDirection || narration).slice(0, 400),
+        location: location,
+        searchKeywords: searchKeywords
       };
     });
 

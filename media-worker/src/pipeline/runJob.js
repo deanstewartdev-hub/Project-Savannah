@@ -3,17 +3,16 @@ import { downloadToFile } from "../lib/storage.js";
 import { generateContinuousNarration } from "./narration.js";
 import { alignNarration } from "./alignment.js";
 import { computeBeatTimings } from "./beatTiming.js";
-import { resolveBeatVisual } from "./visuals.js";
+import { resolveBeatVisuals } from "./visuals.js";
 import { assembleVideo } from "./assemble.js";
 import { probeVideo } from "./probe.js";
 import { deliverResult } from "./deliver.js";
 import { config } from "../config.js";
 
-// Full pipeline for one job, from script to a probed, delivered MP4. Runs beat-visual
-// resolution concurrently since each beat's Pexels/gpt-image-2 call is independent, but
-// keeps narration -> alignment -> assembly strictly sequential since each stage depends
-// on the previous one's output.
-export async function runJob({ jobId, beats, musicTrackPath }) {
+// Full pipeline for one job, from script to a probed, delivered MP4. Beat visuals are planned
+// and fetched together (see resolveBeatVisuals), but narration -> alignment -> assembly stays
+// strictly sequential since each stage depends on the previous one's output.
+export async function runJob({ jobId, beats, musicTrackPath, allowAiStills = false }) {
   const workDir = await createJobWorkDir(jobId);
   const log = (stage) => console.log(`[${jobId}] ${stage} (beats=${beats.length})`);
   try {
@@ -28,9 +27,10 @@ export async function runJob({ jobId, beats, musicTrackPath }) {
     const timedBeats = computeBeatTimings(beats, alignedWords);
 
     log("visuals:start");
-    const visuals = await Promise.all(
-      timedBeats.map((beat, index) => resolveBeatVisual(beat, index, workDir))
-    );
+    const visuals = await resolveBeatVisuals(timedBeats, workDir, {
+      allowAiStills,
+      log: (message) => console.log(`[${jobId}] ${message}`)
+    });
     log("visuals:done");
 
     const musicLocalPath = workDir.path("music.mp3");

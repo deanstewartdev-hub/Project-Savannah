@@ -1,0 +1,36 @@
+{
+  "destination": "Chefchaouen, Morocco",
+  "note": "Visual search fields only. Narration must match the approved five-scene script in Scripts/Script_Revision_Maintenance.js (checked by shot-selection.mjs).",
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "location": "Chefchaouen",
+      "searchKeywords": "blue city aerial mountains rooftops",
+      "narration": "In Morocco's Rif Mountains, a whole town is painted blue, and nobody agrees why. The town sits high on the hillside, and its alleys climb steeply between blue walls."
+    },
+    {
+      "sceneNumber": 2,
+      "location": "Chefchaouen",
+      "searchKeywords": "blue alley steps street",
+      "narration": "Some residents say the blue stands for peace. Others say it keeps mosquitoes away."
+    },
+    {
+      "sceneNumber": 3,
+      "location": "Chefchaouen",
+      "searchKeywords": "blue doorway wooden door",
+      "narration": "One commonly cited explanation links the blue to Jewish communities who settled here, though the exact origin is not firmly documented."
+    },
+    {
+      "sceneNumber": 4,
+      "location": "Chefchaouen",
+      "searchKeywords": "blue wall painting street",
+      "narration": "Residents continue repainting their walls, keeping the town's famous blue streets vibrant. From pale sky blue to deep indigo, almost every corner looks different."
+    },
+    {
+      "sceneNumber": 5,
+      "location": "Chefchaouen",
+      "searchKeywords": "blue staircase rooftops street",
+      "narration": "So what's the real reason? Tell me your theory in the comments."
+    }
+  ]
+}
