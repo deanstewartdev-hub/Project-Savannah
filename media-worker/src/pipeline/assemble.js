@@ -3,6 +3,7 @@ import { ffmpeg } from "../lib/ffmpeg.js";
 import { writeWordPopAss } from "../lib/ass.js";
 import { config } from "../config.js";
 import { segmentLengths } from "./visualSelection.js";
+import { buildMusicGainFilter } from "../lib/musicLicence.js";
 
 function escapeForFilter(filePath) {
   // The subtitles filter's own argument parser splits on ':' (filename:option=value),
@@ -148,7 +149,12 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, musicP
   const musicInputIndex = normalizedClips.length + 1;
 
   const audioFilters = [
-    `[${musicInputIndex}:a]atrim=0:${totalDuration.toFixed(3)},asetpts=PTS-STARTPTS,volume=0.25[musicTrimmed]`,
+    `[${musicInputIndex}:a]atrim=0:${totalDuration.toFixed(3)},asetpts=PTS-STARTPTS,${buildMusicGainFilter({
+      volume: config.video.musicVolume,
+      fadeInSeconds: config.video.musicFadeInSeconds,
+      fadeOutSeconds: config.video.musicFadeOutSeconds,
+      totalSeconds: totalDuration
+    })}[musicTrimmed]`,
     `[musicTrimmed][${narrationInputIndex}:a]sidechaincompress=threshold=0.05:ratio=8:attack=5:release=250[ducked]`,
     `[ducked][${narrationInputIndex}:a]amix=inputs=2:duration=first:normalize=0[mixed]`,
     `[mixed]loudnorm=I=${config.video.targetLufs}:TP=${config.video.truePeakDb}:LRA=${config.video.loudnessRangeLu}[aout]`

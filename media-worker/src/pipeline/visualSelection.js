@@ -123,7 +123,9 @@ function portraitFile(video) {
 
 // Chooses the best acceptable, not-yet-used clip from one query's results. Returns null when
 // nothing qualifies, which makes the caller try the next query variant.
-export function selectClip(videos, beat, usedIds, minSeconds = 0) {
+// avoidUploaders: uploaders of the previous scene's footage. A clip from the same uploader is only
+// chosen when nothing else qualifies, so consecutive scenes come from different sources.
+export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders = null) {
   let best = null;
   for (const video of videos || []) {
     if (usedIds.has(video.id)) continue;
@@ -132,9 +134,12 @@ export function selectClip(videos, beat, usedIds, minSeconds = 0) {
     if (!file) continue;
     const judgement = judgeVideo(video, beat);
     if (!judgement.accepted) continue;
-    const score = (judgement.evidence.locationMatch ? 10 : 0) + judgement.evidence.matchedKeywords.length;
+    const uploader = video.user && video.user.name ? String(video.user.name) : "";
+    const repeatsUploader = avoidUploaders && uploader && avoidUploaders.has(uploader);
+    const score = (judgement.evidence.locationMatch ? 10 : 0) + judgement.evidence.matchedKeywords.length -
+      (repeatsUploader ? 5 : 0);
     if (!best || score > best.score) {
-      best = { score, video, file, reason: judgement.reason };
+      best = { score, video, file, uploader, reason: judgement.reason };
     }
   }
   if (!best) return null;
@@ -144,6 +149,7 @@ export function selectClip(videos, beat, usedIds, minSeconds = 0) {
     link: best.file.link,
     sourceUrl: best.video.url,
     sourceDurationSeconds: best.video.duration,
+    uploader: best.uploader,
     reason: best.reason
   };
 }
@@ -181,6 +187,13 @@ const MIN_CUT_SECONDS = 2.5;
 // `coverSeconds` collects clips until their durations cover it. When a beat cannot be covered
 // with relevant footage, the plan either falls back to a labelled AI still (allowAiStills)
 // or fails with a visual-coverage error.
+// Uploaders used by the most recent planned scene, so the next scene prefers different footage sources.
+export function previousUploaders(plan) {
+  const last = plan && plan.length ? plan[plan.length - 1] : null;
+  const names = (last && last.segments ? last.segments : []).map((segment) => segment.uploader).filter(Boolean);
+  return new Set(names);
+}
+
 export async function planBeatVisuals(beats, search, options = {}) {
   const usedIds = new Set();
   const cache = new Map();
@@ -192,6 +205,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
   const plan = [];
   for (let index = 0; index < beats.length; index += 1) {
     const beat = beats[index];
+    const avoid = previousUploaders(plan);
     const needed = beat.coverSeconds || 0;
     const queries = buildSearchQueries(beat);
     const tried = [];
@@ -203,7 +217,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
     if (needed > 0) {
       for (const query of queries) {
         tried.push(query);
-        const chosen = selectClip(await cachedSearch(query), beat, usedIds, needed);
+        const chosen = selectClip(await cachedSearch(query), beat, usedIds, needed, avoid);
         if (chosen) {
           chosen.query = query;
           segments.push(chosen);
@@ -223,7 +237,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
       covered = 0;
       for (const query of queries) {
         while (segments.length < MAX_SEGMENTS_PER_BEAT && covered < needed) {
-          const chosen = selectClip(await cachedSearch(query), beat, usedIds, MIN_CUT_SECONDS);
+          const chosen = selectClip(await cachedSearch(query), beat, usedIds, MIN_CUT_SECONDS, avoid);
           if (!chosen) break;
           chosen.query = query;
           segments.push(chosen);
@@ -238,7 +252,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
     if (needed === 0) {
       for (const query of queries) {
         tried.push(query);
-        const chosen = selectClip(await cachedSearch(query), beat, usedIds);
+        const chosen = selectClip(await cachedSearch(query), beat, usedIds, 0, avoid);
         if (chosen) {
           chosen.query = query;
           segments.push(chosen);

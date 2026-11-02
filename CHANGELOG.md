@@ -5,6 +5,14 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 3 November 2026 — Creative-quality phase (not deployed)
+
+Background music can be used only from a verified manifest record (licence, source, verifier, date);
+no track is in the repository yet. Music level and fades are configurable. Captions group into short,
+pause-aware phrases and sit above the Shorts overlay band. Footage selection prefers a different
+uploader from the previous scene. Covered by media-worker/test/creativeQuality.test.js (24 tests; worker
+suite 146/146). See RELEASE_READINESS.md section 18.
+
 ### 2 November 2026 — Render New Version
 
 Approved scripts with a completed render can get another version. Each version is a new render row

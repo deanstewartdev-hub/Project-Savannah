@@ -34,6 +34,10 @@ export const config = {
     height: 1920,
     fps: 30,
     crossfadeSeconds: 0.4,
+    // Background music under narration: level before ducking, and fades at the ends of the video.
+    musicVolume: 0.25,
+    musicFadeInSeconds: 0.5,
+    musicFadeOutSeconds: 1.0,
     targetLufs: -14,
     truePeakDb: -1.5,
     loudnessRangeLu: 11

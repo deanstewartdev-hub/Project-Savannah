@@ -5,6 +5,7 @@ import { JobsClient, ExecutionsClient } from "@google-cloud/run";
 import { dispatcherConfig } from "./dispatcherConfig.js";
 import { requireAuth } from "./lib/auth.js";
 import { validateBeats } from "./lib/validateBeats.js";
+import { validateTrack } from "./lib/musicLicence.js";
 import { uploadJson, downloadJson, objectExists } from "./lib/storage.js";
 import { buildStatusResponse } from "./lib/jobStatus.js";
 
@@ -33,7 +34,14 @@ app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
 app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
-  const { beats, musicTrackPath, callbackUrl, callbackSecret, dryRun } = req.body || {};
+  const { beats, musicTrackPath, musicTrack, callbackUrl, callbackSecret, dryRun } = req.body || {};
+  if (musicTrack !== undefined && musicTrack !== null) {
+    const musicProblems = validateTrack(musicTrack);
+    if (musicProblems.length > 0) {
+      res.status(400).json({ error: "musicTrack is not usable: " + musicProblems.join("; ") });
+      return;
+    }
+  }
 
   const beatsError = validateBeats(beats);
   if (beatsError) {
@@ -69,6 +77,7 @@ app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
       jobId,
       beats,
       musicTrackPath,
+      musicTrack,
       callbackUrl,
       callbackSecret,
       submittedAt: new Date().toISOString()

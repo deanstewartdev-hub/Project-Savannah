@@ -8,13 +8,17 @@ import { assembleVideo } from "./assemble.js";
 import { probeVideo } from "./probe.js";
 import { deliverResult } from "./deliver.js";
 import { config } from "../config.js";
+import { chooseMusicSource } from "../lib/musicLicence.js";
 
 // Full pipeline for one job, from script to a probed, delivered MP4. Beat visuals are planned
 // and fetched together (see resolveBeatVisuals), but narration -> alignment -> assembly stays
 // strictly sequential since each stage depends on the previous one's output.
-export async function runJob({ jobId, beats, musicTrackPath, allowAiStills = false }) {
+export async function runJob({ jobId, beats, musicTrackPath, musicTrack, allowAiStills = false }) {
+  // The music source is checked first: an unverified track fails the job before any paid provider call.
+  const music = chooseMusicSource({ musicTrack, musicTrackPath, defaultPath: config.defaultMusicTrackPath });
   const workDir = await createJobWorkDir(jobId);
   const log = (stage) => console.log(`[${jobId}] ${stage} (beats=${beats.length})`);
+  log(music.track ? `music:track ${music.track.id}` : "music:default");
   try {
     const fullScript = beats.map((beat) => beat.text.trim()).join(" ");
 
@@ -34,7 +38,7 @@ export async function runJob({ jobId, beats, musicTrackPath, allowAiStills = fal
     log("visuals:done");
 
     const musicLocalPath = workDir.path("music.mp3");
-    await downloadToFile(musicTrackPath || config.defaultMusicTrackPath, musicLocalPath);
+    await downloadToFile(music.path, musicLocalPath);
 
     log("assembly:start");
     const assembled = await assembleVideo({

@@ -1249,3 +1249,32 @@ No render was started. No script record, credential, bridge code or main-branch 
 **Not changed.** No worker change, no callback or bridge change, no header change, no script change. The worker still uses the render job's image.
 
 **Rollback.** Redeploy the main application to version 95 on the existing deployment (`clasp redeploy <production-deployment-id> --versionNumber 95`). Rows created by new versions remain in Render Jobs and are read correctly by version 95 (version 95 ignores the version field).
+
+## 18. Creative-quality phase (3 November 2026, branch feat/creative-quality-v1)
+
+**Background music (policy and code).** No music track is in the repository and none has been verified, so none is used. The worker only plays a track whose manifest record is complete: a file path inside the music folder, an allowed licence (CC0-1.0, CC-BY-4.0 with attribution, Pixabay content licence, YouTube Audio Library), the source URL, who verified it and the date (YYYY-MM-DD). An unverified track fails the job before any paid call (`media-worker/src/lib/musicLicence.js`, `chooseMusicSource`). Without a track, the existing default bed is used, as before. `media-worker/music/manifest.json` is the record store; it is empty. **No track has been purchased, downloaded or verified.** Adding one needs a separate licence check, recorded in the manifest.
+
+**Music level and fades.** The music level (0.25 by default, clamped to 0–0.6) and fades (0.5 s in, 1.0 s out) come from `config.video`. Narration ducking (`sidechaincompress`) is unchanged. The chain was run through ffmpeg with generated inputs and produced 41.1 s of audio.
+
+**Captions.** Words are grouped into phrases of up to three words, 18 characters and 1.6 s, with a break at a pause of 0.35 s or more (`src/lib/captionChunks.js`). The layout (`src/lib/captionAss.js`) moves captions above the bottom 24% of the frame, out of the Shorts overlay band, with 8.5% side margins. A test confirms the generated file parses and renders in ffmpeg.
+
+**Footage variety.** Each clip records its uploader. When the same uploader is available, a scene prefers a different one from the previous scene (`selectClip` with `avoidUploaders`). It falls back to the same uploader when nothing else qualifies. This does not measure shot composition or subject diversity; those need human review.
+
+**Tests.** `media-worker/test/creativeQuality.test.js`: 24 tests covering licence validation, track selection, music gain and fades, caption grouping and layout, and footage variety. Worker suite: 146/146.
+
+**Not done in this phase.** No licensed music is in place. The 375px check of the comparison panel needs a signed-in browser, which the built-in browser does not have, so it is not verified. The comparison panel was not re-tested in a browser after the caption and music changes (they do not touch that page).
+
+**ElevenLabs 269-character question (evidence, no paid calls).**
+- The account counter reads 538 (two renders at 269 each).
+- The worker sends the full narration: 100 words, 607–611 characters, in one request.
+- No combination of the five scene narrations sums to 269.
+- The probed audio is 41.1 s with pauses at the sentence breaks through to the final line. A 269-character text would give roughly 17 s of speech.
+- The key lacks `speech_history_read`, so per-request counts cannot be read. Billing and completeness are separate questions: the audio evidence supports completeness; the billing figure is unexplained. The owner can check the usage history in the ElevenLabs dashboard, or approve a paid transcription of the Version 2 audio (about $0.005) to confirm the spoken words.
+
+**Historical YouTube uploads for SCR-68c20032 (documented, nothing changed).**
+- Publishing job `PUB-B4B27D3C…`: render `RND-54B5C0D8`, YouTube video `LXydDSUf18c`, status PUBLISHED, created 1 August 2026.
+- Publishing job `PUB-D4585C60…`: render `RND-BDA8484C`, YouTube video `tORXCIeKf2w`, status PUBLISHED, created 2 August 2026.
+- Cause: both uploads predate the same-script upload guard (commit `7d49ef7`, 21 October 2026), so the second upload was not blocked.
+- Action for the owner: review both videos in YouTube Studio and remove one if both are not wanted. Nothing in Savannah has been changed or deleted.
+
+**Deployment and rollback.** Nothing in this phase is deployed. If the worker changes are promoted later, the current live worker revision is 00015-bay (rollback target for that step: 00015-bay, then 00013-jin). The main app is at version 97, which is the rollback target for any main-app step.
