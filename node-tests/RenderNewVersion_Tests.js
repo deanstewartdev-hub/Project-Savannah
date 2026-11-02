@@ -16,7 +16,7 @@ const COST = 1;
 function fixture(options = {}) {
   const rows = [];
   const publishingJobs = options.publishingJobs || [];
-  const worker = { calls: [], fail: null, nested: null };
+  const worker = { calls: [], fail: null, nested: null, reviewLookups: [] };
   let lockHeld = false;
   const provider = {
     reserveRenderId: () => 'cr-' + randomUUID(),
@@ -40,7 +40,8 @@ function fixture(options = {}) {
     VideoProcessingProvider: { get: () => provider, forJob: () => provider },
     CreatomateProviderAdapter: {},
     RenderQualityService: { evaluate: () => ({ passed: true }) },
-    RenderReviewService: { get: () => ({ approved: true }) },
+    // Review records are keyed by render job ID. Approval given to one job must not carry to another.
+    RenderReviewService: { get: id => { worker.reviewLookups.push(id); return { approved: (options.approvedJobIds || []).indexOf(id) !== -1 }; } },
     MediaWorkerCallbackInbox: { processPending: () => ({}), processPendingLocked: () => ({}) },
     RenderJobRepository: {
       getAll: () => rows.map(r => JSON.parse(JSON.stringify(r))),
@@ -195,6 +196,29 @@ const cases = [
     f.seedRow({});
     assert.throws(() => newVersion(f, 'req-qqqqqqqq'), /YouTube upload/);
     assert.equal(f.worker.calls.length, 0);
+  }],
+  ['version 2 does not inherit approval from version 1', () => {
+    const f = fixture({ approvedJobIds: ['RND-V1'] });
+    f.seedRow({ id: 'RND-V1' });
+    newVersion(f, 'req-isolate01');
+    const v2 = f.rows[1].id;
+    assert.equal(f.call('RenderReviewService.get("RND-V1").approved'), true, 'version 1 stays approved');
+    assert.equal(f.call('RenderReviewService.get("' + v2 + '").approved'), false, 'version 2 starts unapproved');
+  }],
+  ['review and quality are looked up by each render\'s own ID', () => {
+    const f = fixture({ approvedJobIds: ['RND-V1'] });
+    f.seedRow({ id: 'RND-V1' });
+    newVersion(f, 'req-isolate02');
+    f.call('RenderReviewService.get("RND-V1")');
+    assert.ok(f.worker.reviewLookups.includes('RND-V1'));
+    assert.ok(f.worker.reviewLookups.every(function (id) { return id === 'RND-V1' || id === f.rows[1].id; }));
+  }],
+  ['the original video URL is unchanged by a new version', () => {
+    const f = fixture();
+    f.seedRow({ id: 'RND-V1', videoUrl: 'https://storage.example/v1.mp4' });
+    newVersion(f, 'req-isolate03');
+    assert.equal(f.rows[0].videoUrl, 'https://storage.example/v1.mp4');
+    assert.notEqual(f.rows[1].videoUrl, 'https://storage.example/v1.mp4');
   }],
   ['an unapproved script cannot get a new version', () => {
     const f = fixture({ status: 'PENDING_APPROVAL' });

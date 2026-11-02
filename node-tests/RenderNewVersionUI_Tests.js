@@ -51,6 +51,31 @@ const cases = [
     assert.ok(controller.includes('function productionRenderNewVersion(request)'));
     assert.ok(controller.includes('renderNewVersion: renderNewVersion'));
   }],
+  ['the compare selectors default to different versions: oldest in A, newest in B', () => {
+    assert.ok(script.includes("optionsFor(versions[0].id)"), 'slot A starts on the oldest');
+    assert.ok(script.includes("optionsFor(newest.id)"), 'slot B starts on the newest');
+    assert.ok(script.includes("(job.id === selectedId ? ' selected' : '')"), 'the default is marked selected');
+  }],
+  ['the two selectors cannot display the same version', () => {
+    assert.ok(script.includes('if (other.value === select.value)'), 'duplicate check on change');
+    assert.ok(script.includes('the other slot moved to a different version'), 'the user is told');
+  }],
+  ['the compare videos load only when played (preload none) and carry their own URL', () => {
+    assert.equal((script.match(/preload="none" data-slot=/g) || []).length, 2, 'both compare videos');
+    assert.equal(script.includes('<video controls playsinline preload="metadata"'), false, 'no eager metadata loading');
+    assert.ok(script.includes('data-url="'), 'options carry the URL');
+  }],
+  ['starting one compare video pauses the other', () => {
+    assert.ok(script.includes('compareList.addEventListener("play"'), 'play listener');
+    assert.ok(script.includes('if (other !== video) other.pause();'), 'other video paused');
+  }],
+  ['the compare layout wraps for narrow (mobile) screens', () => {
+    assert.ok(script.includes('display:flex;flex-wrap:wrap'), 'wrapping container');
+    assert.ok(script.includes('max-width:260px'), 'videos capped in width');
+  }],
+  ['the compare panel is redrawn only when the set of versions changes', () => {
+    assert.ok(script.includes('if (signature === compareSignature) return;'));
+  }],
   ['the compare container is created before any job list render can use it', () => {
     const declared = script.indexOf('const compareList');
     const firstLoad = script.lastIndexOf('loadReady(); loadJobs(); loadYouTubeConnection()');

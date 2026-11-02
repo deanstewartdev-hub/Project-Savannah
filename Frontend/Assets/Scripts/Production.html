@@ -209,27 +209,70 @@
     }).join("|");
     if (signature === compareSignature) return;
     compareSignature = signature;
+    // Selectors hold the job ID; the video URL is read from the option's data attribute when chosen.
+    // Slot A starts on the oldest version and slot B on the newest, so the two defaults always differ.
+    // Videos are not loaded until played (preload="none"), which keeps several large files from loading at once.
     compareList.innerHTML = scripts.map(function (id) {
       const versions = byScript[id].slice().sort(function (a, b) { return versionOf(a) - versionOf(b); });
-      const options = versions.map(function (job) {
-        return '<option value="' + escapeHtml(job.videoUrl) + '">Version ' + versionOf(job) + ' (' + escapeHtml(job.id) + ')</option>';
-      }).join("");
+      const optionsFor = function (selectedId) {
+        return versions.map(function (job) {
+          return '<option value="' + escapeHtml(job.id) + '" data-url="' + escapeHtml(job.videoUrl) + '"' +
+            (job.id === selectedId ? ' selected' : '') + '>Version ' + versionOf(job) + ' (' + escapeHtml(job.id) + ')</option>';
+        }).join("");
+      };
+      const newest = versions[versions.length - 1];
       return '<div class="card production-compare" data-script-id="' + escapeHtml(id) + '">' +
         '<h3>Compare versions</h3><div class="form-grid">' +
-        '<select class="form-control production-compare-select" data-slot="a" aria-label="First version">' + options + '</select>' +
-        '<select class="form-control production-compare-select" data-slot="b" aria-label="Second version">' + options + '</select>' +
-        '</div><div class="production-compare-videos">' +
-        '<video controls playsinline preload="metadata" data-slot="a" src="' + escapeHtml(versions[0].videoUrl) + '"></video>' +
-        '<video controls playsinline preload="metadata" data-slot="b" src="' + escapeHtml(versions[versions.length - 1].videoUrl) + '"></video>' +
-        '</div></div>';
+        '<select class="form-control production-compare-select" data-slot="a" aria-label="First version">' +
+        optionsFor(versions[0].id) + '</select>' +
+        '<select class="form-control production-compare-select" data-slot="b" aria-label="Second version">' +
+        optionsFor(newest.id) + '</select>' +
+        '</div><div class="production-compare-videos" style="display:flex;flex-wrap:wrap;gap:12px;">' +
+        '<video controls playsinline preload="none" data-slot="a" aria-label="First version video" ' +
+        'style="width:100%;max-width:260px;height:auto;" src="' + escapeHtml(versions[0].videoUrl) + '"></video>' +
+        '<video controls playsinline preload="none" data-slot="b" aria-label="Second version video" ' +
+        'style="width:100%;max-width:260px;height:auto;" src="' + escapeHtml(newest.videoUrl) + '"></video>' +
+        '</div><p class="form-help production-compare-note" aria-live="polite"></p></div>';
     }).join("");
   }
+  // Selecting a version in one slot loads it into that slot's video. If both slots would show the same
+  // version, the other slot moves to the nearest different version and the page says so.
   compareList.addEventListener("change", function (event) {
     const select = event.target.closest(".production-compare-select");
     if (!select) return;
-    const video = select.closest(".production-compare").querySelector('video[data-slot="' + select.dataset.slot + '"]');
-    if (video) video.src = select.value;
+    const panel = select.closest(".production-compare");
+    const other = panel.querySelector('.production-compare-select[data-slot="' + (select.dataset.slot === "a" ? "b" : "a") + '"]');
+    const note = panel.querySelector(".production-compare-note");
+    if (other.value === select.value) {
+      const options = Array.prototype.slice.call(other.options);
+      const index = options.findIndex(function (option) { return option.value === select.value; });
+      const replacement = options[index + 1] || options[index - 1];
+      other.value = replacement.value;
+      if (note) note.textContent = "Both slots cannot show the same version, so the other slot moved to a different version.";
+    } else if (note) {
+      note.textContent = "";
+    }
+    [select, other].forEach(function (control) {
+      const video = panel.querySelector('video[data-slot="' + control.dataset.slot + '"]');
+      const option = control.options[control.selectedIndex];
+      if (video && option && video.getAttribute("src") !== option.dataset.url) {
+        video.pause();
+        video.setAttribute("src", option.dataset.url);
+        video.load();
+      }
+    });
   });
+
+  // Only one preview plays at a time: starting one pauses the other.
+  compareList.addEventListener("play", function (event) {
+    const video = event.target;
+    if (!video || video.tagName !== "VIDEO") return;
+    const panel = video.closest(".production-compare");
+    if (!panel) return;
+    panel.querySelectorAll("video").forEach(function (other) {
+      if (other !== video) other.pause();
+    });
+  }, true);
 
   function classifyReadyJobs_(jobs) {
     const sorted = jobs.slice().sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
