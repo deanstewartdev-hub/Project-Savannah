@@ -41,7 +41,7 @@ The order matters. The worker fails closed on its own, but the editor can only r
 2. **Main app code.** Resolve the `CallbackBridge/.clasp.json` mismatch first (it does not affect the main app push). Then `clasp push` from the root, `clasp version`, and update the production deployment to the new version. This ships the provider change, the scene builders, and the maintenance functions (inert until run).
 3. **Editor dry run (read-only).** Run `previewChefchaouenVisualFieldsDryRun` from the editor. It reads the saved record through the repository and logs the five changes and the unchanged-field check. Review the log.
 4. **Apply, with approval.** Run `applyChefchaouenVisualFields`. It backs up the original JSON to Script Revision Backups, saves once, and reads the record back. The result is logged with `verified=true`.
-5. **Verify without rendering.** Check that the stored record carries the five fields and version 8, status still APPROVED, and that the approval queue and SEO pack are unchanged.
+5. **Verify without rendering.** Check that the stored record carries the five fields and version 5, status still APPROVED, and that the approval queue and SEO pack are unchanged.
 6. **Worker traffic shift** to the new revision, only after steps 1–5 pass.
 7. **Second render:** a separate approval, after the shot-list review.
 
