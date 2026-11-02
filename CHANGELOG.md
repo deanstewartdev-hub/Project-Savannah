@@ -5,6 +5,18 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 2 November 2026 — Render New Version
+
+Approved scripts with a completed render can get another version. Each version is a new render row
+with its own render ID and a sequential version number stored in the row's request payload. The original
+row is not changed. The Production page shows a version label on each render, a compare panel for two
+delivered versions of a script, and a Render New Version button that asks for confirmation with the
+maximum additional cost (£1.00). Repeated clicks, refreshes and concurrent requests share one request ID
+or are refused under the script lock, so they cannot start a second paid render. The client-sent
+forceRerender flag is removed; retries of failed versions keep their version number. YouTube uploads and
+publishing still need separate approval. Covered by node-tests/RenderNewVersion_Tests.js (16),
+node-tests/RenderNewVersionUI_Tests.js (10) and the existing suites.
+
 ### 19 October 2026 — legacy narration duration preflight
 
 Legacy scene planning now returns an advisory warning when estimated narration is

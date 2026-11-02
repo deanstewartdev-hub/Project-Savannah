@@ -1228,3 +1228,24 @@ No render was started. No script record, credential, bridge code or main-branch 
 - Dispatcher: `gcloud run services update-traffic savannah-media-worker-dispatcher --region europe-west2 --project savannah-media-worker --to-revisions=savannah-media-worker-dispatcher-00013-jin=100`
 - Render job: `gcloud run jobs update savannah-render-job --region europe-west2 --project savannah-media-worker --image europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker@sha256:67fe155194286c4ca9b748a8febedaefaa06845186cbf75a1c54402921604902`
 - Main app (only if needed): redeploy the production deployment to version 94. Record restore: editor function `restoreChefchaouenVisualFieldsFromBackup`.
+
+## 17. Render New Version (versioned re-renders, 2 November 2026)
+
+**Design.** An approved script with a completed render can get another version through `ProductionController.renderNewVersion`. Each version is a new render row with its own render ID. The version number (1 for the first render, then sequential) and the client request ID are stored in the row's `requestPayload`, so the Render Jobs header is unchanged. The original row is never updated by a new version.
+
+**Duplicate protection.**
+- The client request ID is stored per script until the server confirms the request. A refresh or a repeated click sends the same ID, and the server returns the row created first (no second worker call).
+- The duplicate check, the active-render check and the save run under the script lock. A concurrent request is refused with "Another production action is running".
+- A new version is refused while any render of the script is QUEUED, PLANNED or RENDERING.
+- The upload guard is checked before the completed-render guard. A script with a published, uploading or uncertain upload cannot get a new version.
+- The client-sent `forceRerender` flag is ignored. Retries of failed versions go through an internal path and keep the failed version's number.
+
+**Cost confirmation.** The server requires `confirmedMaxCostGbp` to equal £1.00 before anything is written. The page asks for confirmation before sending the request.
+
+**Originals.** The original row, its render ID, the script, the approval and the metadata are unchanged. Publishing still uses `renderJobId` and the existing guards; no version is made preferred automatically.
+
+**Tests.** `node-tests/RenderNewVersion_Tests.js` (16: numbering, duplicates, concurrency, original preserved, failed versions, cost gate, bypass removed, upload guard), `node-tests/RenderNewVersionUI_Tests.js` (10: button, confirmation, request ID handling, version labels, compare panel). `upload-recovery.cjs` now exercises a new version where it previously used the removed flag. Full run: 420 PASS lines, exit 0.
+
+**Not changed.** No worker change, no callback or bridge change, no header change, no script change. The worker still uses the render job's image.
+
+**Rollback.** Redeploy the main application to version 95 on the existing deployment (`clasp redeploy <production-deployment-id> --versionNumber 95`). Rows created by new versions remain in Render Jobs and are read correctly by version 95 (version 95 ignores the version field).

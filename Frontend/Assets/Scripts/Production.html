@@ -142,7 +142,7 @@
   // (whose createRender() generates voiceover + visuals synchronously in one call and
   // genuinely needs that chunking). productionSubmit/productionRetry already exist
   // server-side and already dispatch through the same provider-agnostic submitCore_.
-  function submitDirect(rpcName, request, button, busyLabel, idleLabel) {
+  function submitDirect(rpcName, request, button, busyLabel, idleLabel, onSuccess) {
     button.disabled = true;
     button.textContent = busyLabel;
     google.script.run.withSuccessHandler(function (response) {
@@ -153,6 +153,7 @@
         loadReady();
         return;
       }
+      if (onSuccess) onSuccess(response);
       loadReady(); loadJobs(); loadPublishingSchedule();
     }).withFailureHandler(function (error) {
       button.disabled = false;
@@ -169,6 +170,67 @@
   // inviting accidental duplicate spend. Priority: any ACTIVE job wins outright: any
   // SUCCEEDED job wins over any FAILED job; only with neither does FAILED apply; only
   // with none of the three does the never-rendered / preparation-task path apply.
+  // Render New Version. The request ID is kept per script until the server confirms the request, so a
+  // refresh or a repeated click sends the same ID and the server returns the row already created.
+  const NEW_VERSION_COST_GBP = 1;
+  function startNewVersion(button) {
+    const scriptId = button.dataset.scriptId;
+    const pendingKey = "savannah.newVersion." + scriptId;
+    let requestId = "";
+    try { requestId = window.localStorage.getItem(pendingKey) || ""; } catch (ignored) { requestId = ""; }
+    if (!requestId) requestId = "nv-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+    const confirmed = window.confirm(
+      "Render a new version of this Short? The original video is kept and this cannot be undone. " +
+      "Maximum additional cost: £" + NEW_VERSION_COST_GBP.toFixed(2) + ". Continue?");
+    if (!confirmed) return;
+    try { window.localStorage.setItem(pendingKey, requestId); } catch (ignored) {}
+    submitDirect("productionRenderNewVersion",
+      { scriptId: scriptId, clientRequestId: requestId, confirmedMaxCostGbp: NEW_VERSION_COST_GBP },
+      button, "Submitting...", "Render New Version", function () {
+        try { window.localStorage.removeItem(pendingKey); } catch (ignored) {}
+      });
+  }
+
+  function versionOf(job) {
+    return Number(job.requestPayload && job.requestPayload.version) || 1;
+  }
+
+  // Side-by-side preview of two delivered versions of the same script. It changes no records.
+  const compareList = document.getElementById("production-compare");
+  let compareSignature = "";
+  function renderCompare(jobs) {
+    const byScript = {};
+    jobs.filter(function (job) { return job.status === "SUCCEEDED" && job.videoUrl; }).forEach(function (job) {
+      (byScript[job.scriptId] = byScript[job.scriptId] || []).push(job);
+    });
+    const scripts = Object.keys(byScript).filter(function (id) { return byScript[id].length > 1; });
+    const signature = scripts.map(function (id) {
+      return id + ":" + byScript[id].map(function (job) { return job.id + "@" + job.videoUrl; }).join(",");
+    }).join("|");
+    if (signature === compareSignature) return;
+    compareSignature = signature;
+    compareList.innerHTML = scripts.map(function (id) {
+      const versions = byScript[id].slice().sort(function (a, b) { return versionOf(a) - versionOf(b); });
+      const options = versions.map(function (job) {
+        return '<option value="' + escapeHtml(job.videoUrl) + '">Version ' + versionOf(job) + ' (' + escapeHtml(job.id) + ')</option>';
+      }).join("");
+      return '<div class="card production-compare" data-script-id="' + escapeHtml(id) + '">' +
+        '<h3>Compare versions</h3><div class="form-grid">' +
+        '<select class="form-control production-compare-select" data-slot="a" aria-label="First version">' + options + '</select>' +
+        '<select class="form-control production-compare-select" data-slot="b" aria-label="Second version">' + options + '</select>' +
+        '</div><div class="production-compare-videos">' +
+        '<video controls playsinline preload="metadata" data-slot="a" src="' + escapeHtml(versions[0].videoUrl) + '"></video>' +
+        '<video controls playsinline preload="metadata" data-slot="b" src="' + escapeHtml(versions[versions.length - 1].videoUrl) + '"></video>' +
+        '</div></div>';
+    }).join("");
+  }
+  compareList.addEventListener("change", function (event) {
+    const select = event.target.closest(".production-compare-select");
+    if (!select) return;
+    const video = select.closest(".production-compare").querySelector('video[data-slot="' + select.dataset.slot + '"]');
+    if (video) video.src = select.value;
+  });
+
   function classifyReadyJobs_(jobs) {
     const sorted = jobs.slice().sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); });
     // Delivered success always wins, even over a stale reconciliation flag (see
@@ -234,10 +296,14 @@
           action = '<button class="button button-primary production-submit" data-script-id="' +
             escapeHtml(item.script.id) + '" disabled>Rendering...</button>';
         } else if (state.succeeded) {
-          action = state.succeeded.videoUrl ?
+          // A completed script can get another version. The server checks the same rules, so this
+          // button is only a convenience; repeated clicks reuse the same request ID (see startNewVersion).
+          action = (state.succeeded.videoUrl ?
             '<a class="button button-secondary" href="' + escapeHtml(state.succeeded.videoUrl) +
             '" target="_blank" rel="noopener">View video</a>' :
-            '<button class="button button-secondary" disabled>Rendered</button>';
+            '<button class="button button-secondary" disabled>Rendered</button>') +
+            ' <button class="button button-primary production-new-version" data-script-id="' +
+            escapeHtml(item.script.id) + '">Render New Version</button>';
         } else if (narrationOutOfRange) {
           // Neither a never-rendered script nor a failed one gets an enabled submit action
           // here - both would otherwise reach CloudRunFFmpegProvider.submitRender(), which
@@ -420,7 +486,11 @@
         jobList.innerHTML = '<div class="empty-state"><h3>No renders yet</h3><p>Create the first Short above.</p></div>';
         return;
       }
-      jobList.innerHTML = jobs.map(renderJobCard).join("");
+      renderCompare(jobs);
+      jobList.innerHTML = jobs.map(function (job) {
+        return '<p class="form-help"><strong>Version ' + versionOf(job) + '</strong> · ' + escapeHtml(job.id) + '</p>' +
+          renderJobCard(job);
+      }).join("");
       restorePublishDrafts(publishDrafts, publishFocus);
     }).withFailureHandler(function (error) { showError(jobList, { error: error }); }).productionListJobs();
   }
@@ -573,6 +643,11 @@
       scheduleInput.value = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
       scheduleInput.scrollIntoView({ behavior: "smooth", block: "center" });
       scheduleInput.focus();
+      return;
+    }
+    const newVersion = event.target.closest(".production-new-version");
+    if (newVersion) {
+      startNewVersion(newVersion);
       return;
     }
     const submit = event.target.closest(".production-submit");

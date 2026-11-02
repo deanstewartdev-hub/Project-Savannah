@@ -385,7 +385,7 @@ for (const state of ['PUBLISHED', 'UPLOADING', 'RECONCILE']) {
 }
 test('Re-render submission is not blocked by a plain FAILED upload with no video evidence', () => {
   const f = fixture({ history: [historicalJob('PUB-OLD', 'FAILED', new Date().toISOString())] });
-  f.call('ProductionController.submit({scriptId:"SCR-TEST",forceRerender:true})');
+  f.call('ProductionController.renderNewVersion({scriptId:"SCR-TEST",clientRequestId:"req-plainfail1",confirmedMaxCostGbp:1})');
   assert.equal(f.providerCalls(), 1, 'The guard must not fire, so the provider is reached');
 });
 test('A returned video ID is kept on the RECONCILE record when saving PUBLISHED fails', () => {

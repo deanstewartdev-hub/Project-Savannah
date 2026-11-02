@@ -38,10 +38,89 @@ const ProductionController = (() => {
     });
   }
 
+  // A client may only start the first render of a script here. A new version goes through
+  // renderNewVersion, and a retry goes through submitInternal_. No client request may skip the
+  // "already completed" guard, so the old forceRerender flag is never read from a request.
   function submit(request) {
+    return run_("Short submitted for rendering.", function () {
+      return submitCore_({ scriptId: request && request.scriptId });
+    });
+  }
+
+  function submitInternal_(request) {
     return run_("Short submitted for rendering.", function () {
       return submitCore_(request || {});
     });
+  }
+
+  // Starts a new version of an approved script that already has a completed render. Repeated
+  // clicks, refreshes and retries with the same clientRequestId return the row that was created
+  // first, so they never start a second paid render. The check and the save happen under the
+  // script lock, so concurrent requests see each other's rows.
+  const NEW_VERSION_MAX_COST_GBP = 1;
+  function renderNewVersion(request) {
+    return run_("New version submitted for rendering.", function () {
+      return renderNewVersion_(request || {});
+    });
+  }
+
+  function renderNewVersion_(request) {
+    const clientRequestId = String(request.clientRequestId || "").trim();
+    if (!/^[A-Za-z0-9-]{8,80}$/.test(clientRequestId)) throw error_("A request ID is required.");
+    if (Number(request.confirmedMaxCostGbp) !== NEW_VERSION_MAX_COST_GBP) {
+      throw error_("Confirm the maximum cost of £" + NEW_VERSION_MAX_COST_GBP.toFixed(2) + " before rendering a new version.");
+    }
+    return withScriptLock_(function () {
+      const scriptId = String(request.scriptId || "").trim();
+      if (!scriptId) throw error_("Script ID is required.");
+      const existingJobs = RenderJobRepository.getAll().filter(function (job) {
+        return job.scriptId === scriptId;
+      });
+      const repeat = existingJobs.filter(function (job) {
+        return job.requestPayload && job.requestPayload.clientRequestId === clientRequestId;
+      })[0];
+      if (repeat) return { job: repeat, duplicate: true };
+      const script = ScriptsRepository.getScriptById(scriptId);
+      if (!script || script.status !== "APPROVED") throw error_("Only an approved script can be rendered.");
+      const seoPack = SeoRepository.getByScriptId(scriptId);
+      if (!seoPack) throw error_("Generate an SEO pack before rendering.");
+      assertNoActiveRender_(existingJobs);
+      assertNoProtectedUpload_(scriptId, existingJobs);
+      if (!existingJobs.some(function (job) { return job.status === "SUCCEEDED" && job.videoUrl; })) {
+        throw error_("A new version needs a completed render first. Use Create Short for the first render.");
+      }
+      return { job: startRender_(script, seoPack, existingJobs, { clientRequestId: clientRequestId }).job, duplicate: false };
+    });
+  }
+
+  function assertNoActiveRender_(existingJobs) {
+    const active = existingJobs.filter(function (job) {
+      return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
+    })[0];
+    if (active) throw error_("This script already has an active render.");
+  }
+
+  // A render that was already uploaded must be checked by script: a new version has a new
+  // render ID, so the same content could otherwise be rendered, approved and uploaded again.
+  function assertNoProtectedUpload_(scriptId, existingJobs) {
+    if (existingJobs.length && PublishingJobRepository.getAll().some(function (upload) {
+      return upload.scriptId === scriptId && isProtectedUpload_(upload);
+    })) {
+      throw error_("This script already has a YouTube upload that is published, in progress or uncertain. Resolve it in YouTube Studio before rendering again.");
+    }
+  }
+
+  // Version numbers are per script. The first render is version 1; a row without a stored version
+  // (created before versions existed) counts as version 1.
+  function versionOf_(job) {
+    const stored = job.requestPayload && Number(job.requestPayload.version);
+    return stored > 0 ? stored : 1;
+  }
+
+  function nextVersion_(existingJobs) {
+    return existingJobs.length ? existingJobs.reduce(function (max, job) {
+      return Math.max(max, versionOf_(job));
+    }, 0) + 1 : 1;
   }
 
   function submitCore_(request) {
@@ -55,37 +134,39 @@ const ProductionController = (() => {
       const existingJobs = RenderJobRepository.getAll().filter(function (job) {
         return job.scriptId === scriptId;
       });
-      const active = existingJobs.filter(function (job) {
-        return ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
-      })[0];
-      if (active) throw error_("This script already has an active render.");
+      assertNoActiveRender_(existingJobs);
+      assertNoProtectedUpload_(scriptId, existingJobs);
       const completed = existingJobs.filter(function (job) {
         return job.status === "SUCCEEDED";
       })[0];
       if (completed && !(request && request.forceRerender === true)) {
-        throw error_("This script already has a completed render. Use an explicit re-render action to replace it.");
+        throw error_("This script already has a completed render. Use Render New Version to add another version.");
       }
-      // A new render gets a new render job ID, so a render that was already uploaded must be
-      // checked by script. Otherwise the same content could be rendered, approved and uploaded
-      // a second time. A script with no earlier render cannot have an upload.
-      if (existingJobs.length && PublishingJobRepository.getAll().some(function (upload) {
-        return upload.scriptId === scriptId && isProtectedUpload_(upload);
-      })) {
-        throw error_("This script already has a YouTube upload that is published, in progress or uncertain. Resolve it in YouTube Studio before rendering again.");
-      }
-      const provider = VideoProcessingProvider.get();
-      // Save the render ID before asking the worker to start. If this execution dies after the
-      // worker accepts the job, the row already carries the ID that status checks and the
-      // callback use, so it can be reconciled instead of looking like a failed submit.
-      const reservedRenderId = typeof provider.reserveRenderId === "function" ? provider.reserveRenderId() : "";
-      let job = RenderJobRepository.save(RenderJobModel.create({
-        scriptId: script.id,
-        seoPackId: seoPack.id,
-        templateId: resolveTemplateId_(),
-        status: "QUEUED",
-        renderId: reservedRenderId,
-        requestPayload: { preparationStatus: "assets-ready" }
-      }));
+      return { job: startRender_(script, seoPack, existingJobs, { version: request && request.version }).job };
+    });
+  }
+
+  // The one place a render row is created and submitted to the worker. Callers hold the script lock.
+  // `meta` is stored in requestPayload (no header change): version and clientRequestId.
+  function startRender_(script, seoPack, existingJobs, options) {
+    const meta = {
+      version: Number(options && options.version) > 0 ? Number(options.version) : nextVersion_(existingJobs)
+    };
+    if (options && options.clientRequestId) meta.clientRequestId = options.clientRequestId;
+    const provider = VideoProcessingProvider.get();
+    // Save the render ID before asking the worker to start. If this execution dies after the
+    // worker accepts the job, the row already carries the ID that status checks and the
+    // callback use, so it can be reconciled instead of looking like a failed submit.
+    const reservedRenderId = typeof provider.reserveRenderId === "function" ? provider.reserveRenderId() : "";
+    let job = RenderJobRepository.save(RenderJobModel.create({
+      scriptId: script.id,
+      seoPackId: seoPack.id,
+      templateId: resolveTemplateId_(),
+      status: "QUEUED",
+      renderId: reservedRenderId,
+      requestPayload: Object.assign({ preparationStatus: "assets-ready" }, meta)
+    }));
+    {
       try {
         const result = provider.submitRender(script, seoPack, { renderId: reservedRenderId });
         const render = result.render;
@@ -95,7 +176,8 @@ const ProductionController = (() => {
           progress: render.progress || 0,
           videoUrl: render.url || "",
           snapshotUrl: render.snapshot_url || "",
-          requestPayload: result.payload,
+          // Merge, so the version and client request ID survive the worker's own payload.
+          requestPayload: Object.assign({}, result.payload, meta),
           providerResponse: sanitise_(render)
         }));
       } catch (caught) {
@@ -117,7 +199,7 @@ const ProductionController = (() => {
         throw caught;
       }
       return { job: job };
-    });
+    }
   }
 
   function startPreparation(request) {
@@ -408,7 +490,13 @@ const ProductionController = (() => {
     if (!retryable) {
       return failure_("Only failed, quality-blocked or unapproved completed renders can be retried.");
     }
-    return submit({ scriptId: job.scriptId, forceRerender: true });
+    // A failed attempt is retried under the same version number, so numbering stays sequential.
+    // A quality-blocked or unapproved completed render is replaced by a new version.
+    return submitInternal_({
+      scriptId: job.scriptId,
+      forceRerender: true,
+      version: job.status === "FAILED" ? versionOf_(job) : undefined
+    });
   }
 
   function prepareScene(request) {
@@ -853,7 +941,7 @@ const ProductionController = (() => {
   }
   function error_(message) { const error = new Error(message); error.name = "ProductionControllerError"; return error; }
 
-  return { testConnection: testConnection, listReady: listReady, submit: submit,
+  return { testConnection: testConnection, listReady: listReady, submit: submit, renderNewVersion: renderNewVersion,
     startPreparation: startPreparation, prepareNextScene: prepareNextScene, reviewStalledTasks: reviewStalledTasks,
     controlPreparation: controlPreparation, submitPrepared: submitPrepared, refresh: refresh,
     refreshActive: refreshActive, retry: retry, prepareScene: prepareScene, approveRender: approveRender, listJobs: listJobs,
@@ -866,6 +954,7 @@ const ProductionController = (() => {
 function productionTestConnection() { return ProductionController.testConnection(); }
 function productionListReady() { return ProductionController.listReady(); }
 function productionSubmit(request) { return ProductionController.submit(request); }
+function productionRenderNewVersion(request) { return ProductionController.renderNewVersion(request); }
 function productionStartPreparation(request) { return ProductionController.startPreparation(request); }
 function productionPrepareNextScene(request) { return ProductionController.prepareNextScene(request); }
 function productionControlPreparation(request) { return ProductionController.controlPreparation(request); }
