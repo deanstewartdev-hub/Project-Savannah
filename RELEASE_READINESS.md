@@ -1207,3 +1207,24 @@ Remaining essential actions:
 1. Send the readiness warnings list and confirm the inbox has no pending receipts.
 2. Approve A5 explicitly. Nothing will be rendered until then.
 3. After the render, review the video and approve A6 (private upload) separately.
+
+## 16. Worker v14 promotion record (visual selection, 2 November 2026)
+
+Promoted to production after the isolated container test (`savannah-visual-v14-test-2bgb4`, exit 0, 5 scenes, 7 unique clips, 0 AI images, 12 read-only Pexels searches; temporary job deleted).
+
+| Item | Before | After |
+|---|---|---|
+| Render job image | `media-worker@sha256:67fe155194286c4ca9b748a8febedaefaa06845186cbf75a1c54402921604902` (v13) | `media-worker@sha256:d010ddcf9efb250d4b0ec7aeac5e7067edf24c61796b6507c4ee1f184f5d34ee` (v14-visual) |
+| Dispatcher traffic | `savannah-media-worker-dispatcher-00013-jin` 100% | `savannah-media-worker-dispatcher-00015-bay` 100% |
+| Render job secrets | OPENAI_API_KEY, ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID, PEXELS_API_KEY (latest); JOB_SUBMIT_SECRET (version 2) | unchanged |
+| Render job limits and service account | cpu 2, memory 2Gi, timeout 1200 s, maxRetries 0, `savannah-render-job@` service account | unchanged |
+| Running executions before change | none | — |
+
+Checks after promotion: dispatcher `/health` 200; unauthenticated `POST /jobs` 401; render job image equals the v14 digest; main app deployment at version 95; production bridge at version 5. Chefchaouen record: version 5, status APPROVED, backup row 3 (version 4).
+
+No render was started. No script record, credential, bridge code or main-branch change was made.
+
+**Rollback** (each command is independent):
+- Dispatcher: `gcloud run services update-traffic savannah-media-worker-dispatcher --region europe-west2 --project savannah-media-worker --to-revisions=savannah-media-worker-dispatcher-00013-jin=100`
+- Render job: `gcloud run jobs update savannah-render-job --region europe-west2 --project savannah-media-worker --image europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker@sha256:67fe155194286c4ca9b748a8febedaefaa06845186cbf75a1c54402921604902`
+- Main app (only if needed): redeploy the production deployment to version 94. Record restore: editor function `restoreChefchaouenVisualFieldsFromBackup`.
