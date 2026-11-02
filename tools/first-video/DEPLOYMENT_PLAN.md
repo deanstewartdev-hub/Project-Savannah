@@ -65,3 +65,26 @@ Only the command syntax was checked, using `clasp redeploy --help` and `gcloud r
 4. Approve the editor dry run (read-only, no approval needed for the dry run itself; approval is needed to run the editor function if you want me to wait for it).
 5. Approve the record apply, after the dry-run log is reviewed.
 6. Approve the second render separately, after reviewing the seven clips.
+
+## 7. Container test of worker v14 (completed, non-rendering)
+
+- Image: `media-worker@sha256:d010ddcf9efb250d4b0ec7aeac5e7067edf24c61796b6507c4ee1f184f5d34ee` (the v14-visual build of commit `64812b7`).
+- Method: a temporary Cloud Run job, `savannah-visual-v14-test`, on that digest, with the command overridden to load `src/pipeline/visualSelection.js` and run the planner against live Pexels search (read-only). It had only the Pexels secret, the render job's service account and five beats with the approved fields. It had no OpenAI, ElevenLabs or GCS settings, no callback, and no write path.
+- Execution: `savannah-visual-v14-test-2bgb4`, exit 0.
+- Result: 5 scenes, 7 unique clips, 0 duplicates, 0 AI images, 12 Pexels searches. Every scene resolved from its queries (for example `chefchaouen blue city`).
+- Cleanup: the temporary job was deleted. The production render job still runs `sha256:67fe…` (v13).
+- Limits: relevance is judged from Pexels metadata only; the clips have been checked by contact sheet, but not in a real render. The gate accepts some clips on one subject word.
+
+## 8. Promotion (needs approval; not executed)
+
+Important: the main app (version 95) is live and sends the location fields. Until the render job runs the v14 image, a render would use the old selection, so **no render should be submitted before step 2.**
+
+1. Check there are no running executions of `savannah-render-job`.
+2. Update the render job image to the v14 digest: `gcloud run jobs update savannah-render-job --region europe-west2 --project savannah-media-worker --image europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker@sha256:d010ddcf9efb250d4b0ec7aeac5e7067edf24c61796b6507c4ee1f184f5d34ee`
+3. Shift dispatcher traffic to the candidate: `gcloud run services update-traffic savannah-media-worker-dispatcher --region europe-west2 --project savannah-media-worker --to-revisions=savannah-media-worker-dispatcher-00015-bay=100`
+4. Check `/health` on the production dispatcher URL returns 200, and the unauthenticated submit returns 401.
+
+**Rollback** (both are one command each):
+- Dispatcher: `--to-revisions=savannah-media-worker-dispatcher-00013-jin=100`
+- Render job: `gcloud run jobs update savannah-render-job --region europe-west2 --project savannah-media-worker --image europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker@sha256:67fe155194286c4ca9b748a8febedaefaa06845186cbf75a1c54402921604902`
+- Main app (only if needed): `clasp redeploy <production-deployment-id> --versionNumber 94`. The record can be restored with the editor function `restoreChefchaouenVisualFieldsFromBackup` (backup row 3 holds version 4).
