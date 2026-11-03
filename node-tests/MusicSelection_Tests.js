@@ -191,7 +191,10 @@ const REVIEW_JOB = {
   requestPayload: { music: { id: TRACK_ID, title: 'Beyond These Walls', licence: 'CC-BY-4.0', attributionRequired: true,
     attribution: CREDIT, sourceUrl: 'https://www.scottbuckley.com.au/library/beyond-these-walls/' } }
 };
-const preview = (context, source) => vm.runInContext(`YouTubeService.previewUpload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, ${JSON.stringify(source)})`, context);
+// The review's upload attempt ID is allocated by the controller. The same ID is the publishing record ID and the
+// tracking tag, so these tests use one ID for both review and upload.
+const ATTEMPT = 'PUB-ABCDEF12';
+const preview = (context, source) => vm.runInContext(`YouTubeService.previewUpload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, ${JSON.stringify(Object.assign({ uploadAttemptId: ATTEMPT }, source))})`, context);
 
 test('the review shows the exact title, description, credit, tags and visibility the upload will use', () => {
   const { context, calls } = load();
@@ -199,12 +202,12 @@ test('the review shows the exact title, description, credit, tags and visibility
   assert.equal(plan.title, 'A title');
   assert.equal(plan.privacyStatus, 'unlisted');
   assert.ok(plan.description.indexOf('Music: ' + CREDIT) !== -1);
-  assert.equal(JSON.stringify(plan.tags), '["travel"]');
+  assert.equal(JSON.stringify(plan.tags), '["travel","savannah-upload-PUB-ABCDEF12"]');
   assert.equal(plan.music.credit, CREDIT);
   assert.match(plan.metadataHash, /^[0-9a-f]{64}$/);
-  vm.runInContext(`YouTubeService.upload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, { title: 'A title', privacyStatus: 'unlisted', publishingJobId: 'PUB-R' })`, context);
-  assert.equal(calls.insertResources[0].snippet.description, plan.description, 'the upload sends the reviewed description');
-  assert.equal(calls.insertResources[0].status.privacyStatus, plan.privacyStatus, 'the upload sends the reviewed visibility');
+  vm.runInContext(`YouTubeService.upload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, { title: 'A title', privacyStatus: 'unlisted', publishingJobId: '${ATTEMPT}' })`, context);
+  assertSameMetadata(plan, calls.insertResources[0]);
+  assert.equal(JSON.stringify(plan.tags), JSON.stringify(calls.insertResources[0].snippet.tags), 'the upload sends the reviewed tags, tracking tag included');
 });
 
 test('the review digest is stable for the same details and changes when any shown detail changes', () => {
@@ -216,6 +219,47 @@ test('the review digest is stable for the same details and changes when any show
   assert.notEqual(hash(base), hash(Object.assign({}, base, { privacyStatus: 'public' })));
   assert.notEqual(hash(base), hash(Object.assign({}, base, { description: 'Different owner text' })));
   assert.notEqual(hash(base), hash(Object.assign({}, base, { publishAt: new Date(Date.now() + 3600000).toISOString() })));
+});
+
+// Compares every field the review shows with what the YouTube API receives.
+function assertSameMetadata(plan, resource) {
+  assert.equal(resource.snippet.title, plan.title, 'title');
+  assert.equal(resource.snippet.description, plan.description, 'description');
+  assert.equal(resource.status.privacyStatus, plan.privacyStatus, 'visibility');
+  assert.equal(resource.status.publishAt || '', plan.publishAt || '', 'schedule');
+  assert.equal(JSON.stringify(resource.snippet.tags), JSON.stringify(plan.tags), 'tags, tracking tag included');
+}
+
+// YouTube counts commas and quotes around tags containing spaces toward 500 characters.
+function youtubeTagLength(tags) {
+  return tags.reduce((length, tag) => length + tag.length + (/\s/.test(tag) ? 2 : 0), Math.max(0, tags.length - 1));
+}
+
+test('tag trimming: the review and the upload send the same tags, and the tracking tag is always kept', () => {
+  const ownerTags = Array.from({ length: 40 }, (_, i) => 'owner tag number ' + i + ' with some padding words');
+  const seo = Object.assign({}, SEO, { tags: ownerTags });
+  const { context, calls } = load();
+  const plan = vm.runInContext(`YouTubeService.previewUpload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(seo)}, ${JSON.stringify({ title: 'T', uploadAttemptId: ATTEMPT })})`, context);
+  assert.ok(plan.tags.length < ownerTags.length, 'owner tags were trimmed to fit the limit');
+  assert.equal(plan.tags[plan.tags.length - 1], 'savannah-upload-' + ATTEMPT, 'the tracking tag is last');
+  assert.ok(youtubeTagLength(plan.tags) <= 500, 'the reviewed tags fit the 500-character limit');
+  vm.runInContext(`YouTubeService.upload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(seo)}, { title: 'T', publishingJobId: '${ATTEMPT}' })`, context);
+  assertSameMetadata(plan, calls.insertResources[0]);
+  assert.ok(youtubeTagLength(calls.insertResources[0].snippet.tags) <= 500, 'the uploaded tags fit the limit');
+});
+
+test('the review digest changes with the upload attempt, so an approval cannot be reused for another record', () => {
+  const { context } = load();
+  const first = preview(context, { title: 'A', uploadAttemptId: 'PUB-AAAAAAAA' }).metadataHash;
+  const second = preview(context, { title: 'A', uploadAttemptId: 'PUB-BBBBBBBB' }).metadataHash;
+  assert.notEqual(first, second);
+});
+
+test('a review needs an upload attempt ID, and the upload needs its publishing record ID', () => {
+  const { context, calls } = load();
+  assert.throws(() => vm.runInContext(`YouTubeService.previewUpload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, { title: 'T' })`, context), /upload attempt ID/);
+  assert.throws(() => vm.runInContext(`YouTubeService.upload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, { title: 'T' })`, context), /publishing record ID/);
+  assert.equal(calls.insertResources.length, 0);
 });
 
 console.log(`Music selection and credit: ${passed}/${passed} passed.`);

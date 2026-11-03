@@ -28,18 +28,15 @@ const YouTubeService = (() => {
     // A staging project is authorised as the owner, so YouTube here is the REAL channel.
     assertNotStaging_("YouTube upload");
     const source = options || {};
-    // The same plan the owner reviewed (see previewUpload): refused before the MP4 is downloaded when
-    // the render has no verified music record, or its required credit is missing.
-    const plan = uploadPlan_(renderJob, seoPack, source);
+    // The publishing record ID is the upload attempt the owner reviewed. Its tracking tag is part of the
+    // reviewed tags, so the same ID is used to build the plan (see previewUpload).
+    if (!source.publishingJobId) throw error_("An upload needs its publishing record ID.");
+    // The same plan the owner reviewed: refused before the MP4 is downloaded when the render has no
+    // verified music record, or its required credit is missing.
+    const plan = uploadPlan_(renderJob, seoPack, Object.assign({}, source, { uploadAttemptId: source.publishingJobId }));
     const title = plan.title;
     const description = plan.description;
-    const tags = plan.tags;
-    if (source.publishingJobId) {
-      const uploadTag = uploadTag_(source.publishingJobId);
-      // YouTube counts commas and quotes around tags containing spaces toward 500 characters.
-      while (tags.length && tagLength_(tags.concat([uploadTag])) > 500) tags.pop();
-      tags.push(uploadTag);
-    }
+    const tags = plan.tags.slice();
     const publishAt = plan.publishAt;
     const privacyStatus = plan.privacyStatus;
     const videoBlob = download_(renderJob.videoUrl, title);
@@ -85,13 +82,27 @@ const YouTubeService = (() => {
     const music = musicOf_(renderJob);
     const publishAt = normalisePublishAt_(source.publishAt);
     return {
+      renderJobId: String(renderJob.id || ""),
+      uploadAttemptId: String(source.uploadAttemptId || ""),
       title: title,
       description: buildDescription_(source.description || seoPack.description, seoPack.hashtags, music.credit),
-      tags: normaliseTags_(seoPack.tags),
+      tags: finalTags_(seoPack.tags, source.uploadAttemptId),
       privacyStatus: publishAt ? "private" : normalisePrivacy_(source.privacyStatus),
       publishAt: publishAt,
       music: music
     };
+  }
+
+  // The tags YouTube receives: the owner's tags followed by the internal tracking tag. Owner tags are
+  // dropped from the end until the whole list fits YouTube's 500-character limit, so the tracking tag is
+  // always kept. The same function serves the review and the upload, so they cannot differ.
+  function finalTags_(ownerTags, uploadAttemptId) {
+    const tags = normaliseTags_(ownerTags);
+    if (!uploadAttemptId) return tags;
+    const internal = uploadTag_(uploadAttemptId);
+    // YouTube counts commas and quotes around tags containing spaces toward 500 characters.
+    while (tags.length && tagLength_(tags.concat([internal])) > 500) tags.pop();
+    return tags.concat([internal]);
   }
 
   // Read-only. Returns the exact details for owner review, with a digest that the upload must match.
@@ -100,8 +111,14 @@ const YouTubeService = (() => {
     if (!renderJob || renderJob.status !== "SUCCEEDED" || !renderJob.videoUrl) {
       throw error_("Only a completed render can be uploaded.");
     }
-    const plan = uploadPlan_(renderJob, seoPack, options || {});
+    const source = options || {};
+    // Read-only: the attempt ID is allocated by the caller and saved only when the upload is approved, so
+    // a preview never writes a publishing record.
+    if (!source.uploadAttemptId) throw error_("A review needs an upload attempt ID.");
+    const plan = uploadPlan_(renderJob, seoPack, source);
     return {
+      renderJobId: plan.renderJobId,
+      uploadAttemptId: plan.uploadAttemptId,
       title: plan.title,
       description: plan.description,
       tags: plan.tags,
@@ -112,9 +129,11 @@ const YouTubeService = (() => {
     };
   }
 
+  // Binds the approval to the render, the upload attempt and every field the upload sends, including
+  // the final tags and the tracking tag.
   function metadataHash_(plan) {
-    const fields = JSON.stringify([plan.title, plan.description, plan.tags, plan.privacyStatus, plan.publishAt,
-      plan.music.id, plan.music.credit]);
+    const fields = JSON.stringify([plan.renderJobId, plan.uploadAttemptId, plan.title, plan.description, plan.tags,
+      plan.privacyStatus, plan.publishAt, plan.music.id, plan.music.credit]);
     return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, fields)
       .map(function (byte) { return ("0" + (byte & 255).toString(16)).slice(-2); }).join("");
   }

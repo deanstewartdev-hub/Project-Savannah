@@ -1420,3 +1420,76 @@ Do **not** restore the render job alone while the v16 dispatcher is serving. It 
 6. **Review not live.** The UI and server changes are tested, not deployed.
 
 **GO/NO-GO: NO-GO for production deployment today.** The code paths are tested and fail closed, and the Versions 1 and 2 status is known. Deployment becomes GO when blockers 1 and 2 are closed by owner approval, the candidate dispatcher passes step 1 in the sequence above, and blocker 5 is decided. Blocker 3 is required before the first paid render, unless the owner accepts the local integration check as sufficient.
+
+### 18e. Metadata that is reviewed is metadata that is uploaded (3 November 2026)
+
+Nothing here is deployed. Production stays main app v97, dispatcher `00015-bay` and render job `d010ddcf…`. No track was added to the manifest, no music was uploaded, and no render or YouTube action ran.
+
+**Defect fixed.** `YouTubeService.previewUpload` built the tag list before the internal `savannah-upload-<publishing record ID>` tag existed. `upload` then appended that tag and removed owner tags to stay under YouTube's 500-character limit. The owner could review one tag list and get another.
+
+**Fix.**
+- **One tag list, built once.** `finalTags_` builds the owner tags, drops from the end until the list including the tracking tag fits 500 characters, then appends the tracking tag. Preview and upload both call it, and `upload` sends `plan.tags` as built.
+- **The record ID is allocated at review, not saved.** `ProductionController.previewPublish` allocates an attempt ID (`PUB-` plus eight hex characters, the same format as the model default) and returns it with the review. Nothing is written during preview. The ID becomes the publishing record ID, and therefore the tracking tag, only when the owner approves and `publish` runs.
+- **The approval covers the whole review.** The SHA-256 digest covers the render ID, the attempt ID, title, description, final tags (tracking tag included), visibility, schedule and the music record. `publish` recomputes it and refuses any mismatch before writing a record.
+
+**Preserved.**
+- **Reconciliation.** `findUpload` looks up the tag from the record ID. Because the record ID and the tracking tag are now the same reviewed ID, reconciliation still finds an upload made under a review. The uncertain-upload (RECONCILE) and failed-with-evidence rules are unchanged, and their tests pass.
+- **Duplicate protection.** The script-wide protected-upload guard and the per-render history guard run as before. Two new checks: the attempt ID must match the `PUB-` format, and it must not already be the ID of a record. A review can be used once. A second use is refused with no second upload, and the attempt ID is checked before anything is written.
+- **Approval bound to the render.** A digest from one render's review cannot publish another render, because the render ID is part of the digest.
+
+**Tests added or changed.**
+- `node-tests/MusicSelection_Tests.js` (14/14). The review and the upload are compared field by field with the YouTube resource (`assertSameMetadata`): title, description, visibility, schedule and tags, tracking tag included. A tag-limit test uses 40 long owner tags: the review keeps fewer owner tags than were supplied, keeps the tracking tag last, stays under 500 characters, and matches the upload exactly. A digest test shows that a different attempt ID gives a different digest. A test shows that a review without an attempt ID, and an upload without a record ID, are both refused.
+- `node-tests/upload-recovery.cjs` (54/54). Publishing uses one review for both the attempt ID and the digest. Added: a second use of an approved review is refused, and a malformed attempt ID is refused before any write. The stale-approval test now uses a complete preview, so it fails for the reason it names.
+- `node-tests/ChainIntegration_Tests.cjs` (8/8). Its callback receiver now replies with `success: true`, which is what Apps Script sends. The old `ok: true` reply looked like a rejected callback, so the sender retried three times.
+
+**Isolated dispatcher, callback and persistence test.** The dispatcher and render-job entry points previously created live Google Cloud clients at import, so they could not be run in isolation. Their logic moved into modules that take their clients and storage as parameters, and the entry files only connect the real clients:
+- `media-worker/src/lib/dispatcherApp.js` (the HTTP surface, unchanged in behaviour)
+- `media-worker/src/lib/renderRequest.js` (request read, delete, pipeline, callback, exit code, unchanged in order)
+
+`media-worker/test/dispatcherIntegration.test.js` (7/7) runs the real dispatcher app on a local port, with in-memory storage and a fake Cloud Run client. It runs the real request handler as the render job would, with a stub pipeline that runs the real music preparation and skips the paid steps. The callback is a real HTTP POST to a local receiver. It checks:
+1. A verified-track request is accepted with the credit. The request is written once, then deleted before rendering. The completed callback carries the verified track, and the secret is not in the URL. A replay finds no request, so there is no second render or callback.
+2. A failed render calls back as failed, exits non-zero, and still leaves no request behind.
+3. Four refusals (no track, unknown track, file path, placeholder with track) write nothing and start nothing.
+4. No render starts while the shared render job is on an image outside the allowlist, or when the allowlist is empty (409).
+5. A placeholder run is accepted only when it says so, and its callback records no track.
+6. A wrong secret is refused (401) before anything is written.
+7. `/health` reports the music protocol.
+
+`ConfigCompatibility_Tests.js` (8/8) was updated to read the validator and the failure-callback shape from their new files.
+
+**Results.**
+
+| Check | Result |
+|---|---|
+| Worker suite (`node --test`, media-worker) | **193/193 pass**, 0 fail (includes the 7 dispatcher integration tests) |
+| Main-app suite (`node node-tests/run-local.cjs`) | **exit 0**, 458 PASS lines, including upload recovery 54/54, music and metadata 14/14, chain integration 8/8, configuration compatibility 8/8 |
+| Container check, `media-worker:v18-gate` (Cloud Build `e4ac249b`, digest `sha256:c351cad4…`, not deployed) | **10/10 pass** on the official MP3 downloaded in the build |
+| 375 px Production page (fixture) | Re-run after the attempt-ID change: no page errors, document width 360 px (no sideways scroll) for both the legacy and the music fixtures |
+
+**Limits.**
+- The dispatcher integration uses fake Cloud Run and storage clients, so it does not test Cloud Run's real behaviour. It does not test Sheets persistence (the render and publishing repositories) or the callback inbox. Those need a staging project.
+- The attempt ID is echoed back by the client. The digest covers it, and the server checks its format and uniqueness, so an altered ID cannot publish something the owner did not review. It cannot make a reused ID succeed.
+- The 375 px check uses sample data, not the live app.
+
+**Production status.** v97 is untouched and the live worker is untouched. The dispatcher and render-job source changes are in the repo and in the v18 candidate image only. The main-app changes are in the repo only.
+
+**Final release checklist**
+
+Done and verified in this pass:
+- [x] Preview and upload produce identical final metadata, tracking tag and tag-limit trimming included (tests)
+- [x] Preview writes nothing; the record is created only on approved publish, with the reviewed ID
+- [x] Approval digest bound to the render, attempt, every uploaded field and the music record
+- [x] Reconciliation and duplicate-upload protection preserved (tests pass); reuse of a review refused
+- [x] Isolated dispatcher, callback and persistence test (no paid render, no YouTube, no Cloud Run)
+- [x] Worker suite 193/193; main-app suite exit 0
+- [x] Candidate image v18-gate built and music check 10/10
+
+Still open. None of these can be closed without your approval:
+- [ ] Add Beyond These Walls to `music/manifest.json` with your `verifiedBy` and `verifiedOn`
+- [ ] Upload the MP3 to `savannah-media` at `music/scott-buckley-beyond-these-walls.mp3`
+- [ ] Staging run of the dispatcher, the callback inbox and Sheets persistence
+- [ ] Decide what happens to Chefchaouen Versions 1 and 2 (re-render with a verified track, or a written exception)
+- [ ] Check Content ID status for the track before its first upload
+- [ ] Candidate dispatcher revision with no traffic, then the shared render job update, then traffic cut-over, then the main-app deploy, as in §18d
+
+**Deployment recommendation: NO-GO for production today.** The metadata defect is fixed and tested, and the isolated integration passes. Deployment becomes GO when the first two open items are approved and done, the staging run passes, and Versions 1 and 2 are decided. Follow the §18d sequence with the v18 image in place of v17. Its digest is `sha256:c351cad4…`, and the allowlist entry must be that digest, not the v17 one.

@@ -82,7 +82,10 @@ function fixture(options = {}) {
   };
 }
 // Publishing requires the owner's approval of the exact details: the fixture approves what the preview shows.
-const publish = 'ProductionController.publish({renderJobId:"RND-TEST", approvedMetadataHash: ProductionController.previewPublish({renderJobId:"RND-TEST"}).data.metadataHash})';
+// Publishing needs the owner's approval of one review: the attempt ID and digest come from the same preview.
+const approvedPublish = (source) => '(function () { const review = ProductionController.previewPublish(Object.assign({renderJobId:"RND-TEST"}, ' + source + ')).data; ' +
+  'return ProductionController.publish(Object.assign({renderJobId:"RND-TEST"}, ' + source + ', { uploadAttemptId: review.uploadAttemptId, approvedMetadataHash: review.metadataHash })); })()';
+const publish = approvedPublish('{}');
 const reconcile = 'ProductionController.reconcilePublication({renderJobId:"RND-TEST"})';
 test('Timeout leaves reconciliation state and blocks a second insert', () => {
   const f = fixture({ insertFailure: true });
@@ -330,7 +333,7 @@ test('Successful scheduled upload stays private and retains its schedule', () =>
   const f = fixture({ tags: Array(30).fill('Long descriptive topic tag') });
   const when = new Date(Date.now() + 3600000).toISOString();
   const reviewed = `{renderJobId:"RND-TEST",privacyStatus:"public",publishAt:${JSON.stringify(when)}}`;
-  assert.equal(f.call(`ProductionController.publish(Object.assign(${reviewed}, {approvedMetadataHash: ProductionController.previewPublish(${reviewed}).data.metadataHash}))`).success, true);
+  assert.equal(f.call(approvedPublish(reviewed)).success, true);
   assert.equal(f.job().status, 'PUBLISHED'); assert.equal(f.job().privacyStatus, 'private');
   assert.equal(f.job().providerResponse.publishAt, when);
 });
@@ -470,14 +473,14 @@ test('Publishing without the owner approval is refused before any record is writ
   const f = fixture();
   const response = f.call('ProductionController.publish({renderJobId:"RND-TEST"})');
   assert.equal(response.success, false);
-  assert.match(response.error.message, /changed after review, or were never approved/);
+  assert.match(response.error.message, /Review the exact YouTube details again/);
   assert.equal(f.job(), null);
   assert.equal(f.inserts(), 0);
 });
 test('An approval of earlier details is refused after the title changes', () => {
   const f = fixture();
-  const approved = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST",title:"Old title"}).data.metadataHash');
-  const response = f.call('ProductionController.publish({renderJobId:"RND-TEST",title:"New title",approvedMetadataHash:' + JSON.stringify(approved) + '})');
+  const old = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST",title:"Old title"})').data;
+  const response = f.call('ProductionController.publish({renderJobId:"RND-TEST",title:"New title",uploadAttemptId:' + JSON.stringify(old.uploadAttemptId) + ',approvedMetadataHash:' + JSON.stringify(old.metadataHash) + '})');
   assert.equal(response.success, false);
   assert.equal(f.job(), null, 'no publishing record for a refused upload');
   assert.equal(f.inserts(), 0);
@@ -496,6 +499,24 @@ test('A render with no verified music record cannot be previewed or uploaded', (
   const preview = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST"})');
   assert.equal(preview.success, false);
   assert.match(preview.error.message, /no verified music record/);
+  assert.equal(f.inserts(), 0);
+});
+test('An approved review cannot be used for a second upload', () => {
+  const f = fixture();
+  const review = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST"})').data;
+  const request = 'ProductionController.publish({renderJobId:"RND-TEST",uploadAttemptId:' + JSON.stringify(review.uploadAttemptId) + ',approvedMetadataHash:' + JSON.stringify(review.metadataHash) + '})';
+  assert.equal(f.call(request).success, true);
+  assert.equal(f.job().id, review.uploadAttemptId, 'the record uses the reviewed attempt ID');
+  assert.equal(f.inserts(), 1);
+  assert.equal(f.call(request).success, false, 'the second use is refused');
+  assert.equal(f.inserts(), 1, 'no second upload');
+});
+test('A malformed upload attempt ID is refused before anything is written', () => {
+  const f = fixture();
+  const review = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST"})').data;
+  const response = f.call('ProductionController.publish({renderJobId:"RND-TEST",uploadAttemptId:"PUB-../x",approvedMetadataHash:' + JSON.stringify(review.metadataHash) + '})');
+  assert.equal(response.success, false);
+  assert.equal(f.job(), null, 'no publishing record');
   assert.equal(f.inserts(), 0);
 });
 console.log(`Upload recovery: ${passed}/${passed} passed.`);

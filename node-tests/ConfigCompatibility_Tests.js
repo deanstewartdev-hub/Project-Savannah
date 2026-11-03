@@ -24,7 +24,7 @@ test('a render ID reserved by the main app is accepted by every validator in all
   vm.runInContext(read('Production/VideoProcessingProvider.js'), context);
   const ids = Array.from({ length: 25 }, () => vm.runInContext('CloudRunFFmpegProvider.reserveRenderId()', context));
   const validators = {
-    'media-worker dispatcher.js': regexFrom('media-worker/src/dispatcher.js', /validJobIdShape = [^;]*\/(\^cr-[^/]+)\/([a-z]*)\.test/),
+    'media-worker dispatcher.js': regexFrom('media-worker/src/lib/dispatcherApp.js', /validJobIdShape = [^;]*\/(\^cr-[^/]+)\/([a-z]*)\.test/),
     'media-worker jobStatus.js': regexFrom('media-worker/src/lib/jobStatus.js', /JOB_ID_PATTERN = \/(.+)\/([a-z]*);/),
     'CallbackBridge.js': regexFrom('CallbackBridge/CallbackBridge.js', /RENDER_ID_PATTERN = \/(.+)\/([a-z]*);/),
     'MediaWorkerCallbackInbox_Service.js': regexFrom('Production/MediaWorkerCallbackInbox_Service.js', /const RENDER_ID = \/(.+)\/([a-z]*);/),
@@ -70,7 +70,7 @@ test('the bridge persists every field the worker sends and the inbox reads', () 
   for (const field of ['jobId', 'status: "completed"', 'video: {', 'url: delivery.videoUrl', 'gcsPath: delivery.gcsPath', 'probe: {']) {
     assert.ok(runJob.includes(field), 'worker payload no longer has ' + field);
   }
-  assert.match(read('media-worker/src/job-runner.js'), /status: "failed",\s*error: \{ message: renderError\.message \}/);
+  assert.match(read('media-worker/src/lib/renderRequest.js'), /status: "failed",\s*error: \{ message: renderError\.message \}/);
   const persisted = /var payload = JSON\.stringify\(\{([\s\S]*?)\}\);/.exec(read('CallbackBridge/CallbackBridge.js'))[1];
   for (const field of ['jobId', 'status', 'video', 'probe', 'error']) assert.match(persisted, new RegExp('\\b' + field + ':'), 'bridge drops ' + field);
   const inbox = read('Production/MediaWorkerCallbackInbox_Service.js');

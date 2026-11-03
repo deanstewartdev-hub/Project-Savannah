@@ -59,12 +59,15 @@
       '<p><strong>Description</strong></p><pre class="production-review-description" style="white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;margin:0">' + escapeHtml(plan.description) + '</pre>' +
       '<p class="card-description">Review reference ' + escapeHtml(String(plan.metadataHash).slice(0, 12)) + '</p></div>';
     panel.dataset.reviewHash = plan.metadataHash;
+    // The upload uses this exact record ID, which is part of the reviewed tags.
+    panel.dataset.uploadAttemptId = plan.uploadAttemptId;
     panel.querySelector(".production-approve-details").disabled = false;
   }
 
   // Shows why the details could not be reviewed, inside the panel, so the render list stays in place.
   function showPublishReviewError_(panel, message) {
     delete panel.dataset.reviewHash;
+    delete panel.dataset.uploadAttemptId;
     const approval = panel.querySelector(".production-approve-details");
     approval.checked = false;
     approval.disabled = true;
@@ -76,6 +79,7 @@
   // Removes any review, so the upload is blocked until the owner reviews the current details again.
   function clearPublishReview_(panel) {
     delete panel.dataset.reviewHash;
+    delete panel.dataset.uploadAttemptId;
     panel.querySelector(".production-publish-review").innerHTML = "";
     const approval = panel.querySelector(".production-approve-details");
     approval.checked = false;
@@ -847,6 +851,7 @@
         .productionPublish({ renderJobId: publish.dataset.jobId, title: title,
           privacyStatus: privacyStatus, publishAt: publishAt,
           approvedMetadataHash: panel.dataset.reviewHash,
+          uploadAttemptId: panel.dataset.uploadAttemptId,
           timezoneOffsetMinutes: new Date().getTimezoneOffset() });
       return;
     }

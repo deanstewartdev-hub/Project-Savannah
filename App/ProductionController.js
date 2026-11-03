@@ -622,10 +622,17 @@ const ProductionController = (() => {
         { timezoneOffsetMinutes: source.timezoneOffsetMinutes, maxPerDay: 2 }
       );
       const reviewSource = Object.assign({}, source, {
-        publishAt: scheduleCheck.scheduled ? scheduleCheck.publishAt : source.publishAt
+        publishAt: scheduleCheck.scheduled ? scheduleCheck.publishAt : source.publishAt,
+        // Allocated for this review only. Nothing is saved until the owner approves and publish() runs.
+        uploadAttemptId: newUploadAttemptId_()
       });
       return YouTubeService.previewUpload(renderJob, seoPack, reviewSource);
     });
+  }
+
+  // Same format as PublishingJobModel's default ID, so the record can use the reviewed ID unchanged.
+  function newUploadAttemptId_() {
+    return "PUB-" + Utilities.getUuid().slice(0, 8).toUpperCase();
   }
 
   function publish(request) {
@@ -681,11 +688,24 @@ const ProductionController = (() => {
       // The owner must approve the exact details shown by previewPublish. If anything changed since (title,
       // description, music credit, tags, visibility or schedule), the approval no longer matches: refuse
       // before any publishing record is written, so the owner reviews the new details first.
+      // The upload attempt ID is the reviewed publishing record ID, and its tracking tag is part of the reviewed
+      // tags. It must be well-formed and unused: a reused ID would merge two attempts' evidence.
+      const attemptId = String(source.uploadAttemptId || "");
+      if (!/^PUB-[0-9A-F]{8}$/.test(attemptId)) {
+        throw error_("Review the exact YouTube details again before uploading.");
+      }
+      if (publishingJobs.some(function (existing) { return existing.id === attemptId; })) {
+        throw error_("This review has already been used for an upload. Review the exact details again before uploading.");
+      }
+      // The owner must approve the exact details shown by previewPublish. Anything that changed since (title,
+      // description, music credit, tags including the tracking tag, visibility, schedule, render or attempt)
+      // makes the approval no longer match, and nothing is written.
       const reviewed = YouTubeService.previewUpload(renderJob, seoPack, source);
       if (!source.approvedMetadataHash || source.approvedMetadataHash !== reviewed.metadataHash) {
         throw error_("The YouTube details changed after review, or were never approved. Review the exact details again before uploading.");
       }
       let job = PublishingJobRepository.save(PublishingJobModel.create({
+        id: attemptId,
         renderJobId: renderJob.id,
         scriptId: renderJob.scriptId,
         seoPackId: renderJob.seoPackId,

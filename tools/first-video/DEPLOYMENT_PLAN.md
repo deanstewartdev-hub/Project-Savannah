@@ -37,7 +37,7 @@ The deployed main app (version 94) differs from this branch only in `Production/
 
 The order matters. The worker fails closed on its own, but the editor can only run the new maintenance function after the main-app code is deployed.
 
-1. **Worker, no traffic.** Deploy the new revision with no traffic. Smoke test with a dispatcher request with `dryRun: true`. The worker's dry-run path (`media-worker/src/job-runner.js:43`) loads the request and exits before any paid call. It still starts one Cloud Run execution, so it needs approval.
+1. **Worker, no traffic.** Deploy the new revision with no traffic. Smoke test with a dispatcher request with `dryRun: true`. The worker's dry-run path (`media-worker/src/lib/renderRequest.js (dry-run branch, called by job-runner.js)`) loads the request and exits before any paid call. It still starts one Cloud Run execution, so it needs approval.
 2. **Main app code.** Resolve the `CallbackBridge/.clasp.json` mismatch first (it does not affect the main app push). Then `clasp push` from the root, `clasp version`, and update the production deployment to the new version. This ships the provider change, the scene builders, and the maintenance functions (inert until run).
 3. **Editor dry run (read-only).** Run `previewChefchaouenVisualFieldsDryRun` from the editor. It reads the saved record through the repository and logs the five changes and the unchanged-field check. Review the log.
 4. **Apply, with approval.** Run `applyChefchaouenVisualFields`. It backs up the original JSON to Script Revision Backups, saves once, and reads the record back. The result is logged with `verified=true`.

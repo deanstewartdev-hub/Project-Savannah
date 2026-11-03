@@ -56,7 +56,7 @@ async function main() {
     req.on('end', () => {
       callbacks.push({ url: req.url, body: JSON.parse(body || '{}') });
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
+      res.end(JSON.stringify({ success: true }));
     });
   });
   await new Promise(resolve => callbackServer.listen(CALLBACK_PORT, '127.0.0.1', resolve));
@@ -150,7 +150,7 @@ async function main() {
     const renderRow = { id: renderId, scriptId: SCRIPT.id, seoPackId: SEO.id, status: 'SUCCEEDED',
       videoUrl: callback.body.video.url, requestPayload: submitted.payload };
     context.__row = renderRow;
-    const review = vm.runInContext('YouTubeService.previewUpload(__row, __seo, { title: "Chefchaouen: The Blue City" })', context);
+    const review = vm.runInContext('YouTubeService.previewUpload(__row, __seo, { title: "Chefchaouen: The Blue City", uploadAttemptId: "PUB-CHAIN001" })', context);
     check('the review shows the exact title, description and credit the upload will send', () => {
       assert.equal(review.title, 'Chefchaouen: The Blue City');
       assert.ok(review.description.indexOf('Music: ' + CREDIT) !== -1);
@@ -192,7 +192,7 @@ async function main() {
     });
     context.__legacyRow = { id: legacyId, scriptId: SCRIPT.id, seoPackId: SEO.id, status: 'SUCCEEDED',
       videoUrl: legacyCallback.body.video.url, requestPayload: { provider: 'cloud-run' } };
-    const legacyRefused = vm.runInContext('(function(){ try { YouTubeService.previewUpload(__legacyRow, __seo, {title:"x"}); return "allowed"; } catch (e) { return e.message; } })()', context);
+    const legacyRefused = vm.runInContext('(function(){ try { YouTubeService.previewUpload(__legacyRow, __seo, {title:"x", uploadAttemptId:"PUB-CHAIN002"}); return "allowed"; } catch (e) { return e.message; } })()', context);
     check('a placeholder render cannot be previewed or uploaded as if it were licensed', () => {
       assert.match(legacyRefused, /no verified music record/);
     });
