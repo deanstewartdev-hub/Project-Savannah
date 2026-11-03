@@ -1,0 +1,50 @@
+{
+  "note": "Candidates only. NOT in music/manifest.json, so the worker will not use them. Each needs owner confirmation of licence, credit text and Content ID status before it is added to the manifest. Terms were read from the artist's pages on 3 November 2026 (agent read of page text; no audio downloaded).",
+  "candidates": [
+    {
+      "id": "scott-buckley-beyond-these-walls",
+      "title": "Beyond These Walls",
+      "artist": "Scott Buckley",
+      "licence": "CC-BY-4.0",
+      "attributionRequired": true,
+      "attribution": "'Beyond These Walls' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au",
+      "monetizationAllowed": true,
+      "monetizationNote": "Page says free for any project including commercial, with credit. Monetised YouTube use and Content ID are not mentioned; page warns missing credit may bring a copyright claim.",
+      "sourceUrl": "https://www.scottbuckley.com.au/library/beyond-these-walls/",
+      "termsUrl": "https://www.scottbuckley.com.au/library/beyond-these-walls/",
+      "downloadUrl": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/05/sb_beyondthesewalls.mp3",
+      "file": "music/scott-buckley-beyond-these-walls.mp3",
+      "pageDate": "2021-05-01"
+    },
+    {
+      "id": "scott-buckley-wanderlust",
+      "title": "Wanderlust",
+      "artist": "Scott Buckley",
+      "licence": "CC-BY-4.0",
+      "attributionRequired": true,
+      "attribution": "'Wanderlust' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au",
+      "monetizationAllowed": true,
+      "monetizationNote": "Same terms as the other candidates; Content ID not mentioned.",
+      "sourceUrl": "https://www.scottbuckley.com.au/library/wanderlust/",
+      "termsUrl": "https://www.scottbuckley.com.au/library/wanderlust/",
+      "downloadUrl": "https://www.scottbuckley.com.au/library/wp-content/uploads/2020/08/sb_wanderlust.mp3",
+      "file": "music/scott-buckley-wanderlust.mp3",
+      "pageDate": "2020-08-28"
+    },
+    {
+      "id": "scott-buckley-chasing-daylight",
+      "title": "Chasing Daylight",
+      "artist": "Scott Buckley",
+      "licence": "CC-BY-4.0",
+      "attributionRequired": true,
+      "attribution": "'Chasing Daylight' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au",
+      "monetizationAllowed": true,
+      "monetizationNote": "Same terms as the other candidates; Content ID not mentioned.",
+      "sourceUrl": "https://www.scottbuckley.com.au/library/chasing-daylight/",
+      "termsUrl": "https://www.scottbuckley.com.au/library/chasing-daylight/",
+      "downloadUrl": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/03/sb_chasingdaylight.mp3",
+      "file": "music/scott-buckley-chasing-daylight.mp3",
+      "pageDate": "2021-03-06"
+    }
+  ]
+}

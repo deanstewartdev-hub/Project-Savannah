@@ -1307,3 +1307,11 @@ No render was started. No script record, credential, bridge code or main-branch 
 **Tests.** Worker suite: 159/159 (`media-worker/test/creativeQuality.test.js` covers music validation, path restriction, preflight, gain and fades, captions, and footage variety). Main app: `node node-tests/run-local.cjs` exits 0.
 
 **Not done.** No track is selected or verified; no music is in the bucket; the 375px check; a Linux font check for captions.
+
+### 18b. Music candidates (Scott Buckley library, 3 November 2026)
+
+Three candidates were provided and their artist pages read (page text only; no audio downloaded):
+- Beyond These Walls, Wanderlust, Chasing Daylight. All three are CC BY 4.0, with the same terms: free for any project including commercial, credit required, and the credit text specified on each page. Each page says credits must appear in the YouTube description, and that missing credit may bring a copyright claim. None of the pages mentions monetised YouTube use or Content ID.
+- Recorded in `media-worker/music/candidates.json`, which is outside the manifest. The worker cannot use them. A test checks they stay out of the manifest.
+- **Not yet accepted.** Before a candidate goes into `music/manifest.json`: the owner confirms the licence reading, the credit text is added to the YouTube description at publish time (the pipeline does not yet do this), and the Content ID status is checked after upload.
+- The pasted request for these candidates ended mid-sentence ("All three have published CC BY"); the licence terms above come from the pages, not from that sentence.

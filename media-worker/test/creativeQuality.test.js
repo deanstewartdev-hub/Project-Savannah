@@ -268,3 +268,15 @@ test("the widest allowed caption phrase fits inside the side margins (Arial uppe
   // Measured on a rendered frame: about 0.61 em per uppercase character with spaces, measured on a rendered frame; 0.62 is used.
   assert.ok(CAPTION_LIMITS.maxCharacters * 0.62 * fontPx <= usable, "longest phrase fits");
 });
+
+test("candidate tracks are not in the verified manifest, so the worker cannot use them", async () => {
+  const { readFileSync } = await import("node:fs");
+  const manifest = JSON.parse(readFileSync(new URL("../music/manifest.json", import.meta.url), "utf8"));
+  const candidates = JSON.parse(readFileSync(new URL("../music/candidates.json", import.meta.url), "utf8"));
+  const verifiedIds = new Set(manifest.tracks.map((t) => t.id));
+  for (const candidate of candidates.candidates) {
+    assert.equal(verifiedIds.has(candidate.id), false, candidate.id + " must not be in the manifest yet");
+    assert.equal(candidate.attributionRequired, true, "CC BY 4.0 candidates require credit");
+    assert.match(candidate.attribution, /released under CC-BY 4\.0/);
+  }
+});
