@@ -279,3 +279,49 @@ test("the dispatcher reports the music protocol that the main app checks before 
   const health = await (await fetch(base + "/health")).json();
   assert.equal(health.musicProtocol, "verified-v1");
 });
+
+test("a jobId that is already waiting or already delivered starts no second execution", async (t) => {
+  const { storage, jobsClient, server, base } = await setup();
+  const receiver = await callbackReceiver();
+  t.after(() => Promise.all([closeServer(server), receiver.close()]));
+  const jobId = "cr-44444444-4444-4444-8444-444444444444";
+  const body = { jobId, beats: BEATS, musicTrackId: TRACK_ID, callbackUrl: receiver.url, callbackSecret: "s" };
+
+  assert.equal((await post(base, body)).status, 202);
+  assert.equal(jobsClient.runs.length, 1);
+
+  // While the request is still waiting for its execution, a second submission is refused and writes nothing.
+  const uploadsBefore = storage.events.length;
+  const duplicate = await post(base, body);
+  assert.equal(duplicate.status, 409);
+  assert.equal(storage.events.length, uploadsBefore, "the waiting request is not overwritten");
+  assert.equal(jobsClient.runs.length, 1, "no second execution");
+
+  // After the render has delivered its video, the same jobId is still refused.
+  await executeLastRun(jobsClient, { storage, pipeline: stubPipeline() });
+  storage.objects.set("renders/" + jobId + "/final.mp4", { delivered: true });
+  const afterDelivery = await post(base, body);
+  assert.equal(afterDelivery.status, 409);
+  assert.equal(jobsClient.runs.length, 1, "no re-render of a delivered video");
+});
+
+test("a malformed jobId is refused before it can name a storage path", async (t) => {
+  const { storage, jobsClient, server, base } = await setup();
+  t.after(() => closeServer(server));
+  for (const jobId of ["../../etc/x", "short", "has spaces in it"]) {
+    const response = await post(base, { jobId, beats: BEATS, musicTrackId: TRACK_ID, callbackUrl: "http://127.0.0.1:1/exec" });
+    assert.equal(response.status, 400, jobId);
+  }
+  assert.equal(storage.events.length, 0);
+  assert.equal(jobsClient.runs.length, 0);
+});
+
+test("a storage failure while checking for duplicates refuses the submission rather than rendering", async (t) => {
+  const { storage, jobsClient, server, base } = await setup();
+  t.after(() => closeServer(server));
+  storage.objectExists = async () => { throw new Error("storage unavailable"); };
+  const response = await post(base, { jobId: "cr-55555555-5555-4555-8555-555555555555", beats: BEATS, musicTrackId: TRACK_ID, callbackUrl: "http://127.0.0.1:1/exec" });
+  assert.equal(response.status, 503);
+  assert.equal(storage.events.length, 0);
+  assert.equal(jobsClient.runs.length, 0);
+});

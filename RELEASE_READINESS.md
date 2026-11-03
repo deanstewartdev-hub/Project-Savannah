@@ -1493,3 +1493,102 @@ Still open. None of these can be closed without your approval:
 - [ ] Candidate dispatcher revision with no traffic, then the shared render job update, then traffic cut-over, then the main-app deploy, as in §18d
 
 **Deployment recommendation: NO-GO for production today.** The metadata defect is fixed and tested, and the isolated integration passes. Deployment becomes GO when the first two open items are approved and done, the staging run passes, and Versions 1 and 2 are decided. Follow the §18d sequence with the v18 image in place of v17. Its digest is `sha256:c351cad4…`, and the allowlist entry must be that digest, not the v17 one.
+
+### 18f. Release stabilisation: staging plan, duplicate guard, evidence and approvals (3 November 2026)
+
+Nothing was created in the cloud, deployed, uploaded, rendered or published. Production is unchanged: dispatcher `savannah-media-worker-dispatcher-00015-bay` at 100% (revisions 00008 to 00015 still present), render job image `d010ddcf…`, main app v97.
+
+**Read-only production evidence (today)**
+- `gcloud run services describe`: traffic 100% on `00015-bay`. `gcloud run revisions list`: 00015, 00013, 00011, 00010, 00009, 00008, 00007 and 00006 all report Ready. These are the rollback targets.
+- `gcloud run jobs describe savannah-render-job`: image `media-worker@sha256:d010ddcf…`.
+- Chefchaouen Versions: the live Production page lists Version 1 (RND-B5AA0789) and Version 2 (RND-6907AE60), both SUCCEEDED. Both carry no music record, so under the new code neither can be previewed or uploaded.
+
+**Code change in this section: duplicate-submission guard.** The dispatcher did not check whether a jobId was already in use. A repeat submission overwrote the request file and started a second execution, which could render twice. `lib/dispatcherApp.js` now:
+- rejects a jobId that is not 8 to 80 letters, digits or hyphens (400), because it is used in a storage path;
+- refuses with 409 when the request file is still waiting or the video is already delivered;
+- refuses with 503 when storage cannot answer, so a duplicate check failure never starts paid work.
+
+**Known remaining gap (to measure in staging, not fixed here).** Once the job has deleted its request file and is running, a repeat submission of the same jobId is still accepted. Closing this needs the job to write a "started" marker before it runs. That is a behaviour change, so it is left for a separate decision.
+
+**Local evidence (no cloud)**
+
+| Check | Result |
+|---|---|
+| Worker suite (`node --test`) | 196/196 pass |
+| Dispatcher integration (`test/dispatcherIntegration.test.js`) | 10/10 pass, including the three duplicate-guard tests |
+| Main-app suite (`node node-tests/run-local.cjs`) | exit 0, 458 PASS lines |
+| Staging check script against a local dispatcher (`tools/staging/verify-worker-staging.mjs`) | 6/6 non-paid checks pass; refuses a non-staging host |
+
+**Staging check script.** `tools/staging/verify-worker-staging.mjs` sends only requests the dispatcher must refuse, plus `/health`. It starts no execution unless `STAGING_ALLOW_EXECUTION=yes` is set, which needs approval. It refuses any host that does not contain "staging" (loopback is allowed for local tests), and it never prints the secret.
+
+**Staging plan (not executed; each step needs approval)**
+
+Environment:
+- A separate GCP project, `savannah-staging-worker` (proposed), in europe-west2, with billing linked.
+- A separate Artifact Registry repository and GCS bucket, so no production objects are touched.
+- A dispatcher service (minimum instances 0, no traffic until tested) and a render job.
+- Service accounts with bucket-only access, and a staging-only `JOB_SUBMIT_SECRET`.
+- **No paid API keys in staging** (OpenAI, ElevenLabs, Pexels left empty). If a real pipeline ever ran, it would fail closed rather than spend.
+- A staging spreadsheet and staging Apps Script, built and checked by `CALLBACK_INBOX_STAGING.md` (checks C1 to C12).
+
+Test matrix:
+- **T1 Acceptance and execution.** Run the non-paid script. With approval, run one `dryRun` execution: a 202 with an execution name and track summary, then `/jobs/status`.
+- **T2 Callback and inbox.** Use a staging-only stub render image (same code, paid steps stubbed, track preparation real) to post a completed callback to the staging web app. Run C1 to C12.
+- **T3 Replay.** Post the same callback twice. C3 must apply it once.
+- **T4 Interrupted delivery.** Make the callback endpoint fail once with 500. The sender retries at 2 s, 10 s and 30 s; the inbox must end with one applied result.
+- **T5 Duplicate submission.** Repeat a jobId while waiting or after delivery: expect 409 (verified locally). Repeat it while the job is running: expect the known gap, which must be recorded as evidence.
+- **T6 Failure recovery.** Force a failure after music preparation. The failed callback (C8) must mark the render failed with the worker's reason, and a new render ID must succeed without touching the failed row.
+- **T7 Fail closed.** Unknown ID and missing track (non-paid script). A render job on a non-allowlisted image must return 409; test this with a second staging revision, not production.
+- **T8 Publishing preview.** Call `previewPublish` in the staging app (read-only; no YouTube). Call `publish` and confirm the staging guard refuses before YouTube is contacted.
+- **T9 Versions 1 and 2.** Production rows are left as they are. The rule (no music record, so no preview or upload) is proven by local tests with fixtures, not by copying production rows into staging.
+- **T10 Rollback drill.** Move traffic to a previous staging revision and back, swap the render job image and back. Before and after, compare the spreadsheet row counts and checksums and the bucket object list. History must be identical.
+
+**Cost estimates** (rough list-price estimates; confirm in the GCP billing calculator before approving):
+
+| Item | Estimate |
+|---|---|
+| Project, bucket, service accounts, secrets, spreadsheet | about $0 |
+| Artifact Registry, one image (about 150 MB) | about $0.02 per month |
+| Cloud Build, each build (2 to 3 minutes) | about $0.01 to $0.03 |
+| Dispatcher while idle (minimum instances 0) | about $0 |
+| One dry-run execution (2 vCPU, 2 GiB, about 20 s) | about $0.001 |
+| One stub-pipeline execution (about 60 s) | about $0.003 |
+| Whole non-paid staging run (T1 to T10 without paid AI) | under $0.10 |
+| One real paid render | not part of this plan; the app's estimate was about £0.02 for an earlier render, and each render needs its own approval |
+
+**Approvals needed before any step runs**
+1. A1: create the staging project and link billing.
+2. A2: create the Artifact Registry repository and push a staging dispatcher image, rebuilt from the current commit (the v18 digest predates the duplicate guard).
+3. A3: create the staging bucket.
+4. A4: create service accounts and the staging-only submit secret.
+5. A5: deploy the staging dispatcher with no traffic, and the render job.
+6. A6: create the staging spreadsheet and Apps Script per `CALLBACK_INBOX_STAGING.md`.
+7. A7: run the non-paid script against staging (no cost).
+8. A8: one dry-run execution (`STAGING_ALLOW_EXECUTION=yes`).
+9. A9: stub-pipeline executions for T2 to T6.
+10. A10: a second revision with a non-allowlisted image, for T7.
+11. A11: the rollback drill, T10.
+
+Not covered by any approval in this plan: real paid renders, changes to production, music upload to production storage, YouTube uploads.
+
+**Release checklist**
+
+Done:
+- [x] Preview and upload carry identical final metadata, tracking tag included (§18e)
+- [x] Duplicate jobId guard in the dispatcher, with tests (10/10 dispatcher tests)
+- [x] Non-paid staging check script, validated locally (6/6) and refuses a production host
+- [x] Worker suite 196/196; main-app suite exit 0
+- [x] Production read-only evidence recorded
+
+Open:
+- [ ] Staging environment (A1 to A6)
+- [ ] Non-paid staging checks against real staging services (A7)
+- [ ] Staging execution, callback, replay, interruption and failure tests (A8 to A9)
+- [ ] Staging non-allowlisted-image test (A10)
+- [ ] Staging publishing-preview check (T8)
+- [ ] Rollback drill with history comparison (A11)
+- [ ] Measure the in-flight duplicate gap in staging; decide on a started marker
+- [ ] Manifest approval, MP3 upload, Content ID check
+- [ ] Chefchaouen Versions 1 and 2 decision
+
+**Recommendation: NO-GO for production.** The code is tested locally and fails closed, but no real-service staging run has happened, the in-flight duplicate gap is unmeasured, and the track and Versions 1 and 2 decisions are open. Go/no-go is re-assessed after T1 to T10 pass in staging with the approvals above.

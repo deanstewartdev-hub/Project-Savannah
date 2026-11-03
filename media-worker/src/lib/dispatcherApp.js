@@ -78,6 +78,28 @@ export function createDispatcherApp({
 
     const jobId = req.body.jobId || uuid();
 
+    // A jobId names storage paths, so it must be a plain identifier. A jobId that is already in use must not start
+    // a second execution: the request file is still waiting, or the video was already delivered. If storage cannot
+    // answer, refuse: a duplicate render is paid work, so the check fails closed.
+    if (!/^[A-Za-z0-9-]{8,80}$/.test(jobId)) {
+      res.status(400).json({ error: "jobId must be 8 to 80 letters, digits or hyphens." });
+      return;
+    }
+    try {
+      const [requestWaiting, videoDelivered] = await Promise.all([
+        storage.objectExists(`${config.jobRequestPrefix}${jobId}.json`),
+        storage.objectExists(`renders/${jobId}/final.mp4`)
+      ]);
+      if (requestWaiting || videoDelivered) {
+        res.status(409).json({ error: "This jobId was already submitted. No render was started." });
+        return;
+      }
+    } catch (checkError) {
+      console.error("Duplicate check failed; no render was started:", checkError);
+      res.status(503).json({ error: "Could not check the jobId; no render was started." });
+      return;
+    }
+
     // A 202 must mean "the Cloud Run Admin API accepted creation of the Job execution", not just "the
     // dispatcher received the request". Awaiting runJob() here waits only for the execution to be created.
     const overrideEnv = [{ name: "JOB_ID", value: jobId }];
