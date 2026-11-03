@@ -1,4 +1,5 @@
 import { optionalSecretEnv, requireSecretEnv } from "./lib/secretFormat.js";
+import { parseAllowedImages } from "./lib/renderJobGuard.js";
 
 // Deliberately separate from config.js: the dispatcher process must never require
 // OPENAI_API_KEY/ELEVENLABS_API_KEY/ELEVENLABS_VOICE_ID/PEXELS_API_KEY just to boot, since
@@ -25,5 +26,8 @@ export const dispatcherConfig = {
   jobRequestPrefix: "job-requests/",
   project: required("CLOUD_RUN_PROJECT"),
   region: process.env.CLOUD_RUN_REGION || "europe-west2",
-  renderJobName: required("RENDER_JOB_NAME")
+  renderJobName: required("RENDER_JOB_NAME"),
+  // Container images of the render job that verify music (see lib/renderJobGuard.js). Empty means
+  // no job will start, which is the fail-closed default.
+  allowedRenderImages: parseAllowedImages(process.env.RENDER_JOB_ALLOWED_IMAGES)
 };

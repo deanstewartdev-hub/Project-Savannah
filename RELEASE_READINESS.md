@@ -1350,3 +1350,73 @@ Three candidates were provided and their artist pages read (page text only; no a
 - Manifest: revert the manifest commit. With an empty manifest every track-based render is refused before any paid step.
 
 **GO/NO-GO for deployment: NO-GO until** the owner accepts a track into the manifest and approves the candidate steps above. The worker and main-app code are ready and tested. The UI preview of the credit and the legacy-render decision are still open.
+
+### 18d. Release-readiness pass: preview, approval, mixed versions, integration and rollout (3 November 2026)
+
+This section supersedes the deployment order in §18c. Nothing here is deployed. Production is still main app version 97, dispatcher revision `00015-bay` at 100%, and render job image `d010ddcf…`.
+
+**What changed**
+- **YouTube review before upload.** `YouTubeService.previewUpload` returns the exact title, description (with the music credit), tags, visibility, schedule and music details, plus a SHA-256 digest of them (`metadataHash`). It is read-only. The publish panel has a "Review exact YouTube details" step. Upload stays disabled until the owner ticks "I approve these exact details", and any change to title, visibility or schedule clears the review.
+- **Approval is enforced on the server.** `ProductionController.publish` recomputes the digest from the same inputs and refuses if it does not match the approved one, before any publishing record is written. The upload uses the same plan function, so what is reviewed is what is sent.
+- **Mixed-version protection.** (a) The main app sends a render request only if the dispatcher's `/health` reports `musicProtocol: verified-v1`. (b) Before any job is created, the dispatcher checks that the shared render job runs an image on `RENDER_JOB_ALLOWED_IMAGES`. An empty or non-matching allowlist returns 409 and starts nothing. Both checks fail closed.
+- **Integration check.** `node-tests/ChainIntegration_Tests.cjs` runs the main-app code in a VM. It sends real HTTP to a test worker that runs the real job route, real music preparation (real ffprobe on a generated 60 s file) and the real callback sender. Only the paid steps are skipped.
+- **Mobile check.** `tools/mobile-check/build-fixture.mjs` builds the real Production view, styles and page script, with `google.script.run` answered from sample data, inside a 375 px frame.
+
+**Results (no paid calls, no deployment)**
+
+| Check | Result |
+|---|---|
+| Worker suite (`node --test`, media-worker) | **186/186 pass**, 0 fail |
+| Main-app suite (`node node-tests/run-local.cjs`) | **exit 0**, 453 PASS lines, including the chain integration at 8/8 |
+| Chain integration (main app → worker → callback) | **8/8 pass**. Submit carries the verified ID only. The worker returns the credit. The callback reports the verified track. The review text matches the upload. Five refusals each fail for their music reason and start no job. A placeholder run records no track and cannot be uploaded. |
+| Container music check, `media-worker:v17-gate` (Cloud Build `225c8a81`, digest `sha256:a12349fd…`, not deployed) | **10/10 pass** on the official Beyond These Walls MP3, downloaded inside the build (417.4 s, mp3, 44.1 kHz) |
+| 375 px Production page (fixture, headless Chrome, frame = 375 px) | No sideways scroll (document width 360 px) for the legacy pair, for the legacy review (refused, with an inline message), or for the music review (review box and approval checkbox shown, upload disabled until approval). The first run showed an 850 px overflow from the review text. It was fixed by wrapping, then re-measured. Screenshot checked. |
+| Live Chefchaouen Versions (read-only, v97) | Compare panel lists **Version 1 (RND-B5AA0789)** and **Version 2 (RND-6907AE60)**, both SUCCEEDED. **Correction:** earlier notes say RND-6907AE80. The live page shows RND-6907AE60. |
+
+**Limits of these results**
+- The 375 px check uses sample data and a stubbed `google.script.run`. It is not the live deployment, which is still v97 and does not show the review step.
+- The integration check runs the worker's in-process job route, not the dispatcher. The dispatcher's Cloud Run calls and the image guard are covered only by unit tests (`media-worker/test/renderJobGuard.test.js`). Sheets persistence and the callback inbox are not exercised. A real staging project is still needed for those.
+
+**Chefchaouen Versions 1 and 2**
+- Both are preserved. The renders exist, the Production page still lists them, and nothing in this work changed their records.
+- Both were rendered with the silent placeholder bed, so they carry no music record. **After the new code is deployed, they cannot be uploaded.** Publishing them needs either a new render with a verified track or a separate written owner exception. That is an owner decision.
+- Until the new code is deployed, v97 still allows uploading them. The placeholder is silent, so the music-credit rule does not strictly apply, but the owner should decide before any upload.
+
+**Mixed-version matrix**
+
+| Main app | Dispatcher | Render job image | Result |
+|---|---|---|---|
+| v97 (current) | v14 `00015-bay` (current) | v14 `d010ddcf…` (current) | Current behaviour: renders use the placeholder bed. Unchanged by this work. |
+| v97 | v16 | any | v97 sends no `musicTrackId`, so the dispatcher returns 400. The row is FAILED and nothing starts. **Fails closed.** |
+| v98 (this work) | v14 | any | `/health` has no `musicProtocol`, so the main app refuses before sending anything. The row is FAILED and nothing starts. **Fails closed.** |
+| v98 | v16 | v14 (not allowlisted) | The dispatcher returns 409. Nothing starts. **Fails closed.** |
+| v98 | v16 | v16 (allowlisted) | Verified path: track checked, credit recorded, review and approval before upload. |
+
+The dangerous case is a new dispatcher starting an old render job that plays the placeholder while recording a track. The dispatcher refuses any render job image that is not on the allowlist, so this cannot happen.
+
+**Coordinated deployment sequence (owner approval needed at each step)**
+0. **Precondition.** The owner accepts a track into `music/manifest.json` (`verifiedBy`, `verifiedOn`). The MP3 is uploaded to `savannah-media` at `music/scott-buckley-beyond-these-walls.mp3`. The image is rebuilt from that commit. No renders are in progress (Active renders = 0), and submissions are paused in the main app.
+1. **Candidate dispatcher, no traffic.** Deploy the v17 image (or its accepted rebuild) as a new dispatcher revision with `--no-traffic --tag candidate` and `RENDER_JOB_ALLOWED_IMAGES=europe-west2-docker.pkg.dev/savannah-media-worker/savannah-media-worker/media-worker@sha256:a12349fd…`. Check `/health` for `musicProtocol`. Check that an unknown track returns 400, and that a valid request returns 409 while the render job is still on v14.
+2. **Shared render job.** Update `savannah-render-job` to the v17 image. This is safe only because step 0 paused submissions and the v14 dispatcher is not receiving jobs. Check with `gcloud run jobs describe` that the image string matches the allowlist exactly.
+3. **Cut over the dispatcher.** Move 100% traffic to the candidate revision. Confirm `/health` and one refused request.
+4. **Main app.** Deploy the new Apps Script version (`clasp push`, `clasp version`, `clasp redeploy` to the existing deployment ID). Confirm one read of the Production page. No render and no upload.
+5. **Resume renders** only after an owner-approved test render on the verified track. Review the details, approve them, then decide whether to publish.
+
+**Rollback (reverse order; each step fails closed)**
+1. Pause renders in the main app.
+2. Move dispatcher traffic back to `savannah-media-worker-dispatcher-00015-bay` (100%). Do this before step 3, so a v14 dispatcher is never left reading a v16 job.
+3. Set `savannah-render-job` back to digest `d010ddcf…`.
+4. Redeploy main app version 97.
+5. Verify the Production page and one `/health` response. Renders made under v98 keep their `requestPayload.music` record, which v97 ignores.
+
+Do **not** restore the render job alone while the v16 dispatcher is serving. It would refuse everything. That fails closed, but it stops all renders.
+
+**Remaining blockers**
+1. **Manifest empty.** No track is accepted yet, so every render is refused before a paid step. Owner decision: accept Beyond These Walls, with `verifiedBy` and `verifiedOn`.
+2. **MP3 not in GCS.** Needs owner approval to upload to `savannah-media`.
+3. **No staging project.** The integration check is local. The dispatcher and callback-inbox paths need a real staging run.
+4. **Content ID unknown.** The page does not say whether Content ID monitors the track.
+5. **Chefchaouen Versions 1 and 2.** Owner decision: re-render with a verified track, or a written exception.
+6. **Review not live.** The UI and server changes are tested, not deployed.
+
+**GO/NO-GO: NO-GO for production deployment today.** The code paths are tested and fail closed, and the Versions 1 and 2 status is known. Deployment becomes GO when blockers 1 and 2 are closed by owner approval, the candidate dispatcher passes step 1 in the sequence above, and blocker 5 is decided. Blocker 3 is required before the first paid render, unless the owner accepts the local integration check as sufficient.

@@ -9,6 +9,7 @@ import { uploadJson, downloadJson, objectExists } from "./lib/storage.js";
 import { buildStatusResponse } from "./lib/jobStatus.js";
 import { validateMusicRequest, musicSummary } from "./lib/musicLicence.js";
 import { MUSIC_MANIFEST } from "./lib/musicManifest.js";
+import { MUSIC_PROTOCOL, assertRenderJobAcceptsMusic } from "./lib/renderJobGuard.js";
 
 // This process never imports pipeline/* or any of the OpenAI/ElevenLabs/Pexels SDKs - it
 // only validates a request, hands it to a Cloud Run Job execution, and responds. The
@@ -31,8 +32,10 @@ const acceptedSubmitSecrets = [dispatcherConfig.jobSubmitSecret, dispatcherConfi
 // get logged; /healthz alone returns Google's generic 404 page with zero log entry). /health
 // is the real, externally-reachable path - /healthz is kept only for parity with Railway's
 // server.js and any caller that still targets it directly.
-app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
-app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
+// musicProtocol tells the main app which music contract this dispatcher enforces (see lib/renderJobGuard.js).
+// A dispatcher without it is never sent a render request.
+app.get("/healthz", (req, res) => res.status(200).json({ status: "ok", musicProtocol: MUSIC_PROTOCOL }));
+app.get("/health", (req, res) => res.status(200).json({ status: "ok", musicProtocol: MUSIC_PROTOCOL }));
 
 app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
   const { beats, callbackUrl, callbackSecret, dryRun } = req.body || {};
@@ -44,6 +47,20 @@ app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
     return;
   }
   const { musicTrackId, legacyPlaceholderMusic } = music;
+
+  // Before anything is uploaded or started, the shared render job must run a music-verified image.
+  // Otherwise an older job would play the placeholder while this request is recorded as licensed.
+  try {
+    await assertRenderJobAcceptsMusic({
+      getJob: async () => (await jobsClient.getJob({ name: jobResourceName }))[0],
+      allowedImages: dispatcherConfig.allowedRenderImages
+    });
+  } catch (guardError) {
+    const status = guardError.code === "RENDER_IMAGE_NOT_ALLOWED" ? 409 : 503;
+    console.error("Render job music check refused a request:", guardError.message);
+    res.status(status).json({ error: guardError.message });
+    return;
+  }
 
   const beatsError = validateBeats(beats);
   if (beatsError) {

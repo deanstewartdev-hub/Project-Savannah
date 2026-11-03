@@ -600,6 +600,34 @@ const ProductionController = (() => {
     });
   }
 
+  // Read-only: the exact YouTube details for owner review, including the music credit and the digest the
+  // owner approves. Applies the same schedule rule as publish(), so the previewed time is the one uploaded.
+  function previewPublish(request) {
+    return run_("Publishing details ready for review.", function () {
+      const source = request || {};
+      const renderJobId = String(source.renderJobId || "").trim();
+      const renderJob = RenderJobRepository.getById(renderJobId);
+      if (!renderJob) throw error_("Render job was not found.");
+      if (renderJob.status !== "SUCCEEDED" || !renderJob.videoUrl) {
+        throw error_("Only a completed render can be uploaded.");
+      }
+      RenderQualityService.assertPublishable(renderJob);
+      RenderReviewService.assertApproved(renderJob.id);
+      const seoPack = SeoRepository.getById(renderJob.seoPackId);
+      if (!seoPack) throw error_("The SEO pack for this render was not found.");
+      const scheduleCheck = PublishingScheduleService.assertAvailable(
+        source.publishAt,
+        PublishingJobRepository.getAll(),
+        renderJobId,
+        { timezoneOffsetMinutes: source.timezoneOffsetMinutes, maxPerDay: 2 }
+      );
+      const reviewSource = Object.assign({}, source, {
+        publishAt: scheduleCheck.scheduled ? scheduleCheck.publishAt : source.publishAt
+      });
+      return YouTubeService.previewUpload(renderJob, seoPack, reviewSource);
+    });
+  }
+
   function publish(request) {
     return run_("Short uploaded to YouTube.", function () {
       return withScriptLock_(function () {
@@ -650,6 +678,13 @@ const ProductionController = (() => {
       if (scheduleCheck.scheduled) source.publishAt = scheduleCheck.publishAt;
       const seoPack = SeoRepository.getById(renderJob.seoPackId);
       if (!seoPack) throw error_("The SEO pack for this render was not found.");
+      // The owner must approve the exact details shown by previewPublish. If anything changed since (title,
+      // description, music credit, tags, visibility or schedule), the approval no longer matches: refuse
+      // before any publishing record is written, so the owner reviews the new details first.
+      const reviewed = YouTubeService.previewUpload(renderJob, seoPack, source);
+      if (!source.approvedMetadataHash || source.approvedMetadataHash !== reviewed.metadataHash) {
+        throw error_("The YouTube details changed after review, or were never approved. Review the exact details again before uploading.");
+      }
       let job = PublishingJobRepository.save(PublishingJobModel.create({
         renderJobId: renderJob.id,
         scriptId: renderJob.scriptId,
@@ -946,7 +981,7 @@ const ProductionController = (() => {
     controlPreparation: controlPreparation, submitPrepared: submitPrepared, refresh: refresh,
     refreshActive: refreshActive, retry: retry, prepareScene: prepareScene, approveRender: approveRender, listJobs: listJobs,
     getYouTubeConnection: getYouTubeConnection, getAutomationStatus: getAutomationStatus,
-    getPublishingSchedule: getPublishingSchedule, setAutomation: setAutomation, publish: publish,
+    getPublishingSchedule: getPublishingSchedule, setAutomation: setAutomation, publish: publish, previewPublish: previewPublish,
     refreshPublication: refreshPublication, abandonPublication: abandonPublication,
     reconcilePublication: reconcilePublication };
 })();
@@ -970,6 +1005,7 @@ function productionGetAutomationStatus() { return ProductionController.getAutoma
 function productionGetPublishingSchedule(request) { return ProductionController.getPublishingSchedule(request); }
 function productionSetAutomation(request) { return ProductionController.setAutomation(request); }
 function productionPublish(request) { return ProductionController.publish(request); }
+function productionPreviewPublish(request) { return ProductionController.previewPublish(request); }
 function productionRefreshPublication(request) { return ProductionController.refreshPublication(request); }
 function productionAbandonPublication(request) { return ProductionController.abandonPublication(request); }
 function productionReconcilePublication(request) { return ProductionController.reconcilePublication(request); }

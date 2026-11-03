@@ -32,6 +32,7 @@ function providerFixture(options = {}) {
     },
     UrlFetchApp: {
       fetch(url, request) {
+        if (/\/health$/.test(url)) return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ status: 'ok', musicProtocol: 'verified-v1' }) };
         posts.push(JSON.parse(request.payload));
         if (options.fetchThrows) throw new Error('Timeout: ' + url);
         const reply = options.reply || {};

@@ -156,6 +156,7 @@ const CloudRunFFmpegProvider = (() => {
     assertNotStaging_("Cloud Run render submission");
     // The callback secret travels in the job body, never in callbackUrl: a URL is written to
     // Google's and the worker's logs. The worker forwards it back as a JSON field.
+    assertMusicProtocol_();
     const response = request_("post", "/jobs", {
       jobId: jobId,
       beats: beats,
@@ -383,6 +384,20 @@ const CloudRunFFmpegProvider = (() => {
     failure.outcomeUnknown = status >= 500 &&
       !(status === 502 && parsed && parsed.error === "Failed to start render job");
     throw failure;
+  }
+
+  // Refuses to send a render request to a dispatcher that does not enforce verified music. Such a
+  // dispatcher would start the older render job, which plays the placeholder, while the render row
+  // would be recorded with a licensed track. The check runs before any request is sent, so a refusal
+  // starts nothing and is a definite failure.
+  const MUSIC_PROTOCOL = "verified-v1";
+  function assertMusicProtocol_() {
+    const response = UrlFetchApp.fetch(workerUrl_() + "/health", { muteHttpExceptions: true });
+    let health = {};
+    try { health = JSON.parse(response.getContentText() || "{}"); } catch (parseError) { health = {}; }
+    if (response.getResponseCode() !== 200 || health.musicProtocol !== MUSIC_PROTOCOL) {
+      throw error_("The media worker does not enforce verified music (protocol " + MUSIC_PROTOCOL + "). No render was started. Deploy the matching dispatcher first.");
+    }
   }
 
   function callbackUrl_() {

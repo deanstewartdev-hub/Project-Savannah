@@ -91,6 +91,8 @@ for (const suite of ['runCloudRunReconciliationTests', 'runScriptDurationValidat
   console.log(`${suite}: ${result.total}/${result.total} passed.`);
 }
 require('./upload-recovery.cjs');
+// Needs ffmpeg and curl on PATH; starts a local test worker on ports 18081-18082 and makes no paid calls.
+require('node:child_process').execFileSync(process.execPath, [require('node:path').join(__dirname, 'ChainIntegration_Tests.cjs')], { cwd: root, stdio: 'inherit' });
 const { execFileSync } = require('node:child_process');
 for (const filename of fs.readdirSync(__dirname).filter(name => name.endsWith('_Tests.js')).sort()) {
   execFileSync(process.execPath, [path.join(__dirname, filename)], { cwd: root, stdio: 'inherit' });

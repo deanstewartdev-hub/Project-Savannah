@@ -26,7 +26,11 @@ function load(options = {}) {
     setContentType() { return this; }
   };
   const context = vm.createContext({
-    Utilities: { getUuid: () => '00000000-0000-4000-8000-000000000001' },
+    Utilities: {
+      getUuid: () => '00000000-0000-4000-8000-000000000001',
+      DigestAlgorithm: { SHA_256: 'SHA_256' },
+      computeDigest: (algorithm, text) => Array.from(require('node:crypto').createHash('sha256').update(text).digest(), (byte) => (byte << 24) >> 24)
+    },
     Secrets: {
       getMediaWorkerUrl: () => 'https://dispatcher.example.test',
       getMediaWorkerCallbackUrl: () => 'https://script.example.test/exec',
@@ -37,6 +41,10 @@ function load(options = {}) {
     UrlFetchApp: {
       fetch(url, fetchOptions) {
         calls.fetchUrls.push(String(url));
+        if (/\/health$/.test(String(url))) {
+          const health = options.oldDispatcher ? { status: 'ok' } : { status: 'ok', musicProtocol: 'verified-v1' };
+          return { getResponseCode: () => 200, getContentText: () => JSON.stringify(health) };
+        }
         if (String(url).indexOf('/jobs') !== -1 && fetchOptions && fetchOptions.payload) {
           calls.workerBodies.push(JSON.parse(fetchOptions.payload));
         }
@@ -167,6 +175,47 @@ test('a track that needs no credit uploads without a credit line', () => {
   vm.runInContext(`YouTubeService.upload(${JSON.stringify(job)}, ${JSON.stringify(SEO)}, { title: 'A title', publishingJobId: 'PUB-5' })`, context);
   assert.equal(calls.insertResources.length, 1);
   assert.equal(calls.insertResources[0].snippet.description.indexOf('Music:'), -1);
+});
+
+test('a dispatcher that does not enforce verified music is never sent a render request', () => {
+  const { context, calls } = load({ oldDispatcher: true, worker: { status: 202, body: GOOD_RESPONSE } });
+  assert.throws(
+    () => vm.runInContext(`VideoProcessingProvider.get('cloud-run').submitRender(${JSON.stringify(SCRIPT_WITH_SCENES)}, ${JSON.stringify(SEO)}, { renderId: 'cr-00000000-0000-4000-8000-000000000001' })`, context),
+    /does not enforce verified music/
+  );
+  assert.equal(calls.workerBodies.length, 0, 'no job request is sent, so no placeholder render can start');
+});
+
+const REVIEW_JOB = {
+  id: 'RND-R', status: 'SUCCEEDED', videoUrl: 'https://storage.example.test/final.mp4',
+  requestPayload: { music: { id: TRACK_ID, title: 'Beyond These Walls', licence: 'CC-BY-4.0', attributionRequired: true,
+    attribution: CREDIT, sourceUrl: 'https://www.scottbuckley.com.au/library/beyond-these-walls/' } }
+};
+const preview = (context, source) => vm.runInContext(`YouTubeService.previewUpload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, ${JSON.stringify(source)})`, context);
+
+test('the review shows the exact title, description, credit, tags and visibility the upload will use', () => {
+  const { context, calls } = load();
+  const plan = preview(context, { title: 'A title', privacyStatus: 'unlisted' });
+  assert.equal(plan.title, 'A title');
+  assert.equal(plan.privacyStatus, 'unlisted');
+  assert.ok(plan.description.indexOf('Music: ' + CREDIT) !== -1);
+  assert.equal(JSON.stringify(plan.tags), '["travel"]');
+  assert.equal(plan.music.credit, CREDIT);
+  assert.match(plan.metadataHash, /^[0-9a-f]{64}$/);
+  vm.runInContext(`YouTubeService.upload(${JSON.stringify(REVIEW_JOB)}, ${JSON.stringify(SEO)}, { title: 'A title', privacyStatus: 'unlisted', publishingJobId: 'PUB-R' })`, context);
+  assert.equal(calls.insertResources[0].snippet.description, plan.description, 'the upload sends the reviewed description');
+  assert.equal(calls.insertResources[0].status.privacyStatus, plan.privacyStatus, 'the upload sends the reviewed visibility');
+});
+
+test('the review digest is stable for the same details and changes when any shown detail changes', () => {
+  const { context } = load();
+  const base = { title: 'A title', privacyStatus: 'private' };
+  const hash = (source) => preview(context, source).metadataHash;
+  assert.equal(hash(base), hash(Object.assign({}, base)));
+  assert.notEqual(hash(base), hash(Object.assign({}, base, { title: 'Another title' })));
+  assert.notEqual(hash(base), hash(Object.assign({}, base, { privacyStatus: 'public' })));
+  assert.notEqual(hash(base), hash(Object.assign({}, base, { description: 'Different owner text' })));
+  assert.notEqual(hash(base), hash(Object.assign({}, base, { publishAt: new Date(Date.now() + 3600000).toISOString() })));
 });
 
 console.log(`Music selection and credit: ${passed}/${passed} passed.`);

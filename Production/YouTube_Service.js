@@ -28,21 +28,20 @@ const YouTubeService = (() => {
     // A staging project is authorised as the owner, so YouTube here is the REAL channel.
     assertNotStaging_("YouTube upload");
     const source = options || {};
-    const title = String(source.title || seoPack.titleOptions && seoPack.titleOptions[0] || "").trim().slice(0, 100);
-    if (!title) throw error_("A YouTube title is required.");
-    // Refused before the MP4 is downloaded: a render without a verified music record, or whose track
-    // requires credit that is missing, must never reach YouTube.
-    const musicCredit = musicCreditOf_(renderJob);
-    const description = buildDescription_(source.description || seoPack.description, seoPack.hashtags, musicCredit);
-    const tags = normaliseTags_(seoPack.tags);
+    // The same plan the owner reviewed (see previewUpload): refused before the MP4 is downloaded when
+    // the render has no verified music record, or its required credit is missing.
+    const plan = uploadPlan_(renderJob, seoPack, source);
+    const title = plan.title;
+    const description = plan.description;
+    const tags = plan.tags;
     if (source.publishingJobId) {
       const uploadTag = uploadTag_(source.publishingJobId);
       // YouTube counts commas and quotes around tags containing spaces toward 500 characters.
       while (tags.length && tagLength_(tags.concat([uploadTag])) > 500) tags.pop();
       tags.push(uploadTag);
     }
-    const publishAt = normalisePublishAt_(source.publishAt);
-    const privacyStatus = publishAt ? "private" : normalisePrivacy_(source.privacyStatus);
+    const publishAt = plan.publishAt;
+    const privacyStatus = plan.privacyStatus;
     const videoBlob = download_(renderJob.videoUrl, title);
     const resource = {
       snippet: {
@@ -76,6 +75,48 @@ const YouTubeService = (() => {
       publishAt: publishAt,
       response: sanitise_(video)
     };
+  }
+
+  // Everything the owner approves, computed in one place so the review and the upload cannot disagree.
+  // Throws when the render cannot be uploaded at all.
+  function uploadPlan_(renderJob, seoPack, source) {
+    const title = String(source.title || seoPack.titleOptions && seoPack.titleOptions[0] || "").trim().slice(0, 100);
+    if (!title) throw error_("A YouTube title is required.");
+    const music = musicOf_(renderJob);
+    const publishAt = normalisePublishAt_(source.publishAt);
+    return {
+      title: title,
+      description: buildDescription_(source.description || seoPack.description, seoPack.hashtags, music.credit),
+      tags: normaliseTags_(seoPack.tags),
+      privacyStatus: publishAt ? "private" : normalisePrivacy_(source.privacyStatus),
+      publishAt: publishAt,
+      music: music
+    };
+  }
+
+  // Read-only. Returns the exact details for owner review, with a digest that the upload must match.
+  // If anything the owner sees changes, the digest changes and the upload is refused until re-review.
+  function previewUpload(renderJob, seoPack, options) {
+    if (!renderJob || renderJob.status !== "SUCCEEDED" || !renderJob.videoUrl) {
+      throw error_("Only a completed render can be uploaded.");
+    }
+    const plan = uploadPlan_(renderJob, seoPack, options || {});
+    return {
+      title: plan.title,
+      description: plan.description,
+      tags: plan.tags,
+      privacyStatus: plan.privacyStatus,
+      publishAt: plan.publishAt,
+      music: plan.music,
+      metadataHash: metadataHash_(plan)
+    };
+  }
+
+  function metadataHash_(plan) {
+    const fields = JSON.stringify([plan.title, plan.description, plan.tags, plan.privacyStatus, plan.publishAt,
+      plan.music.id, plan.music.credit]);
+    return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, fields)
+      .map(function (byte) { return ("0" + (byte & 255).toString(16)).slice(-2); }).join("");
   }
 
   function getVideo(videoId) {
@@ -166,15 +207,23 @@ const YouTubeService = (() => {
 
   // The music credit comes from the verified track recorded with the render (see
   // VideoProcessingProvider.submitRender). Legacy renders have no record and cannot be uploaded.
-  function musicCreditOf_(renderJob) {
+  function musicOf_(renderJob) {
     const music = renderJob && renderJob.requestPayload && renderJob.requestPayload.music;
     if (!music || !music.id) {
       throw error_("This render has no verified music record, so it cannot be uploaded. Render it again with a verified track.");
     }
-    if (music.attributionRequired !== true) return "";
-    const credit = String(music.attribution || "").trim();
-    if (!credit) throw error_("The music track's required credit text is missing, so the upload is refused.");
-    return credit;
+    let credit = "";
+    if (music.attributionRequired === true) {
+      credit = String(music.attribution || "").trim();
+      if (!credit) throw error_("The music track's required credit text is missing, so the upload is refused.");
+    }
+    return {
+      id: String(music.id),
+      title: String(music.title || ""),
+      licence: String(music.licence || ""),
+      sourceUrl: String(music.sourceUrl || ""),
+      credit: credit
+    };
   }
 
   // The disclosure, music credit and hashtags are always kept. Only the owner's description text is
@@ -222,8 +271,8 @@ const YouTubeService = (() => {
   }
   function error_(message) { const error = new Error(message); error.name = "YouTubeServiceError"; return error; }
 
-  return { requireAuthorization: requireAuthorization, getChannel: getChannel, upload: upload, getVideo: getVideo,
-    findUpload: findUpload };
+  return { requireAuthorization: requireAuthorization, getChannel: getChannel, upload: upload, previewUpload: previewUpload,
+    getVideo: getVideo, findUpload: findUpload };
 })();
 
 function authorizeYouTubePublishing() {

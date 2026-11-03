@@ -31,6 +31,58 @@
     return privacyStatus === "public" && !publishAt && alreadyConfirming !== true;
   }
 
+  // The owner-entered YouTube details in a publish panel, in the form the server expects.
+  function publishDetailsOf_(panel) {
+    const scheduleValue = panel.querySelector(".production-youtube-schedule").value;
+    return {
+      title: panel.querySelector(".production-youtube-title").value.trim(),
+      privacyStatus: panel.querySelector(".production-youtube-privacy").value,
+      publishAt: scheduleValue ? new Date(scheduleValue).toISOString() : ""
+    };
+  }
+
+  // Shows the exact details the server computed, and records the digest the upload must match.
+  function showPublishReview_(panel, plan) {
+    const schedule = plan.publishAt ? new Date(plan.publishAt).toLocaleString() :
+      "Not scheduled (uploads now as " + plan.privacyStatus + ")";
+    const music = plan.music && plan.music.id ?
+      (plan.music.title || plan.music.id) + " (" + (plan.music.licence || "licence not recorded") + ")" : "None";
+    const credit = plan.music && plan.music.credit ?
+      '<p><strong>Music credit (added to the description)</strong></p><p>' + escapeHtml(plan.music.credit) + '</p>' : '';
+    // Long titles, descriptions and credits wrap inside a phone-width panel instead of widening the page.
+    panel.querySelector(".production-publish-review").innerHTML = '<div class="production-review-box" style="max-width:100%;overflow-wrap:anywhere">' +
+      '<p><strong>Title</strong></p><p>' + escapeHtml(plan.title) + '</p>' +
+      '<p><strong>Visibility:</strong> ' + escapeHtml(plan.privacyStatus) + '</p>' +
+      '<p><strong>Scheduled:</strong> ' + escapeHtml(schedule) + '</p>' +
+      '<p><strong>Music:</strong> ' + escapeHtml(music) + '</p>' + credit +
+      '<p><strong>Tags:</strong> ' + escapeHtml((plan.tags || []).join(', ') || 'None') + '</p>' +
+      '<p><strong>Description</strong></p><pre class="production-review-description" style="white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;margin:0">' + escapeHtml(plan.description) + '</pre>' +
+      '<p class="card-description">Review reference ' + escapeHtml(String(plan.metadataHash).slice(0, 12)) + '</p></div>';
+    panel.dataset.reviewHash = plan.metadataHash;
+    panel.querySelector(".production-approve-details").disabled = false;
+  }
+
+  // Shows why the details could not be reviewed, inside the panel, so the render list stays in place.
+  function showPublishReviewError_(panel, message) {
+    delete panel.dataset.reviewHash;
+    const approval = panel.querySelector(".production-approve-details");
+    approval.checked = false;
+    approval.disabled = true;
+    panel.querySelector(".production-publish").disabled = true;
+    panel.querySelector(".production-publish-review").innerHTML =
+      '<p class="form-error" role="alert" style="overflow-wrap:anywhere">' + escapeHtml(message) + '</p>';
+  }
+
+  // Removes any review, so the upload is blocked until the owner reviews the current details again.
+  function clearPublishReview_(panel) {
+    delete panel.dataset.reviewHash;
+    panel.querySelector(".production-publish-review").innerHTML = "";
+    const approval = panel.querySelector(".production-approve-details");
+    approval.checked = false;
+    approval.disabled = true;
+    panel.querySelector(".production-publish").disabled = true;
+  }
+
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -644,8 +696,15 @@
       '<option value="public">Public</option></select></div>' +
       '<div class="form-group"><label class="form-label">Schedule (optional)</label>' +
       '<input class="form-control production-youtube-schedule" type="datetime-local"></div>' +
+      // Upload stays disabled until the owner reviews the exact details and approves them. Any change to
+      // title, visibility or schedule clears the review (see the change handler).
+      '<div class="list-card-actions"><button class="button button-secondary production-review-publish" data-job-id="' +
+      escapeHtml(job.id) + '">Review exact YouTube details</button></div>' +
+      '<div class="production-publish-review" aria-live="polite"></div>' +
+      '<label class="production-approve-label"><input type="checkbox" class="production-approve-details" disabled> ' +
+      'I approve these exact details for YouTube</label>' +
       '<div class="list-card-actions"><button class="button button-primary production-publish" data-job-id="' +
-      escapeHtml(job.id) + '">Upload to YouTube</button></div></div>' : '')) : '';
+      escapeHtml(job.id) + '" disabled>Upload to YouTube</button></div></div>' : '')) : '';
     // Excludes recoveryRequired: the render isn't actually in progress, so it must not count
     // toward "Active renders" (see loadJobs()) or show the animated progress-bar shimmer.
     const isActive = !recoveryRequired && ["QUEUED", "PLANNED", "RENDERING"].indexOf(job.status) !== -1;
@@ -736,14 +795,36 @@
         .productionRefresh({ jobId: refresh.dataset.jobId });
       return;
     }
+    const reviewPublish = event.target.closest(".production-review-publish");
+    if (reviewPublish) {
+      const panel = reviewPublish.closest(".production-publish-panel");
+      const details = publishDetailsOf_(panel);
+      if (!details.title) return showError(jobList, { error: { message: "A YouTube title is required." } });
+      reviewPublish.disabled = true; reviewPublish.textContent = "Checking details...";
+      google.script.run.withSuccessHandler(function (response) {
+        reviewPublish.disabled = false; reviewPublish.textContent = "Review exact YouTube details";
+        if (!response || !response.success) return showPublishReviewError_(panel, response && response.error ? response.error.message : "The details could not be checked.");
+        showPublishReview_(panel, response.data);
+      }).withFailureHandler(function (error) {
+        reviewPublish.disabled = false; reviewPublish.textContent = "Review exact YouTube details";
+        showPublishReviewError_(panel, error && error.message ? error.message : "The details could not be checked.");
+      }).productionPreviewPublish({ renderJobId: reviewPublish.dataset.jobId, title: details.title,
+        privacyStatus: details.privacyStatus, publishAt: details.publishAt,
+        timezoneOffsetMinutes: new Date().getTimezoneOffset() });
+      return;
+    }
     const publish = event.target.closest(".production-publish");
     if (publish) {
       const panel = publish.closest(".production-publish-panel");
-      const title = panel.querySelector(".production-youtube-title").value.trim();
-      const privacyStatus = panel.querySelector(".production-youtube-privacy").value;
-      const scheduleValue = panel.querySelector(".production-youtube-schedule").value;
-      const publishAt = scheduleValue ? new Date(scheduleValue).toISOString() : "";
+      const details = publishDetailsOf_(panel);
+      const title = details.title;
+      const privacyStatus = details.privacyStatus;
+      const publishAt = details.publishAt;
       if (!title) return showError(jobList, { error: { message: "A YouTube title is required." } });
+      // The server re-checks this digest against the details it would upload, so a change after review is refused.
+      if (!panel.dataset.reviewHash || !panel.querySelector(".production-approve-details").checked) {
+        return showPublishReviewError_(panel, "Review the exact YouTube details and tick the approval box before uploading.");
+      }
       if (publishNeedsConfirmation_(privacyStatus, publishAt, publish.dataset.confirming === "yes")) {
         publish.dataset.confirming = "yes";
         publish.textContent = "Click again to publish PUBLICLY now";
@@ -765,6 +846,7 @@
       }).withFailureHandler(function (error) { showError(jobList, { error: error }); loadJobs(); })
         .productionPublish({ renderJobId: publish.dataset.jobId, title: title,
           privacyStatus: privacyStatus, publishAt: publishAt,
+          approvedMetadataHash: panel.dataset.reviewHash,
           timezoneOffsetMinutes: new Date().getTimezoneOffset() });
       return;
     }
@@ -837,6 +919,17 @@
   });
 
   root.addEventListener("change", function (event) {
+    // Any change to what will be uploaded invalidates the review, so the owner approves the new details.
+    const changedPanel = event.target.closest && event.target.closest(".production-publish-panel");
+    if (changedPanel && event.target.matches(".production-youtube-title, .production-youtube-privacy, .production-youtube-schedule")) {
+      clearPublishReview_(changedPanel);
+      return;
+    }
+    if (event.target.matches && event.target.matches(".production-approve-details")) {
+      const approvalPanel = event.target.closest(".production-publish-panel");
+      approvalPanel.querySelector(".production-publish").disabled = !(event.target.checked && approvalPanel.dataset.reviewHash);
+      return;
+    }
     if (event.target === scheduleTemplate) {
       slotSuggestions.innerHTML = '<p>Finding the next available slots&hellip;</p>';
       loadPublishingSchedule();

@@ -83,6 +83,7 @@ function sandbox(options = {}) {
     },
     UrlFetchApp: {
       fetch(url, request) {
+        if (/\/health$/.test(url)) return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ status: 'ok', musicProtocol: 'verified-v1' }) };
         const body = JSON.parse(request.payload);
         if (/\/jobs\/status$/.test(url)) {
           return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ state: 'UNKNOWN', artifactExists: false }) };

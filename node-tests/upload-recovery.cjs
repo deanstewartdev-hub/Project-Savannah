@@ -20,7 +20,8 @@ function fixture(options = {}) {
     Logger: { log() {} },
     // Callback inbox is tested separately; no pending receipts in upload fixtures.
     MediaWorkerCallbackInbox: { processPending: () => ({ processed: 0 }), processPendingLocked: () => ({ processed: 0 }) },
-    Utilities: { getUuid: randomUUID },
+    Utilities: { getUuid: randomUUID, DigestAlgorithm: { SHA_256: 'SHA_256' },
+      computeDigest: (algorithm, text) => Array.from(require('node:crypto').createHash('sha256').update(text).digest(), byte => (byte << 24) >> 24) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => releases++ }) },
     RenderJobRepository: {
       getById: id => renderJobs.find(entry => entry.id === id) || renderJobs[0],
@@ -80,7 +81,8 @@ function fixture(options = {}) {
     pages: () => pages, releases: () => releases, providerCalls: () => providerCalls, logs: () => logs.slice()
   };
 }
-const publish = 'ProductionController.publish({renderJobId:"RND-TEST"})';
+// Publishing requires the owner's approval of the exact details: the fixture approves what the preview shows.
+const publish = 'ProductionController.publish({renderJobId:"RND-TEST", approvedMetadataHash: ProductionController.previewPublish({renderJobId:"RND-TEST"}).data.metadataHash})';
 const reconcile = 'ProductionController.reconcilePublication({renderJobId:"RND-TEST"})';
 test('Timeout leaves reconciliation state and blocks a second insert', () => {
   const f = fixture({ insertFailure: true });
@@ -327,7 +329,8 @@ test('Complete persistence outage leaves UPLOADING blocked', () => {
 test('Successful scheduled upload stays private and retains its schedule', () => {
   const f = fixture({ tags: Array(30).fill('Long descriptive topic tag') });
   const when = new Date(Date.now() + 3600000).toISOString();
-  assert.equal(f.call(`ProductionController.publish({renderJobId:"RND-TEST",privacyStatus:"public",publishAt:${JSON.stringify(when)}})`).success, true);
+  const reviewed = `{renderJobId:"RND-TEST",privacyStatus:"public",publishAt:${JSON.stringify(when)}}`;
+  assert.equal(f.call(`ProductionController.publish(Object.assign(${reviewed}, {approvedMetadataHash: ProductionController.previewPublish(${reviewed}).data.metadataHash}))`).success, true);
   assert.equal(f.job().status, 'PUBLISHED'); assert.equal(f.job().privacyStatus, 'private');
   assert.equal(f.job().providerResponse.publishAt, when);
 });
@@ -462,5 +465,37 @@ test('A fresh UPLOADING attempt is left alone and nothing is logged', () => {
   assert.equal(f.call('ProductionController.listJobs()').success, true);
   assert.equal(f.history()[0].status, 'UPLOADING');
   assert.equal(f.logs().length, 0);
+});
+test('Publishing without the owner approval is refused before any record is written', () => {
+  const f = fixture();
+  const response = f.call('ProductionController.publish({renderJobId:"RND-TEST"})');
+  assert.equal(response.success, false);
+  assert.match(response.error.message, /changed after review, or were never approved/);
+  assert.equal(f.job(), null);
+  assert.equal(f.inserts(), 0);
+});
+test('An approval of earlier details is refused after the title changes', () => {
+  const f = fixture();
+  const approved = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST",title:"Old title"}).data.metadataHash');
+  const response = f.call('ProductionController.publish({renderJobId:"RND-TEST",title:"New title",approvedMetadataHash:' + JSON.stringify(approved) + '})');
+  assert.equal(response.success, false);
+  assert.equal(f.job(), null, 'no publishing record for a refused upload');
+  assert.equal(f.inserts(), 0);
+});
+test('Previewing publication is read-only', () => {
+  const f = fixture();
+  const response = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST"})');
+  assert.equal(response.success, true);
+  assert.match(response.data.metadataHash, /^[0-9a-f]{64}$/);
+  assert.equal(f.job(), null);
+  assert.equal(f.inserts(), 0);
+});
+test('A render with no verified music record cannot be previewed or uploaded', () => {
+  const f = fixture({ renderJobs: [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
+    status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }] });
+  const preview = f.call('ProductionController.previewPublish({renderJobId:"RND-TEST"})');
+  assert.equal(preview.success, false);
+  assert.match(preview.error.message, /no verified music record/);
+  assert.equal(f.inserts(), 0);
 });
 console.log(`Upload recovery: ${passed}/${passed} passed.`);
