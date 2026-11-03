@@ -1278,3 +1278,32 @@ No render was started. No script record, credential, bridge code or main-branch 
 - Action for the owner: review both videos in YouTube Studio and remove one if both are not wanted. Nothing in Savannah has been changed or deleted.
 
 **Deployment and rollback.** Nothing in this phase is deployed. If the worker changes are promoted later, the current live worker revision is 00015-bay (rollback target for that step: 00015-bay, then 00013-jin). The main app is at version 97, which is the rollback target for any main-app step.
+
+### 18a. Creative-quality follow-up (3 November 2026)
+
+**Music preflight.** Before any paid step (narration, alignment, images), the worker checks that the music object exists in Cloud Storage (`preflightMusic`, `src/pipeline/runJob.js`). A missing or unreadable object fails the job with a clear reason. Storage is not queried for a path outside the approved folder.
+
+**Approved location and licence fields.** Music files must be `.mp3`, `.m4a` or `.wav` inside `music/`, with no `..` segment and no absolute path. Each track states its own `attributionRequired`, `monetizationAllowed` (must be `true` for this channel), `termsUrl`, `verifiedBy` and `verifiedOn`. A licence name alone never settles attribution: a YouTube Audio Library track is attribution-free only when its record says so.
+
+**Candidate sources (not tracks).** No individual track has been selected, because the licence and Content ID status of a specific track must be read from its own page, and I could not open those pages from here. Sources found in search, and what each needs before use:
+- **YouTube Audio Library.** No licence fee. Each track is either "YouTube Audio Library License" or CC BY 4.0, and the library's "Attribution not required" filter shows the first kind. Monetised use is reported as allowed for YPP channels, but Shorts status is described inconsistently across sources, so check the Help Centre before relying on it.
+- **Pixabay music.** The Pixabay Content License does not require attribution, including for commercial use. Some tracks are registered with Content ID, so check each track page for a Content ID label before monetised use.
+- **Public-domain and CC0 libraries.** Few travel tracks are CC0. Public-domain recordings can still carry label copyright on modern performances.
+
+**Music sample (generated tones, no paid calls; `media-worker/scripts/music-chain-sample.sh`).**
+- Music alone in a gap: -33.3 dB. Music ducked in the same gap: -33.9 dB (no change without narration).
+- Music alone under narration: -39.8 dB. Music ducked under narration: -46.5 dB, about 6.7 dB of ducking.
+
+**Captions (`scripts/caption-frames-sample.mjs`, `tools/first-video/caption-preview.png`, `caption-phrases.txt`).**
+- Font 0.044 of frame height (84 px), white with black outline, bottom margin 24% of height, side margins 8.5%.
+- Phrases of up to three words and 17 characters, broken at pauses and at punctuation. The 48 phrases reproduce the approved narration word for word.
+- The widest phrase, "AND NOBODY AGREES", fits on one line in a rendered frame.
+- **Timings in the preview are estimates**, not Whisper timings, so they check layout and spelling, not sync. The preview used Windows Arial. A Linux container may use a different font, which needs checking before release.
+
+**Footage variety.** A clip now carries its URL-slug words. A clip whose words mostly repeat the previous scene's is penalised, and a different uploader is preferred (`selectClip`). This reduces near-identical blue alleys in a row; it does not measure shot composition, which still needs human review.
+
+**Comparison panel at 375px.** Not verified. The built-in browser can't load the app while signed out, and it no longer accepts data URLs or local files for a fixture. Layout is covered by structural tests (wrapping container, capped video width) only.
+
+**Tests.** Worker suite: 159/159 (`media-worker/test/creativeQuality.test.js` covers music validation, path restriction, preflight, gain and fades, captions, and footage variety). Main app: `node node-tests/run-local.cjs` exits 0.
+
+**Not done.** No track is selected or verified; no music is in the bucket; the 375px check; a Linux font check for captions.

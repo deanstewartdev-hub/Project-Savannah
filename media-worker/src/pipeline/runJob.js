@@ -1,5 +1,5 @@
 import { createJobWorkDir } from "../lib/tempDir.js";
-import { downloadToFile } from "../lib/storage.js";
+import { downloadToFile, objectExists } from "../lib/storage.js";
 import { generateContinuousNarration } from "./narration.js";
 import { alignNarration } from "./alignment.js";
 import { computeBeatTimings } from "./beatTiming.js";
@@ -8,7 +8,7 @@ import { assembleVideo } from "./assemble.js";
 import { probeVideo } from "./probe.js";
 import { deliverResult } from "./deliver.js";
 import { config } from "../config.js";
-import { chooseMusicSource } from "../lib/musicLicence.js";
+import { chooseMusicSource, preflightMusic } from "../lib/musicLicence.js";
 
 // Full pipeline for one job, from script to a probed, delivered MP4. Beat visuals are planned
 // and fetched together (see resolveBeatVisuals), but narration -> alignment -> assembly stays
@@ -16,6 +16,7 @@ import { chooseMusicSource } from "../lib/musicLicence.js";
 export async function runJob({ jobId, beats, musicTrackPath, musicTrack, allowAiStills = false }) {
   // The music source is checked first: an unverified track fails the job before any paid provider call.
   const music = chooseMusicSource({ musicTrack, musicTrackPath, defaultPath: config.defaultMusicTrackPath });
+  await preflightMusic({ path: music.path, existsFn: objectExists });
   const workDir = await createJobWorkDir(jobId);
   const log = (stage) => console.log(`[${jobId}] ${stage} (beats=${beats.length})`);
   log(music.track ? `music:track ${music.track.id}` : "music:default");

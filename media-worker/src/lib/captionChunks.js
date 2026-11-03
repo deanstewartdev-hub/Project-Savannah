@@ -4,7 +4,7 @@
 
 export const CAPTION_LIMITS = Object.freeze({
   maxWords: 3,
-  maxCharacters: 18,
+  maxCharacters: 17,
   maxSeconds: 1.6,
   pauseBreakSeconds: 0.35
 });
@@ -27,7 +27,7 @@ export function groupCaptionChunks(words, limits = CAPTION_LIMITS) {
     const wouldExceed = current.words.length + 1 > limits.maxWords ||
       candidate.length > limits.maxCharacters ||
       end - current.start > limits.maxSeconds;
-    if (wouldExceed || pause >= limits.pauseBreakSeconds) {
+    if (wouldExceed || pause >= limits.pauseBreakSeconds || endsClause(current.words[current.words.length - 1])) {
       chunks.push(finish(current));
       current = { words: [text], start, end };
     } else {
@@ -37,6 +37,11 @@ export function groupCaptionChunks(words, limits = CAPTION_LIMITS) {
   }
   if (current) chunks.push(finish(current));
   return chunks;
+}
+
+// A phrase ends at a comma, full stop, question or exclamation mark, so a line never splits a clause.
+function endsClause(word) {
+  return typeof word === "string" && /[.,!?;:]$/.test(word);
 }
 
 function finish(chunk) {

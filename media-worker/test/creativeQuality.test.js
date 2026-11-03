@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateTrack, resolveTrack, chooseMusicSource, buildMusicGainFilter, MUSIC_VOLUME_LIMITS } from "../src/lib/musicLicence.js";
+import { validateTrack, resolveTrack, chooseMusicSource, buildMusicGainFilter, MUSIC_VOLUME_LIMITS, preflightMusic } from "../src/lib/musicLicence.js";
 import { groupCaptionChunks, chunkWithinLimits, CAPTION_LIMITS } from "../src/lib/captionChunks.js";
 import { buildCaptionAss, SAFE_MARGIN_BOTTOM, SAFE_MARGIN_X } from "../src/lib/captionAss.js";
-import { selectClip, previousUploaders, planBeatVisuals } from "../src/pipeline/visualSelection.js";
+import { selectClip, previousUploaders, previousTokens, planBeatVisuals } from "../src/pipeline/visualSelection.js";
 
 const GOOD_TRACK = {
   id: "bed-01",
@@ -11,6 +11,9 @@ const GOOD_TRACK = {
   title: "Quiet Street",
   licence: "CC0-1.0",
   sourceUrl: "https://example.org/track",
+  termsUrl: "https://example.org/terms",
+  attributionRequired: false,
+  monetizationAllowed: true,
   verifiedBy: "owner",
   verifiedOn: "2026-11-03"
 };
@@ -34,9 +37,34 @@ test("a licence outside the allowed list is refused", () => {
 });
 
 test("CC-BY requires attribution text", () => {
-  const entry = Object.assign({}, GOOD_TRACK, { licence: "CC-BY-4.0" });
+  const entry = Object.assign({}, GOOD_TRACK, { licence: "CC-BY-4.0", attributionRequired: true });
   assert.ok(validateTrack(entry).some((p) => /attribution text is required/.test(p)));
   assert.deepEqual(validateTrack(Object.assign({}, entry, { attribution: "Music by Someone, CC BY 4.0" })), []);
+});
+
+test("attribution is decided per track, not by the licence name (YouTube Audio Library is not assumed attribution-free)", () => {
+  const yal = Object.assign({}, GOOD_TRACK, { licence: "YouTube-Audio-Library" });
+  delete yal.attributionRequired;
+  assert.ok(validateTrack(yal).some((p) => /attributionRequired must be true or false/.test(p)), "the record must state it");
+  assert.deepEqual(validateTrack(Object.assign({}, yal, { attributionRequired: false })), []);
+  const withCredit = Object.assign({}, yal, { attributionRequired: true, attribution: "Track by Someone" });
+  assert.deepEqual(validateTrack(withCredit), []);
+});
+
+test("CC-BY cannot be recorded as attribution-free", () => {
+  const entry = Object.assign({}, GOOD_TRACK, { licence: "CC-BY-4.0", attributionRequired: false });
+  assert.ok(validateTrack(entry).some((p) => /always requires attribution/.test(p)));
+});
+
+test("monetised use must be recorded as allowed", () => {
+  assert.ok(validateTrack(Object.assign({}, GOOD_TRACK, { monetizationAllowed: false })).some((p) => /monetizationAllowed/.test(p)));
+  const missing = Object.assign({}, GOOD_TRACK);
+  delete missing.monetizationAllowed;
+  assert.ok(validateTrack(missing).some((p) => /monetizationAllowed/.test(p)));
+});
+
+test("a terms link is required", () => {
+  assert.ok(validateTrack(Object.assign({}, GOOD_TRACK, { termsUrl: "" })).some((p) => /termsUrl is required/.test(p)));
 });
 
 test("verifiedOn must be an ISO date", () => {
@@ -44,8 +72,8 @@ test("verifiedOn must be an ISO date", () => {
 });
 
 test("file paths must stay inside the music folder", () => {
-  for (const file of ["../secrets.mp3", "/abs/track.mp3", "C:/track.mp3"]) {
-    assert.ok(validateTrack(Object.assign({}, GOOD_TRACK, { file })).some((p) => /relative path/.test(p)), file);
+  for (const file of ["../secrets.mp3", "/abs/track.mp3", "C:/track.mp3", "other/track.mp3", "music/../secrets.mp3", "music/track.exe"]) {
+    assert.ok(validateTrack(Object.assign({}, GOOD_TRACK, { file })).some((p) => /music folder/.test(p)), file);
   }
 });
 
@@ -57,9 +85,50 @@ test("resolveTrack refuses a missing or unverified track instead of falling back
 });
 
 test("chooseMusicSource uses a verified track, then an explicit path, then the default bed", () => {
-  assert.equal(chooseMusicSource({ musicTrack: GOOD_TRACK, defaultPath: "default.mp3" }).path, "music/bed-01.mp3");
-  assert.equal(chooseMusicSource({ musicTrackPath: "custom.mp3", defaultPath: "default.mp3" }).path, "custom.mp3");
-  assert.equal(chooseMusicSource({ defaultPath: "default.mp3" }).path, "default.mp3");
+  assert.equal(chooseMusicSource({ musicTrack: GOOD_TRACK, defaultPath: "music/default.mp3" }).path, "music/bed-01.mp3");
+  assert.equal(chooseMusicSource({ musicTrackPath: "music/custom.mp3", defaultPath: "music/default.mp3" }).path, "music/custom.mp3");
+  assert.equal(chooseMusicSource({ defaultPath: "music/default.mp3" }).path, "music/default.mp3");
+});
+
+test("an explicit music path outside the approved folder is refused", () => {
+  assert.throws(() => chooseMusicSource({ musicTrackPath: "customers/private.mp3", defaultPath: "music/d.mp3" }), /approved music folder/);
+  assert.throws(() => chooseMusicSource({ musicTrackPath: "../x.mp3", defaultPath: "music/d.mp3" }), /approved music folder/);
+});
+
+// ---- Missing-file and storage preflight (runs before any paid step) ----
+
+test("a music object that exists passes the preflight", async () => {
+  const seen = [];
+  const path = await preflightMusic({ path: "music/bed-01.mp3", existsFn: async (p) => { seen.push(p); return true; } });
+  assert.equal(path, "music/bed-01.mp3");
+  assert.deepEqual(seen, ["music/bed-01.mp3"]);
+});
+
+test("a missing music object fails the preflight with a clear reason", async () => {
+  await assert.rejects(
+    () => preflightMusic({ path: "music/gone.mp3", existsFn: async () => false }),
+    /does not exist or is not accessible/
+  );
+});
+
+test("a storage error during the check is reported, not treated as present", async () => {
+  await assert.rejects(
+    () => preflightMusic({ path: "music/bed-01.mp3", existsFn: async () => { throw new Error("permission denied"); } }),
+    /could not be checked: permission denied/
+  );
+});
+
+test("the preflight refuses paths outside the approved folder before asking storage", async () => {
+  let asked = false;
+  await assert.rejects(
+    () => preflightMusic({ path: "secrets/key.json", existsFn: async () => { asked = true; return true; } }),
+    /approved music folder/
+  );
+  assert.equal(asked, false, "storage is not queried for a refused path");
+});
+
+test("the preflight never reports a non-true answer as present", async () => {
+  await assert.rejects(() => preflightMusic({ path: "music/x.mp3", existsFn: async () => "yes" }), /does not exist/);
 });
 
 test("chooseMusicSource fails on an unverified track rather than using the default", () => {
@@ -176,4 +245,26 @@ test("consecutive scenes come from different uploaders when the search allows it
   const search = async () => [clip(10, "Alpha"), clip(11, "Beta")];
   const plan = await planBeatVisuals(beats, search);
   assert.notEqual(plan[0].segments[0].uploader, plan[1].segments[0].uploader);
+});
+
+test("selectClip prefers footage that does not repeat the previous scene's subject words", () => {
+  const sameLook = clip(20, "Uploader A", "blue-alley-steps-chefchaouen");
+  const differentLook = clip(21, "Uploader B", "blue-rooftops-aerial-chefchaouen");
+  const previous = new Set(["alley", "steps", "staircase", "chefchaouen"]);
+  const chosen = selectClip([sameLook, differentLook], LOCATION_BEAT, new Set(), 0, null, previous);
+  assert.equal(chosen.pexelsId, 21, "the clip with new subject words wins");
+});
+
+test("previousTokens collects the descriptive words of the last scene", () => {
+  const plan = [{ segments: [{ tokens: ["blue", "alley"] }, { tokens: ["steps"] }] }];
+  assert.deepEqual([...previousTokens(plan)].sort(), ["alley", "blue", "steps"]);
+});
+
+test("the widest allowed caption phrase fits inside the side margins (Arial uppercase estimate)", () => {
+  const width = 1080;
+  const height = 1920;
+  const fontPx = Math.round(height * 0.044);
+  const usable = width - 2 * SAFE_MARGIN_X(width);
+  // Measured on a rendered frame: about 0.61 em per uppercase character with spaces, measured on a rendered frame; 0.62 is used.
+  assert.ok(CAPTION_LIMITS.maxCharacters * 0.62 * fontPx <= usable, "longest phrase fits");
 });

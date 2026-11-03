@@ -1,19 +1,28 @@
 // Background-music support. A track is used only when its manifest entry records where it came
-// from, which licence applies, who verified it and when, and what attribution is required. No
-// track is used on an unverified entry, and the default bed is used when no track is requested.
+// from, which licence applies, who verified it and when, whether attribution is required and
+// whether monetised use is allowed. Nothing is inferred from the licence name: each track states
+// its own conditions. The default bed is used when no track is requested.
 //
 // Pure functions only (no file access), so they are testable without secrets or media files.
+// The storage preflight takes its existence check as a parameter, so it is testable too.
 
-// Licences the owner has accepted for Shorts. Adding one is a policy decision, recorded in
-// RELEASE_READINESS.md, not a code change made per track.
-export const ALLOWED_LICENCES = Object.freeze({
-  "CC0-1.0": { attributionRequired: false },
-  "CC-BY-4.0": { attributionRequired: true },
-  "Pixabay-Content-Licence": { attributionRequired: false },
-  "YouTube-Audio-Library": { attributionRequired: false }
-});
+// Licences the owner accepts for Shorts. Accepting a licence is a policy decision (RELEASE_READINESS
+// section 18), not a per-track code change. Each track still states its own attribution and
+// monetisation conditions; a licence name alone never settles them.
+export const ALLOWED_LICENCES = Object.freeze(["CC0-1.0", "CC-BY-4.0", "Pixabay-Content-Licence", "YouTube-Audio-Library"]);
 
-const REQUIRED_FIELDS = ["id", "file", "title", "licence", "sourceUrl", "verifiedBy", "verifiedOn"];
+// Only files inside this folder can be used, so a manifest cannot point the worker at arbitrary
+// objects in the bucket.
+export const APPROVED_MUSIC_FOLDER = "music/";
+const MUSIC_FILE_PATTERN = /^music\/[A-Za-z0-9._\-\/]+\.(mp3|m4a|wav)$/;
+
+// True only for a path inside the approved folder: the right shape, the right extension, and no
+// parent-folder segments (a pattern alone allows "music/../x.mp3").
+export function isApprovedMusicPath(path) {
+  return typeof path === "string" && MUSIC_FILE_PATTERN.test(path) && path.split("/").indexOf("..") === -1;
+}
+
+const REQUIRED_FIELDS = ["id", "file", "title", "licence", "sourceUrl", "termsUrl", "verifiedBy", "verifiedOn"];
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Returns the list of problems with one manifest entry. An empty list means it may be used.
@@ -23,18 +32,23 @@ export function validateTrack(entry) {
   for (const field of REQUIRED_FIELDS) {
     if (typeof entry[field] !== "string" || entry[field].trim() === "") problems.push(`${field} is required`);
   }
-  const licence = ALLOWED_LICENCES[entry.licence];
-  if (typeof entry.licence === "string" && entry.licence.trim() !== "" && !licence) {
+  if (typeof entry.licence === "string" && entry.licence.trim() !== "" && ALLOWED_LICENCES.indexOf(entry.licence) === -1) {
     problems.push(`licence "${entry.licence}" is not on the allowed list`);
   }
-  if (licence && licence.attributionRequired && (typeof entry.attribution !== "string" || entry.attribution.trim() === "")) {
-    problems.push("attribution text is required for this licence");
+  // Per-track conditions, stated explicitly by whoever verified the track.
+  if (typeof entry.attributionRequired !== "boolean") problems.push("attributionRequired must be true or false");
+  if (entry.attributionRequired === true && (typeof entry.attribution !== "string" || entry.attribution.trim() === "")) {
+    problems.push("attribution text is required when attributionRequired is true");
   }
+  if (entry.licence === "CC-BY-4.0" && entry.attributionRequired !== true) {
+    problems.push("CC-BY-4.0 always requires attribution");
+  }
+  if (entry.monetizationAllowed !== true) problems.push("monetizationAllowed must be true for a monetised channel");
   if (typeof entry.verifiedOn === "string" && !ISO_DATE.test(entry.verifiedOn)) {
     problems.push("verifiedOn must be a YYYY-MM-DD date");
   }
-  if (typeof entry.file === "string" && (entry.file.includes("..") || entry.file.startsWith("/") || /^[a-zA-Z]:/.test(entry.file))) {
-    problems.push("file must be a relative path inside the music folder");
+  if (typeof entry.file === "string" && entry.file.trim() !== "" && !isApprovedMusicPath(entry.file)) {
+    problems.push("file must be an .mp3, .m4a or .wav path inside the music folder, with no '..' or absolute path");
   }
   return problems;
 }
@@ -73,5 +87,25 @@ export function chooseMusicSource({ musicTrack, musicTrackPath, defaultPath }) {
     if (problems.length > 0) throw new Error(`Music track is not usable: ${problems.join("; ")}`);
     return { path: musicTrack.file, track: musicTrack };
   }
-  return { path: musicTrackPath || defaultPath, track: null };
+  const path = musicTrackPath || defaultPath;
+  if (!isApprovedMusicPath(path)) {
+    throw new Error(`Music path "${path}" is outside the approved music folder.`);
+  }
+  return { path: path, track: null };
+}
+
+// Before any paid step (narration, alignment, images), confirm the music object exists in storage.
+// existsFn(path) resolves to true or false. A missing object fails the job here, with a clear reason.
+export async function preflightMusic({ path, existsFn }) {
+  if (!isApprovedMusicPath(path)) {
+    throw new Error(`Music path "${path}" is outside the approved music folder.`);
+  }
+  let exists;
+  try {
+    exists = await existsFn(path);
+  } catch (caught) {
+    throw new Error(`Music object "${path}" could not be checked: ${caught.message}`);
+  }
+  if (exists !== true) throw new Error(`Music object "${path}" does not exist or is not accessible.`);
+  return path;
 }

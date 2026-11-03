@@ -125,7 +125,7 @@ function portraitFile(video) {
 // nothing qualifies, which makes the caller try the next query variant.
 // avoidUploaders: uploaders of the previous scene's footage. A clip from the same uploader is only
 // chosen when nothing else qualifies, so consecutive scenes come from different sources.
-export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders = null) {
+export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders = null, avoidTokens = null) {
   let best = null;
   for (const video of videos || []) {
     if (usedIds.has(video.id)) continue;
@@ -136,7 +136,14 @@ export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders
     if (!judgement.accepted) continue;
     const uploader = video.user && video.user.name ? String(video.user.name) : "";
     const repeatsUploader = avoidUploaders && uploader && avoidUploaders.has(uploader);
+    // Near-identical footage: most of this clip's descriptive words also describe the previous scene.
+    const tokens = slugTokens(video.url);
+    const overlap = avoidTokens && tokens.length
+      ? tokens.filter((t) => avoidTokens.has(t)).length / tokens.length
+      : 0;
+    const nearDuplicate = overlap >= 0.5;
     const score = (judgement.evidence.locationMatch ? 10 : 0) + judgement.evidence.matchedKeywords.length -
+      (nearDuplicate ? 4 : 0) -
       (repeatsUploader ? 5 : 0);
     if (!best || score > best.score) {
       best = { score, video, file, uploader, reason: judgement.reason };
@@ -150,6 +157,7 @@ export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders
     sourceUrl: best.video.url,
     sourceDurationSeconds: best.video.duration,
     uploader: best.uploader,
+    tokens: slugTokens(best.video.url),
     reason: best.reason
   };
 }
@@ -194,6 +202,13 @@ export function previousUploaders(plan) {
   return new Set(names);
 }
 
+// Descriptive words of the most recent planned scene's clips (from their URL slugs).
+export function previousTokens(plan) {
+  const last = plan && plan.length ? plan[plan.length - 1] : null;
+  const words = (last && last.segments ? last.segments : []).flatMap((segment) => segment.tokens || []);
+  return new Set(words);
+}
+
 export async function planBeatVisuals(beats, search, options = {}) {
   const usedIds = new Set();
   const cache = new Map();
@@ -206,6 +221,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
   for (let index = 0; index < beats.length; index += 1) {
     const beat = beats[index];
     const avoid = previousUploaders(plan);
+    const avoidWords = previousTokens(plan);
     const needed = beat.coverSeconds || 0;
     const queries = buildSearchQueries(beat);
     const tried = [];
@@ -217,7 +233,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
     if (needed > 0) {
       for (const query of queries) {
         tried.push(query);
-        const chosen = selectClip(await cachedSearch(query), beat, usedIds, needed, avoid);
+        const chosen = selectClip(await cachedSearch(query), beat, usedIds, needed, avoid, avoidWords);
         if (chosen) {
           chosen.query = query;
           segments.push(chosen);
@@ -237,7 +253,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
       covered = 0;
       for (const query of queries) {
         while (segments.length < MAX_SEGMENTS_PER_BEAT && covered < needed) {
-          const chosen = selectClip(await cachedSearch(query), beat, usedIds, MIN_CUT_SECONDS, avoid);
+          const chosen = selectClip(await cachedSearch(query), beat, usedIds, MIN_CUT_SECONDS, avoid, avoidWords);
           if (!chosen) break;
           chosen.query = query;
           segments.push(chosen);
@@ -252,7 +268,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
     if (needed === 0) {
       for (const query of queries) {
         tried.push(query);
-        const chosen = selectClip(await cachedSearch(query), beat, usedIds, 0, avoid);
+        const chosen = selectClip(await cachedSearch(query), beat, usedIds, 0, avoid, avoidWords);
         if (chosen) {
           chosen.query = query;
           segments.push(chosen);

@@ -27,7 +27,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: WordPop,Arial,${Math.round(height * 0.055)},&H00FFFFFF,&H00000000,&H80000000,-1,0,1,3,0,2,${SAFE_MARGIN_X(width)},${SAFE_MARGIN_X(width)},${SAFE_MARGIN_BOTTOM(height)},1
+Style: WordPop,Arial,${Math.round(height * 0.044)},&H00FFFFFF,&H00000000,&H80000000,-1,0,1,3,0,2,${SAFE_MARGIN_X(width)},${SAFE_MARGIN_X(width)},${SAFE_MARGIN_BOTTOM(height)},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
