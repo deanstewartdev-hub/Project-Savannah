@@ -79,19 +79,38 @@ export function buildMusicGainFilter({ volume, fadeInSeconds, fadeOutSeconds, to
   return parts.join(",");
 }
 
-// Chooses the music file for a job. A verified track entry wins; an unverified entry is an error,
-// never a silent fallback. Without a track, the existing path or the default bed is used.
-export function chooseMusicSource({ musicTrack, musicTrackPath, defaultPath }) {
+// Chooses the music for a job. Music is chosen only by musicTrackId, which is resolved against the
+// worker's own verified manifest. A job that passes a track object or a file path is refused, so
+// a request cannot skip licence verification. Without an ID, the default bed is used.
+export function chooseMusicSource({ musicTrackId, manifest, defaultPath, musicTrack, musicTrackPath }) {
   if (musicTrack !== undefined && musicTrack !== null) {
-    const problems = validateTrack(musicTrack);
-    if (problems.length > 0) throw new Error(`Music track is not usable: ${problems.join("; ")}`);
-    return { path: musicTrack.file, track: musicTrack };
+    throw new Error("Music must be chosen with musicTrackId from the verified manifest; a musicTrack object is not accepted.");
   }
-  const path = musicTrackPath || defaultPath;
-  if (!isApprovedMusicPath(path)) {
-    throw new Error(`Music path "${path}" is outside the approved music folder.`);
+  if (musicTrackPath !== undefined && musicTrackPath !== null && musicTrackPath !== "") {
+    throw new Error("Music must be chosen with musicTrackId from the verified manifest; a musicTrackPath is not accepted.");
   }
-  return { path: path, track: null };
+  if (musicTrackId !== undefined && musicTrackId !== null && musicTrackId !== "") {
+    const track = resolveTrack(manifest, String(musicTrackId));
+    return { path: track.file, track: track };
+  }
+  if (!isApprovedMusicPath(defaultPath)) {
+    throw new Error(`Default music path "${defaultPath}" is outside the approved music folder.`);
+  }
+  return { path: defaultPath, track: null };
+}
+
+// Checks the downloaded music file itself, from ffprobe output, before any paid step. It must contain an
+// audio stream and run at least minSeconds (the video length, so the track is never looped audibly).
+export function validateMusicProbe(probe, { minSeconds }) {
+  const streams = probe && Array.isArray(probe.streams) ? probe.streams : [];
+  const audio = streams.find((s) => s && s.codec_type === "audio");
+  if (!audio) throw new Error("Music file has no audio stream.");
+  const duration = Number(probe.format && probe.format.duration);
+  if (!Number.isFinite(duration) || duration <= 0) throw new Error("Music file has no readable duration.");
+  if (duration < minSeconds) {
+    throw new Error(`Music file is ${duration.toFixed(1)} s, shorter than the ${minSeconds.toFixed(1)} s video.`);
+  }
+  return { durationSeconds: duration, codec: audio.codec_name || "unknown", sampleRate: Number(audio.sample_rate) || 0 };
 }
 
 // Before any paid step (narration, alignment, images), confirm the music object exists in storage.

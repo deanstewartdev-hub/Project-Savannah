@@ -5,7 +5,6 @@ import { runJob } from "../pipeline/runJob.js";
 import { postCallbackWithRetry } from "../lib/callback.js";
 import { requireAuth } from "../lib/auth.js";
 import { validateBeats } from "../lib/validateBeats.js";
-import { validateTrack } from "../lib/musicLicence.js";
 
 export const jobsRouter = Router();
 
@@ -23,14 +22,16 @@ function runSerialized(task) {
 }
 
 jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
-  const { beats, musicTrackPath, musicTrack, callbackUrl, callbackSecret } = req.body || {};
-  if (musicTrack !== undefined && musicTrack !== null) {
-    const musicProblems = validateTrack(musicTrack);
-    if (musicProblems.length > 0) {
-      res.status(400).json({ error: "musicTrack is not usable: " + musicProblems.join("; ") });
-      return;
-    }
+  const { beats, musicTrackId, musicTrackPath, musicTrack, callbackUrl, callbackSecret } = req.body || {};
+  if (musicTrack !== undefined || musicTrackPath !== undefined) {
+    res.status(400).json({ error: "Music is chosen with musicTrackId from the verified manifest; musicTrack and musicTrackPath are not accepted." });
+    return;
   }
+  if (musicTrackId !== undefined && (typeof musicTrackId !== "string" || musicTrackId.trim() === "")) {
+    res.status(400).json({ error: "musicTrackId must be a non-empty string." });
+    return;
+  }
+
 
   const beatsError = validateBeats(beats);
   if (beatsError) {
@@ -60,7 +61,7 @@ jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
   // Apps Script just doesn't know about it yet). Callback delivery failures are only
   // logged here, not retried - this worker is a deliberately single-attempt v1.4 scaffold
   // (see media-worker/README.md "What isn't here yet").
-  runSerialized(() => runJob({ jobId, beats, musicTrackPath, musicTrack })).then(
+  runSerialized(() => runJob({ jobId, beats, musicTrackId })).then(
     (result) => {
       postCallbackWithRetry(callbackUrl, result, { callbackSecret }).catch((callbackError) => {
         console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);

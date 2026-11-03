@@ -22,9 +22,15 @@ for (const file of ['.dockerignore', '.gcloudignore']) {
   });
 }
 
-test('the Dockerfile copies only package files and src/ into the image', () => {
+test('the Dockerfile copies only package files, src/ and the music manifest folder into the image', () => {
   const copies = lines('Dockerfile').filter(l => /^COPY\b/i.test(l));
-  assert.deepEqual(copies, ['COPY package.json package-lock.json* ./', 'COPY src ./src']);
+  assert.deepEqual(copies, ['COPY package.json package-lock.json* ./', 'COPY src ./src', 'COPY music ./music']);
+});
+
+test('the music folder shipped in the image holds only JSON, never audio or keys', () => {
+  const files = fs.readdirSync(path.join(worker, 'music'));
+  assert.ok(files.length > 0, 'music/ must contain the manifest');
+  for (const file of files) assert.ok(file.endsWith('.json'), 'music/' + file + ' must not ship in the image');
 });
 
 test('the repo root .gitignore still keeps the local key files out of git', () => {

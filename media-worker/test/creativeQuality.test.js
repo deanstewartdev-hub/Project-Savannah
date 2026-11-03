@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateTrack, resolveTrack, chooseMusicSource, buildMusicGainFilter, MUSIC_VOLUME_LIMITS, preflightMusic } from "../src/lib/musicLicence.js";
+import { validateTrack, resolveTrack, chooseMusicSource, buildMusicGainFilter, MUSIC_VOLUME_LIMITS, preflightMusic, validateMusicProbe } from "../src/lib/musicLicence.js";
 import { groupCaptionChunks, chunkWithinLimits, CAPTION_LIMITS } from "../src/lib/captionChunks.js";
 import { buildCaptionAss, SAFE_MARGIN_BOTTOM, SAFE_MARGIN_X } from "../src/lib/captionAss.js";
 import { selectClip, previousUploaders, previousTokens, planBeatVisuals } from "../src/pipeline/visualSelection.js";
@@ -84,16 +84,7 @@ test("resolveTrack refuses a missing or unverified track instead of falling back
   assert.throws(() => resolveTrack(manifest, "bad"), /not usable/);
 });
 
-test("chooseMusicSource uses a verified track, then an explicit path, then the default bed", () => {
-  assert.equal(chooseMusicSource({ musicTrack: GOOD_TRACK, defaultPath: "music/default.mp3" }).path, "music/bed-01.mp3");
-  assert.equal(chooseMusicSource({ musicTrackPath: "music/custom.mp3", defaultPath: "music/default.mp3" }).path, "music/custom.mp3");
-  assert.equal(chooseMusicSource({ defaultPath: "music/default.mp3" }).path, "music/default.mp3");
-});
 
-test("an explicit music path outside the approved folder is refused", () => {
-  assert.throws(() => chooseMusicSource({ musicTrackPath: "customers/private.mp3", defaultPath: "music/d.mp3" }), /approved music folder/);
-  assert.throws(() => chooseMusicSource({ musicTrackPath: "../x.mp3", defaultPath: "music/d.mp3" }), /approved music folder/);
-});
 
 // ---- Missing-file and storage preflight (runs before any paid step) ----
 
@@ -131,9 +122,6 @@ test("the preflight never reports a non-true answer as present", async () => {
   await assert.rejects(() => preflightMusic({ path: "music/x.mp3", existsFn: async () => "yes" }), /does not exist/);
 });
 
-test("chooseMusicSource fails on an unverified track rather than using the default", () => {
-  assert.throws(() => chooseMusicSource({ musicTrack: Object.assign({}, GOOD_TRACK, { verifiedOn: "" }), defaultPath: "d.mp3" }), /not usable/);
-});
 
 // ---- Music gain, ducking input and fades ----
 
@@ -279,4 +267,52 @@ test("candidate tracks are not in the verified manifest, so the worker cannot us
     assert.equal(candidate.attributionRequired, true, "CC BY 4.0 candidates require credit");
     assert.match(candidate.attribution, /released under CC-BY 4\.0/);
   }
+});
+
+// ---- Music selection: ID only, from the worker's own verified manifest ----
+
+const MANIFEST = { tracks: [GOOD_TRACK] };
+
+test("a job chooses music by musicTrackId from the verified manifest", () => {
+  assert.equal(chooseMusicSource({ musicTrackId: "bed-01", manifest: MANIFEST, defaultPath: "music/default.mp3" }).path, "music/bed-01.mp3");
+  assert.equal(chooseMusicSource({ manifest: MANIFEST, defaultPath: "music/default.mp3" }).path, "music/default.mp3");
+});
+
+test("an unknown or unverified musicTrackId fails instead of falling back", () => {
+  assert.throws(() => chooseMusicSource({ musicTrackId: "nope", manifest: MANIFEST, defaultPath: "music/d.mp3" }), /not in the manifest/);
+  const unverified = { tracks: [Object.assign({}, GOOD_TRACK, { verifiedOn: "" })] };
+  assert.throws(() => chooseMusicSource({ musicTrackId: "bed-01", manifest: unverified, defaultPath: "music/d.mp3" }), /not usable/);
+});
+
+test("a job cannot bypass licence verification with a track object or a file path", () => {
+  assert.throws(() => chooseMusicSource({ musicTrack: GOOD_TRACK, manifest: MANIFEST, defaultPath: "music/d.mp3" }), /musicTrack object is not accepted/);
+  assert.throws(() => chooseMusicSource({ musicTrackPath: "music/unverified.mp3", manifest: MANIFEST, defaultPath: "music/d.mp3" }), /musicTrackPath is not accepted/);
+});
+
+test("the default bed path must still be inside the approved folder", () => {
+  assert.throws(() => chooseMusicSource({ manifest: MANIFEST, defaultPath: "../default.mp3" }), /approved music folder/);
+});
+
+// ---- Downloaded-file check (ffprobe output), run before any paid step ----
+
+const PROBE_OK = { format: { duration: "120.5" }, streams: [{ codec_type: "audio", codec_name: "mp3", sample_rate: "44100" }] };
+
+test("a downloaded track with audio long enough for the video passes", () => {
+  const info = validateMusicProbe(PROBE_OK, { minSeconds: 45 });
+  assert.equal(info.codec, "mp3");
+  assert.equal(info.sampleRate, 44100);
+  assert.ok(Math.abs(info.durationSeconds - 120.5) < 0.001);
+});
+
+test("a downloaded file with no audio stream is refused", () => {
+  assert.throws(() => validateMusicProbe({ format: { duration: "60" }, streams: [{ codec_type: "video" }] }, { minSeconds: 30 }), /no audio stream/);
+});
+
+test("a track shorter than the video is refused rather than looped audibly", () => {
+  assert.throws(() => validateMusicProbe({ format: { duration: "20" }, streams: [{ codec_type: "audio" }] }, { minSeconds: 40 }), /shorter than the/);
+});
+
+test("a file with no readable duration is refused", () => {
+  assert.throws(() => validateMusicProbe({ format: {}, streams: [{ codec_type: "audio" }] }, { minSeconds: 10 }), /no readable duration/);
+  assert.throws(() => validateMusicProbe({ format: { duration: "0" }, streams: [{ codec_type: "audio" }] }, { minSeconds: 10 }), /no readable duration/);
 });
