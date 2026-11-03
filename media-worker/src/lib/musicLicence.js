@@ -81,22 +81,66 @@ export function buildMusicGainFilter({ volume, fadeInSeconds, fadeOutSeconds, to
 
 // Chooses the music for a job. Music is chosen only by musicTrackId, which is resolved against the
 // worker's own verified manifest. A job that passes a track object or a file path is refused, so
-// a request cannot skip licence verification. Without an ID, the default bed is used.
-export function chooseMusicSource({ musicTrackId, manifest, defaultPath, musicTrack, musicTrackPath }) {
+// a request cannot skip licence verification. A job with no track ID is refused too, unless it is an
+// explicitly identified legacy or technical run (legacyPlaceholderMusic === true), which gets the
+// silent placeholder bed. That bed is never a publishable music selection.
+export function chooseMusicSource({ musicTrackId, manifest, defaultPath, musicTrack, musicTrackPath, legacyPlaceholderMusic }) {
   if (musicTrack !== undefined && musicTrack !== null) {
     throw new Error("Music must be chosen with musicTrackId from the verified manifest; a musicTrack object is not accepted.");
   }
   if (musicTrackPath !== undefined && musicTrackPath !== null && musicTrackPath !== "") {
     throw new Error("Music must be chosen with musicTrackId from the verified manifest; a musicTrackPath is not accepted.");
   }
-  if (musicTrackId !== undefined && musicTrackId !== null && musicTrackId !== "") {
-    const track = resolveTrack(manifest, String(musicTrackId));
-    return { path: track.file, track: track };
+  const hasTrackId = musicTrackId !== undefined && musicTrackId !== null && musicTrackId !== "";
+  if (legacyPlaceholderMusic === true) {
+    if (hasTrackId) throw new Error("A legacy placeholder run cannot also name a musicTrackId.");
+    if (!isApprovedMusicPath(defaultPath)) {
+      throw new Error(`Default music path "${defaultPath}" is outside the approved music folder.`);
+    }
+    return { path: defaultPath, track: null, placeholder: true };
   }
-  if (!isApprovedMusicPath(defaultPath)) {
-    throw new Error(`Default music path "${defaultPath}" is outside the approved music folder.`);
+  if (!hasTrackId) throw new Error("A musicTrackId from the verified manifest is required.");
+  const track = resolveTrack(manifest, String(musicTrackId));
+  return { path: track.file, track: track, placeholder: false };
+}
+
+// The part of a track that the main app records and turns into the YouTube credit. Only verified,
+// usable tracks reach this point (resolveTrack has already run).
+export function musicSummary(track) {
+  return {
+    id: track.id,
+    title: track.title,
+    licence: track.licence,
+    attributionRequired: track.attributionRequired === true,
+    attribution: track.attributionRequired === true ? track.attribution : "",
+    sourceUrl: track.sourceUrl
+  };
+}
+
+// Validates a /jobs request body's music fields before anything is uploaded or started. Returns
+// { ok: true, ... } with the normalised fields, or { ok: false, error } with a message that is safe
+// to return to the caller.
+export function validateMusicRequest(body, manifest) {
+  const { musicTrackId, musicTrackPath, musicTrack, legacyPlaceholderMusic } = body || {};
+  if (musicTrack !== undefined || musicTrackPath !== undefined) {
+    return { ok: false, error: "Music is chosen with musicTrackId from the verified manifest; musicTrack and musicTrackPath are not accepted." };
   }
-  return { path: defaultPath, track: null };
+  if (legacyPlaceholderMusic !== undefined && typeof legacyPlaceholderMusic !== "boolean") {
+    return { ok: false, error: "legacyPlaceholderMusic must be true or false." };
+  }
+  if (legacyPlaceholderMusic === true) {
+    if (musicTrackId !== undefined) return { ok: false, error: "A legacy placeholder run cannot also name a musicTrackId." };
+    return { ok: true, legacyPlaceholderMusic: true, track: null };
+  }
+  if (typeof musicTrackId !== "string" || musicTrackId.trim() === "") {
+    return { ok: false, error: "musicTrackId from the verified manifest is required." };
+  }
+  try {
+    const track = resolveTrack(manifest, musicTrackId.trim());
+    return { ok: true, legacyPlaceholderMusic: false, musicTrackId: track.id, track: track };
+  } catch (caught) {
+    return { ok: false, error: `musicTrackId "${musicTrackId.trim().slice(0, 80)}" is not an approved track in the verified manifest.` };
+  }
 }
 
 // Checks the downloaded music file itself, from ffprobe output, before any paid step. It must contain an

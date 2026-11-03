@@ -90,7 +90,10 @@ function sandbox(options = {}) {
         posts.push(body);
         if (options.onJobsPost) options.onJobsPost(body, api);
         if (options.workerTimesOut) throw new Error('Timeout: worker did not answer');
-        return { getResponseCode: () => 202, getContentText: () => JSON.stringify({ jobId: body.jobId, status: 'queued' }) };
+        // The dispatcher confirms the verified music track with its 202 (see VideoProcessingProvider.submitRender).
+        return { getResponseCode: () => 202, getContentText: () => JSON.stringify({ jobId: body.jobId, status: 'queued',
+          music: { id: 'scott-buckley-beyond-these-walls', title: 'Beyond These Walls', licence: 'CC-BY-4.0',
+            attributionRequired: true, attribution: 'Test credit', sourceUrl: 'https://example.test/track' } }) };
       }
     }
   });

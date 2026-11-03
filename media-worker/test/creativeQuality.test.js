@@ -275,7 +275,11 @@ const MANIFEST = { tracks: [GOOD_TRACK] };
 
 test("a job chooses music by musicTrackId from the verified manifest", () => {
   assert.equal(chooseMusicSource({ musicTrackId: "bed-01", manifest: MANIFEST, defaultPath: "music/default.mp3" }).path, "music/bed-01.mp3");
-  assert.equal(chooseMusicSource({ manifest: MANIFEST, defaultPath: "music/default.mp3" }).path, "music/default.mp3");
+});
+
+test("a job with no musicTrackId is refused; only a legacy placeholder run gets the default bed", () => {
+  assert.throws(() => chooseMusicSource({ manifest: MANIFEST, defaultPath: "music/default.mp3" }), /musicTrackId from the verified manifest is required/);
+  assert.equal(chooseMusicSource({ manifest: MANIFEST, defaultPath: "music/default.mp3", legacyPlaceholderMusic: true }).path, "music/default.mp3");
 });
 
 test("an unknown or unverified musicTrackId fails instead of falling back", () => {
@@ -290,7 +294,7 @@ test("a job cannot bypass licence verification with a track object or a file pat
 });
 
 test("the default bed path must still be inside the approved folder", () => {
-  assert.throws(() => chooseMusicSource({ manifest: MANIFEST, defaultPath: "../default.mp3" }), /approved music folder/);
+  assert.throws(() => chooseMusicSource({ manifest: MANIFEST, defaultPath: "../default.mp3", legacyPlaceholderMusic: true }), /approved music folder/);
 });
 
 // ---- Downloaded-file check (ffprobe output), run before any paid step ----

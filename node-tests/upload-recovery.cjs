@@ -10,8 +10,11 @@ function test(name, run) { run(); passed++; console.log('PASS ' + name); }
 function fixture(options = {}) {
   let job = options.initialJob || null, inserts = 0, pages = 0, releases = 0, updateFailed = false, providerCalls = 0, logs = [];
   const history = options.history || [];
+  // Uploads need a verified music record (see MusicSelection_Tests.js). This fixture track needs no
+  // credit, so the credit line does not change the upload behaviour these tests cover.
   const renderJobs = options.renderJobs || [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
-    status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }];
+    status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString(),
+    requestPayload: { music: { id: 'fixture-track', attributionRequired: false, attribution: '' } } }];
   const blob = { getBytes: () => [1], setName() { return this; }, setContentType() { return this; } };
   const context = vm.createContext({
     Logger: { log() {} },
@@ -333,7 +336,8 @@ test('Successful scheduled upload stays private and retains its schedule', () =>
 const otherRender = { id: 'RND-OTHER', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
   status: 'SUCCEEDED', videoUrl: 'https://example.com/other.mp4', updatedAt: new Date().toISOString() };
 const bothRenders = () => [{ id: 'RND-TEST', scriptId: 'SCR-TEST', seoPackId: 'SEO-TEST',
-  status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString() }, otherRender];
+  status: 'SUCCEEDED', videoUrl: 'https://example.com/video.mp4', updatedAt: new Date().toISOString(),
+  requestPayload: { music: { id: 'fixture-track', attributionRequired: false, attribution: '' } } }, otherRender];
 for (const state of ['PUBLISHED', 'UPLOADING', 'RECONCILE']) {
   test('Another render of the same script with a ' + state + ' upload blocks upload', () => {
     const f = fixture({ renderJobs: bothRenders(),

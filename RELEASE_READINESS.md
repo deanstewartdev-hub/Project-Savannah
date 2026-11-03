@@ -1315,3 +1315,38 @@ Three candidates were provided and their artist pages read (page text only; no a
 - Recorded in `media-worker/music/candidates.json`, which is outside the manifest. The worker cannot use them. A test checks they stay out of the manifest.
 - **Not yet accepted.** Before a candidate goes into `music/manifest.json`: the owner confirms the licence reading, the credit text is added to the YouTube description at publish time (the pipeline does not yet do this), and the Content ID status is checked after upload.
 - The pasted request for these candidates ended mid-sentence ("All three have published CC BY"); the licence terms above come from the pages, not from that sentence.
+
+### 18c. Music integration fixes and deployment plan (3 November 2026, after commit bcdbb5b)
+
+**What changed**
+- **Music is required.** A job with no `musicTrackId` is refused. The silent placeholder bed is used only when a request sets `legacyPlaceholderMusic: true`, and the main app never sends that flag. The placeholder is never a publishable music selection.
+- **Unknown or unusable tracks are refused before any paid step.** The dispatcher (and the in-process route) checks `musicTrackId` against the manifest before it uploads the job request or starts a Cloud Run execution. A refusal returns HTTP 400 with a message that does not echo the input.
+- **Temporary files are always removed.** `runJob` runs inside `withJobWorkDir`, so a failed preflight, download, probe or later stage deletes the job's work directory. Tests cover each path.
+- **Main-app request path.** `VideoProcessingProvider.submitRender` sends the track ID `scott-buckley-beyond-these-walls`, a constant in the provider. The dispatcher's 202 returns the track summary (ID, licence, credit text), and the provider stores it in the render row's `requestPayload.music`. If the 202 does not confirm the track, the render is kept as an unknown outcome and is not re-submitted.
+- **YouTube credit.** `YouTubeService.upload` refuses a render with no verified music record, or a track that requires credit but has none, before the MP4 is downloaded. Otherwise the description always ends with the disclosure, then `Music: <credit>`, then hashtags. The owner's text is shortened first if the description would exceed 5000 characters, so the credit is never cut off.
+- **Candidate evidence.** `media-worker/music/candidates.json` records verbatim page quotes for Beyond These Walls, read in Chrome on 3 November 2026 (apostrophes normalised). The page says the work is CC BY 4.0, free for any project including commercial use if credited, and that YouTube credits must appear in the video description. It gives the exact attribution line and the download link `sb_beyondthesewalls.mp3`. The page does not say whether Content ID monitors the track. `music/manifest.json` is **not** changed: `verifiedBy` and `verifiedOn` are owner fields.
+
+**Verification (no paid calls)**
+- Worker suite: `node --test` in `media-worker` → 179 pass, 0 fail.
+- Main-app suite: `node node-tests/run-local.cjs` → 438 PASS lines, exit 0. Eight new tests are in `node-tests/MusicSelection_Tests.js`.
+- Container integration: Cloud Build `45f14e4f-82f2-4f65-9e7e-9fb27640c3fa` built `media-worker:v16-music` (digest `sha256:bbeda0b3…`, not deployed). In that image it downloaded the official MP3 (16,698,767 bytes, sha256 `a862ae87…`), then ran the real `prepareMusic` with real ffprobe: 417.4 s, mp3, 44.1 kHz. It also checked that an unknown track is refused before download, and that the work directory is removed afterwards. All 10 checks passed.
+
+**Not done, and why**
+- The publish panel has no description field, so the owner cannot see the final description, including the credit, before the upload button. The credit is enforced and stored on the publishing record, but the preview is not yet in the UI.
+- Existing Chefchaouen renders (versions 1 and 2) were made with the placeholder and have no music record. **They can no longer be uploaded.** A new render with a verified track is needed, or the owner must approve a separate exception.
+
+**Deployment order (not started; each step needs owner approval)**
+1. Owner accepts Beyond These Walls into `music/manifest.json` (`verifiedBy`, `verifiedOn`, `monetizationAllowed`). Add the MP3 at `music/scott-buckley-beyond-these-walls.mp3` in `savannah-media` (bucket path must match `file`). Commit the manifest change.
+2. Build `media-worker:v16-music` from the repo (the build in this section is the same source, but rebuild from the accepted commit).
+3. Deploy the dispatcher as a candidate revision with no traffic (`--no-traffic --tag candidate`), then check `/health` and a refused request (unknown track returns 400 and no execution).
+4. Update the render job image to v16 only after the candidate check passes.
+5. Main app: `clasp push` and a new deployment version for the provider and YouTube changes. Roll back to version 97.
+6. Before any paid render: one owner-approved render on the candidate, then the owner decides on publishing.
+
+**Rollback**
+- Dispatcher: move 100% traffic back to `savannah-media-worker-dispatcher-00015-bay`.
+- Render job: set the image back to digest `d010ddcf…`. The v15/v16 images stay in Artifact Registry.
+- Main app: redeploy version 97. Renders started under the new provider keep their `requestPayload.music` record, which the old code ignores.
+- Manifest: revert the manifest commit. With an empty manifest every track-based render is refused before any paid step.
+
+**GO/NO-GO for deployment: NO-GO until** the owner accepts a track into the manifest and approves the candidate steps above. The worker and main-app code are ready and tested. The UI preview of the credit and the legacy-render decision are still open.

@@ -14,7 +14,18 @@
       "termsUrl": "https://www.scottbuckley.com.au/library/beyond-these-walls/",
       "downloadUrl": "https://www.scottbuckley.com.au/library/wp-content/uploads/2021/05/sb_beyondthesewalls.mp3",
       "file": "music/scott-buckley-beyond-these-walls.mp3",
-      "pageDate": "2021-05-01"
+      "pageDate": "2021-05-01",
+      "pageVerifiedOn": "2026-11-03",
+      "pageVerifiedHow": "Read in Chrome from the official page: 'MP3 (Full Mix)' link and licence text, same URL as sourceUrl. Quotes below use straight apostrophes; the page uses typographic ones.",
+      "pageQuotes": [
+        "This work is licensed under a Creative Commons Attribution 4.0 International License; meaning it's free for use in any project (including commercial) as long as I'm credited.",
+        "For YouTube videos, credits must appear in the video description. If you don't, you will likely get a copyright claim from me.",
+        "Attribution format: 'Beyond These Walls' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au"
+      ],
+      "openQuestions": [
+        "The page does not say whether Content ID monitors the track, or whether the artist can claim videos that carry the credit.",
+        "The owner must confirm the licence and credit before this entry is added to music/manifest.json (verifiedBy and verifiedOn are owner fields)."
+      ]
     },
     {
       "id": "scott-buckley-wanderlust",

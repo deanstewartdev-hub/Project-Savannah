@@ -5,6 +5,8 @@ import { runJob } from "../pipeline/runJob.js";
 import { postCallbackWithRetry } from "../lib/callback.js";
 import { requireAuth } from "../lib/auth.js";
 import { validateBeats } from "../lib/validateBeats.js";
+import { validateMusicRequest, musicSummary } from "../lib/musicLicence.js";
+import { MUSIC_MANIFEST } from "../lib/musicManifest.js";
 
 export const jobsRouter = Router();
 
@@ -22,16 +24,12 @@ function runSerialized(task) {
 }
 
 jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
-  const { beats, musicTrackId, musicTrackPath, musicTrack, callbackUrl, callbackSecret } = req.body || {};
-  if (musicTrack !== undefined || musicTrackPath !== undefined) {
-    res.status(400).json({ error: "Music is chosen with musicTrackId from the verified manifest; musicTrack and musicTrackPath are not accepted." });
+  const { beats, callbackUrl, callbackSecret } = req.body || {};
+  const music = validateMusicRequest(req.body, MUSIC_MANIFEST);
+  if (!music.ok) {
+    res.status(400).json({ error: music.error });
     return;
   }
-  if (musicTrackId !== undefined && (typeof musicTrackId !== "string" || musicTrackId.trim() === "")) {
-    res.status(400).json({ error: "musicTrackId must be a non-empty string." });
-    return;
-  }
-
 
   const beatsError = validateBeats(beats);
   if (beatsError) {
@@ -49,7 +47,7 @@ jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
   }
 
   const jobId = req.body.jobId || uuid();
-  res.status(202).json({ jobId, status: "queued" });
+  res.status(202).json({ jobId, status: "queued", music: music.track ? musicSummary(music.track) : null });
 
   // Deliberately not awaited: the caller gets an immediate 202 and the result arrives via
   // callbackUrl once the pipeline finishes. Cloud Run requests are billed for wall-clock
@@ -61,7 +59,12 @@ jobsRouter.post("/jobs", requireAuth(config.jobSubmitSecret), (req, res) => {
   // Apps Script just doesn't know about it yet). Callback delivery failures are only
   // logged here, not retried - this worker is a deliberately single-attempt v1.4 scaffold
   // (see media-worker/README.md "What isn't here yet").
-  runSerialized(() => runJob({ jobId, beats, musicTrackId })).then(
+  runSerialized(() => runJob({
+    jobId,
+    beats,
+    musicTrackId: music.musicTrackId,
+    legacyPlaceholderMusic: music.legacyPlaceholderMusic
+  })).then(
     (result) => {
       postCallbackWithRetry(callbackUrl, result, { callbackSecret }).catch((callbackError) => {
         console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);

@@ -103,8 +103,16 @@ const CloudRunFFmpegProvider = (() => {
   }
   const RESERVED_ID_SHAPE = /^cr-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+  // The background track every production render uses. The ID must match an entry in the worker's
+  // verified manifest (media-worker/music/manifest.json); the worker refuses any other ID before it
+  // starts a render. Until the owner accepts a track into that manifest, renders fail before any
+  // paid step, which is the intended safe state.
+  const MUSIC_TRACK_ID = "scott-buckley-beyond-these-walls";
+  const MUSIC_TRACK_ID_SHAPE = /^[a-z0-9][a-z0-9-]{2,79}$/;
+
   function submitRender(script, seoPack, options) {
     if (!script || !script.id) throw error_("A valid script is required.");
+    if (!MUSIC_TRACK_ID_SHAPE.test(MUSIC_TRACK_ID)) throw error_("The configured music track ID is malformed.");
     const scenes = Array.isArray(script.scenes) ? script.scenes : [];
     if (!scenes.length) throw error_("The script has no scenes.");
 
@@ -151,6 +159,7 @@ const CloudRunFFmpegProvider = (() => {
     const response = request_("post", "/jobs", {
       jobId: jobId,
       beats: beats,
+      musicTrackId: MUSIC_TRACK_ID,
       callbackUrl: callbackUrl,
       callbackSecret: callbackSecret_()
     });
@@ -158,6 +167,14 @@ const CloudRunFFmpegProvider = (() => {
       const unclear = error_("Media worker did not accept the render job.");
       unclear.outcomeUnknown = true;
       throw unclear;
+    }
+    // The worker returns the verified track's summary (licence, credit text) with the 202. It is
+    // saved with the render so the YouTube description can carry the required credit.
+    const music = response.music && response.music.id === MUSIC_TRACK_ID ? response.music : null;
+    if (!music) {
+      const unverified = error_("The media worker did not confirm the music track for this render.");
+      unverified.outcomeUnknown = true;
+      throw unverified;
     }
 
     return {
@@ -183,7 +200,15 @@ const CloudRunFFmpegProvider = (() => {
         scriptId: script.id,
         seoPackId: seoPack && seoPack.id || "",
         beatCount: beats.length,
-        callbackUrl: callbackUrl
+        callbackUrl: callbackUrl,
+        music: {
+          id: music.id,
+          title: String(music.title || ""),
+          licence: String(music.licence || ""),
+          attributionRequired: music.attributionRequired === true,
+          attribution: String(music.attribution || ""),
+          sourceUrl: String(music.sourceUrl || "")
+        }
       }
     };
   }

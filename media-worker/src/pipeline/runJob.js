@@ -1,4 +1,4 @@
-import { createJobWorkDir } from "../lib/tempDir.js";
+import { withJobWorkDir } from "../lib/tempDir.js";
 import { downloadToFile, objectExists } from "../lib/storage.js";
 import { generateContinuousNarration } from "./narration.js";
 import { alignNarration } from "./alignment.js";
@@ -8,15 +8,12 @@ import { assembleVideo } from "./assemble.js";
 import { probeVideo } from "./probe.js";
 import { deliverResult } from "./deliver.js";
 import { config } from "../config.js";
-import { chooseMusicSource, preflightMusic, validateMusicProbe } from "../lib/musicLicence.js";
-import { readFileSync } from "node:fs";
+import { prepareMusic } from "./prepareMusic.js";
+import { MUSIC_MANIFEST } from "../lib/musicManifest.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-// The verified music manifest ships inside the image (Dockerfile copies music/). The worker never
-// trusts a track description sent in a job request.
-const MUSIC_MANIFEST = JSON.parse(readFileSync(new URL("../../music/manifest.json", import.meta.url), "utf8"));
 
 // Estimated spoken length of the beats (about 2.2 words per second), plus a margin, so a music file
 // that would have to loop audibly is refused before any paid step.
@@ -33,19 +30,28 @@ async function probeAudio(path) {
 // Full pipeline for one job, from script to a probed, delivered MP4. Beat visuals are planned
 // and fetched together (see resolveBeatVisuals), but narration -> alignment -> assembly stays
 // strictly sequential since each stage depends on the previous one's output.
-export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, musicTrack, allowAiStills = false }) {
-  // Music is checked before any paid provider call: the track must be in the verified manifest, the
-  // object must exist, and the downloaded file must hold audio long enough for the video.
-  const music = chooseMusicSource({ musicTrackId, manifest: MUSIC_MANIFEST, defaultPath: config.defaultMusicTrackPath, musicTrack, musicTrackPath });
-  await preflightMusic({ path: music.path, existsFn: objectExists });
-  const workDir = await createJobWorkDir(jobId);
-  const log = (stage) => console.log(`[${jobId}] ${stage} (beats=${beats.length})`);
-  log(music.track ? `music:track ${music.track.id}` : "music:default");
-  const musicLocalPath = workDir.path("music.mp3");
-  await downloadToFile(music.path, musicLocalPath);
-  const musicInfo = validateMusicProbe(await probeAudio(musicLocalPath), { minSeconds: estimatedNarrationSeconds(beats) });
-  log(`music:validated ${musicInfo.durationSeconds.toFixed(1)}s ${musicInfo.codec}`);
-  try {
+//
+// The whole job runs inside withJobWorkDir, so its temporary files are removed whether it succeeds,
+// fails in a later stage, or is refused during music preparation before any paid step.
+export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, musicTrack, legacyPlaceholderMusic, allowAiStills = false }) {
+  return withJobWorkDir(jobId, async (workDir) => {
+    const log = (stage) => console.log(`[${jobId}] ${stage} (beats=${beats.length})`);
+    const music = await prepareMusic({
+      musicTrackId,
+      legacyPlaceholderMusic,
+      manifest: MUSIC_MANIFEST,
+      defaultPath: config.defaultMusicTrackPath,
+      musicTrack,
+      musicTrackPath,
+      workDir,
+      minSeconds: estimatedNarrationSeconds(beats),
+      existsFn: objectExists,
+      downloadFn: downloadToFile,
+      probeFn: probeAudio
+    });
+    log(music.track ? `music:track ${music.track.id}` : "music:placeholder (legacy run)");
+    log(`music:validated ${music.info.durationSeconds.toFixed(1)}s ${music.info.codec}`);
+
     const fullScript = beats.map((beat) => beat.text.trim()).join(" ");
 
     log("narration:start");
@@ -68,7 +74,7 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
       timedBeats,
       visuals,
       narrationPath,
-      musicPath: musicLocalPath,
+      musicPath: music.localPath,
       workDir
     });
     log("assembly:done");
@@ -87,6 +93,7 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
     return {
       jobId,
       status: "completed",
+      music: music.track ? { id: music.track.id, attribution: music.track.attributionRequired ? music.track.attribution : "" } : { id: "", attribution: "" },
       video: {
         url: delivery.videoUrl,
         gcsPath: delivery.gcsPath,
@@ -99,7 +106,5 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
         reportUrl: delivery.reportUrl
       }
     };
-  } finally {
-    await workDir.cleanup();
-  }
+  });
 }

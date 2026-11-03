@@ -7,6 +7,8 @@ import { requireAuth } from "./lib/auth.js";
 import { validateBeats } from "./lib/validateBeats.js";
 import { uploadJson, downloadJson, objectExists } from "./lib/storage.js";
 import { buildStatusResponse } from "./lib/jobStatus.js";
+import { validateMusicRequest, musicSummary } from "./lib/musicLicence.js";
+import { MUSIC_MANIFEST } from "./lib/musicManifest.js";
 
 // This process never imports pipeline/* or any of the OpenAI/ElevenLabs/Pexels SDKs - it
 // only validates a request, hands it to a Cloud Run Job execution, and responds. The
@@ -33,16 +35,15 @@ app.get("/healthz", (req, res) => res.status(200).json({ status: "ok" }));
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
 app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
-  const { beats, musicTrackId, musicTrackPath, musicTrack, callbackUrl, callbackSecret, dryRun } = req.body || {};
-  if (musicTrack !== undefined || musicTrackPath !== undefined) {
-    res.status(400).json({ error: "Music is chosen with musicTrackId from the verified manifest; musicTrack and musicTrackPath are not accepted." });
+  const { beats, callbackUrl, callbackSecret, dryRun } = req.body || {};
+  // Music is checked here, before anything is uploaded or started: an unknown or unverified track
+  // is refused without creating a Cloud Run execution, so no paid step can begin.
+  const music = validateMusicRequest(req.body, MUSIC_MANIFEST);
+  if (!music.ok) {
+    res.status(400).json({ error: music.error });
     return;
   }
-  if (musicTrackId !== undefined && (typeof musicTrackId !== "string" || musicTrackId.trim() === "")) {
-    res.status(400).json({ error: "musicTrackId must be a non-empty string." });
-    return;
-  }
-
+  const { musicTrackId, legacyPlaceholderMusic } = music;
 
   const beatsError = validateBeats(beats);
   if (beatsError) {
@@ -78,6 +79,7 @@ app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
       jobId,
       beats,
       musicTrackId,
+      legacyPlaceholderMusic,
       callbackUrl,
       callbackSecret,
       submittedAt: new Date().toISOString()
@@ -95,7 +97,15 @@ app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
     // later status check correlate back to this exact execution instead of guessing
     // from elapsed time.
     console.log(`Job ${jobId} operation created: name=${operation.name} executionName=${executionName || "(not yet available)"}`);
-    res.status(202).json({ jobId, status: "queued", operationName: operation.name || null, executionName });
+    // The track's summary (ID, licence, credit text) goes back to the caller, which records it with
+    // the render. The upload step then carries the credit into the YouTube description.
+    res.status(202).json({
+      jobId,
+      status: "queued",
+      operationName: operation.name || null,
+      executionName,
+      music: music.track ? musicSummary(music.track) : null
+    });
   } catch (error) {
     console.error(`Job ${jobId} failed to start:`, error);
     res.status(502).json({ jobId, error: "Failed to start render job", message: error.message });

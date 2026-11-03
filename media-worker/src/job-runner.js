@@ -31,6 +31,7 @@ function parseJobRequest(raw) {
   return {
     beats: raw.beats,
     musicTrackId: raw.musicTrackId,
+    legacyPlaceholderMusic: raw.legacyPlaceholderMusic === true,
     callbackUrl: raw.callbackUrl,
     callbackSecret: typeof raw.callbackSecret === "string" && raw.callbackSecret.length > 0 ? raw.callbackSecret : undefined
   };
@@ -47,7 +48,12 @@ if (process.env.DRY_RUN === "true") {
 await deleteObject(requestPath);
 
 try {
-  const result = await runJob({ jobId, beats: request.beats, musicTrackId: request.musicTrackId });
+  const result = await runJob({
+    jobId,
+    beats: request.beats,
+    musicTrackId: request.musicTrackId,
+    legacyPlaceholderMusic: request.legacyPlaceholderMusic
+  });
   await postCallbackWithRetry(request.callbackUrl, result, { callbackSecret: request.callbackSecret }).catch((callbackError) => {
     console.error(`Job ${jobId} succeeded, but delivering its callback failed:`, callbackError);
   });

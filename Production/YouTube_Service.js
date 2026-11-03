@@ -30,7 +30,10 @@ const YouTubeService = (() => {
     const source = options || {};
     const title = String(source.title || seoPack.titleOptions && seoPack.titleOptions[0] || "").trim().slice(0, 100);
     if (!title) throw error_("A YouTube title is required.");
-    const description = buildDescription_(source.description || seoPack.description, seoPack.hashtags);
+    // Refused before the MP4 is downloaded: a render without a verified music record, or whose track
+    // requires credit that is missing, must never reach YouTube.
+    const musicCredit = musicCreditOf_(renderJob);
+    const description = buildDescription_(source.description || seoPack.description, seoPack.hashtags, musicCredit);
     const tags = normaliseTags_(seoPack.tags);
     if (source.publishingJobId) {
       const uploadTag = uploadTag_(source.publishingJobId);
@@ -161,14 +164,33 @@ const YouTubeService = (() => {
     return blob.setName(fileName_(title) + ".mp4").setContentType("video/mp4");
   }
 
-  function buildDescription_(description, hashtags) {
-    const body = String(description || "").trim();
+  // The music credit comes from the verified track recorded with the render (see
+  // VideoProcessingProvider.submitRender). Legacy renders have no record and cannot be uploaded.
+  function musicCreditOf_(renderJob) {
+    const music = renderJob && renderJob.requestPayload && renderJob.requestPayload.music;
+    if (!music || !music.id) {
+      throw error_("This render has no verified music record, so it cannot be uploaded. Render it again with a verified track.");
+    }
+    if (music.attributionRequired !== true) return "";
+    const credit = String(music.attribution || "").trim();
+    if (!credit) throw error_("The music track's required credit text is missing, so the upload is refused.");
+    return credit;
+  }
+
+  // The disclosure, music credit and hashtags are always kept. Only the owner's description text is
+  // shortened to fit YouTube's 5000-character limit, so the required credit can never be cut off.
+  function buildDescription_(description, hashtags, musicCredit) {
     const disclosure = "Narration in this video was generated using an AI voice.";
     const hashLine = (Array.isArray(hashtags) ? hashtags : []).map(function (tag) {
       const value = String(tag || "").trim();
       return value ? (value.charAt(0) === "#" ? value : "#" + value.replace(/\s+/g, "")) : "";
     }).filter(Boolean).join(" ");
-    return (body + "\n\n" + disclosure + (hashLine ? "\n\n" + hashLine : "")).slice(0, 5000);
+    const tail = [disclosure]
+      .concat(musicCredit ? ["Music: " + musicCredit] : [])
+      .concat(hashLine ? [hashLine] : [])
+      .join("\n\n");
+    const body = String(description || "").trim().slice(0, Math.max(0, 5000 - tail.length - 2));
+    return body ? body + "\n\n" + tail : tail;
   }
   function normaliseTags_(tags) {
     return (Array.isArray(tags) ? tags : []).map(function (tag) {

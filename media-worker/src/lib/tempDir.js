@@ -10,3 +10,14 @@ export async function createJobWorkDir(jobId) {
     cleanup: () => rm(dir, { recursive: true, force: true })
   };
 }
+
+// Runs `run(workDir)` and always removes the work directory afterwards, whether the step succeeded,
+// failed in a later stage, or failed before any paid step (for example a music preflight).
+export async function withJobWorkDir(jobId, run, create = createJobWorkDir) {
+  const workDir = await create(jobId);
+  try {
+    return await run(workDir);
+  } finally {
+    await workDir.cleanup();
+  }
+}

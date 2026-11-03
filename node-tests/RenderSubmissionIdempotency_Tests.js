@@ -35,7 +35,10 @@ function providerFixture(options = {}) {
         posts.push(JSON.parse(request.payload));
         if (options.fetchThrows) throw new Error('Timeout: ' + url);
         const reply = options.reply || {};
-        const body = reply.raw !== undefined ? reply.raw : JSON.stringify(reply.json || { jobId: posts[posts.length - 1].jobId });
+        // Default success reply: the dispatcher's 202 with the confirmed music track (see submitRender).
+        const confirmed = { jobId: posts[posts.length - 1].jobId, music: { id: 'scott-buckley-beyond-these-walls', title: 'Beyond These Walls',
+          licence: 'CC-BY-4.0', attributionRequired: true, attribution: 'Test credit', sourceUrl: 'https://example.test/track' } };
+        const body = reply.raw !== undefined ? reply.raw : JSON.stringify(reply.json || confirmed);
         return { getResponseCode: () => reply.status || 202, getContentText: () => body };
       }
     }
