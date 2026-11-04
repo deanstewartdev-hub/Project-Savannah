@@ -1663,3 +1663,13 @@ Local only. No cloud resource was created, billing changed, deployment made, ren
 2. **Lifecycle rules are not applied.** They exist as tested files. Applying them to a bucket needs its own approval.
 3. **Budget is not a cap.** Spend is bounded by the operational controls in the proposal, not by the alert.
 4. **Read retries fail closed.** A job-state object changed three times in one read raises an error, and the submission is refused rather than guessed. Under heavy contention a submission can be refused and need to be retried by the caller.
+
+### 18i. Isolated staging: A1–A7 executed, S1 run (4 November 2026)
+
+Full results and deviations: GitHub Issue #28, comment 6639897160. Summary:
+
+- **Created in `savannah-staging-worker` only:** project (linked to billing), £5 GBP budget (alerts at 50/90/100%, scoped to the staging project), Artifact Registry `staging-images`, image `media-worker@sha256:164c21e2…` built from `fe300e0`, bucket `savannah-staging-media` (uniform access, public access prevention enforced, versioning off, approved 14-day lifecycle rule only), two secrets (random, staging-only), two service accounts with resource-scoped roles, render job `staging-render-job` (stub pipeline, no paid keys), dispatcher `savannah-staging-dispatcher` (no paid keys, identity verified).
+- **S1 (non-paid):** 6 of 6 PASS. Zero executions. Zero bucket objects.
+- **A6 blocked:** the existing staging Apps Script bridge needs an owner browser session to set script properties and authorise the web app. The callback allowlist holds the placeholder `STAGING-PENDING` until then. No callback test can run before the bridge exists.
+- **Deviations** from the proposal (a new service's first revision takes traffic; project-level logWriter and a default bucket soft-delete were added; the default Compute Editor role was removed; an early secret version with a carriage return was replaced) are listed in the issue comment.
+- **Not done:** A8–A12. Paused for fresh approval.
