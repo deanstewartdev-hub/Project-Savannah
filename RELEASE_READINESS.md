@@ -1634,3 +1634,32 @@ Two bugs were found and fixed by the tests. The integration test's callback rece
 7. **Stub staging video.** The staging pipeline does not render. S3 proves the callback and persistence path only.
 
 **Ready for isolated staging approval?** Yes, as a planning decision: the safeguards are implemented, tested locally, and the proposal lists every resource, permission, cap, cleanup step and test (`tools/staging/APPROVAL_PROPOSAL.md`). Real-service verification should start only after the approvals in that proposal (A1 to A12) are given. The production go/no-go remains NO-GO until S1 to S11 pass in staging and the manifest, the MP3 and the Versions 1 and 2 decision are closed.
+
+### 18h. Review fixes: consistent state reads, strict callback matching, retention and budget language (4 November 2026)
+
+Local only. No cloud resource was created, billing changed, deployment made, render run, music uploaded, production modified, or video published.
+
+**Fixes**
+
+1. **Consistent reads.** `src/lib/jobStateStore.js` (the Cloud Storage job-state store, now used by `storage.js`) reads the generation first, then downloads exactly that generation. If the object was replaced in between, the old generation's download fails and the read is repeated, up to three times. If it keeps changing, the read throws and nothing is written. A read never pairs one write's content with another write's generation.
+2. **Stale writes cannot overwrite newer states.** Every write is conditional on the generation the caller read. `test/jobStateStore.test.js` runs the real transitions against a fake bucket with a competing writer between the steps. Covered: a stale write to a newer queued state (after recovery), running, failed, succeeded and recovered; a stale creation over an existing state; a read raced three times; a deleted object during a read; a storage error during a read.
+3. **Strict callback allowlist.** `src/lib/environment.js` no longer uses prefix matching. Each allowlist entry is canonicalised at startup: https only (plain http only for loopback tests), no credentials, no fragment, no whitespace, control character or backslash, at most 2048 characters. An invalid entry stops the process. A callback is allowed only if its canonical form equals an entry's. Refused: deceptive hostnames (`script.google.com.attacker.example`, `script.google.com@attacker.example`), path tricks (`/../`, extended paths, a different deployment ID), query and fragment differences, other schemes, malformed and non-string input. Equivalent spellings (uppercase scheme and host, default port, `/./`) are the same endpoint and are allowed. Both job entry points take the validated allowlist.
+4. **Retention.** State records are never deleted by age. Production: a rule deletes only `job-requests/` after 7 days; there is no rule for `renders/` or `job-states/`. Staging: a 14-day backstop on `job-requests/` and `renders/`, and no rule for `job-states/`. The files are `media-worker/storage/lifecycle.production.json` and `lifecycle.staging.json`. `test/lifecycleConfig.test.js` fails if any rule could reach `job-states/`, or if production deletes renders by age. **Applying these rules to a bucket is a manual step that needs approval; the files alone change nothing.**
+5. **Budget language.** The proposal previously implied that a budget limits spending. It does not. The approval proposal now states that the £5 budget is alert-only (50%, 90% and 100%), that alerts can arrive hours late, and lists the controls that actually limit spend: no paid AI keys (enforced at startup), instance and task caps, a fixed count of executions, each approved. It lists shutdown controls in order (stop executions, stop the entry point, disable billing, shut down the project). An automatic billing cutoff is not part of the proposal.
+
+**Tests and results**
+
+| Suite | Result |
+|---|---|
+| `test/jobStateStore.test.js` (new) | 12 / 12 |
+| `test/lifecycleConfig.test.js` (new) | 5 / 5 |
+| `test/environment.test.js` | 17 / 17 (up from 9; new strict-matching, deception, path, query, scheme, malformed and startup tests) |
+| Worker suite (`node --test`) | **270 / 270** (was 245; the earlier tests are unchanged except the allowlist test, which now asserts exact matching) |
+| Main-app suite (`node node-tests/run-local.cjs`) | **exit 0, 458 PASS lines**, including the chain integration 8/8 |
+
+**Remaining risks**
+
+1. **Real bucket behaviour is still unmeasured.** The fake bucket models generations and preconditions. Staging measurement S6 confirms them against a real bucket.
+2. **Lifecycle rules are not applied.** They exist as tested files. Applying them to a bucket needs its own approval.
+3. **Budget is not a cap.** Spend is bounded by the operational controls in the proposal, not by the alert.
+4. **Read retries fail closed.** A job-state object changed three times in one read raises an error, and the submission is refused rather than guessed. Under heavy contention a submission can be refused and need to be retried by the caller.

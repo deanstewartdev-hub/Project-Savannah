@@ -1,0 +1,9 @@
+{
+  "note": "Production bucket lifecycle. Job-state records (job-states/) and render outputs (renders/) have NO rule: job-states must outlive every render for duplicate protection, and renders are the delivered videos. Only request payloads are deleted, after 7 days; a payload is never needed after its attempt has started, and a job whose payload is gone fails closed (it cannot start, and it is recorded as failed).",
+  "rule": [
+    {
+      "action": { "type": "Delete" },
+      "condition": { "age": 7, "matchesPrefix": ["job-requests/"] }
+    }
+  ]
+}

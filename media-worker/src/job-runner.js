@@ -3,7 +3,7 @@ import { runJob } from "./pipeline/runJob.js";
 import { postCallbackWithRetry } from "./lib/callback.js";
 import { downloadJson, deleteObject, jobStateStore } from "./lib/storage.js";
 import { executeRenderRequest } from "./lib/renderRequest.js";
-import { environmentOf, parseList } from "./lib/environment.js";
+import { assertEnvironment, environmentOf } from "./lib/environment.js";
 
 // The request handling lives in lib/renderRequest.js, where it is tested with in-memory stores. This file connects
 // the real storage, job state, pipeline and callback. Staging never runs this file: it has its own entry point
@@ -24,6 +24,8 @@ if (environmentOf(process.env) === "staging") {
   console.error("This entry point is production only; staging uses staging-job-runner.js.");
   process.exit(1);
 }
+// Validates the callback allowlist at startup (an invalid entry stops the job before any work).
+const { callbackAllowlist } = assertEnvironment(process.env);
 
 const outcome = await executeRenderRequest({
   jobId,
@@ -34,6 +36,6 @@ const outcome = await executeRenderRequest({
   runJob,
   postCallback: postCallbackWithRetry,
   dryRun: process.env.DRY_RUN === "true",
-  callbackAllowlist: parseList(process.env.CALLBACK_URL_ALLOWLIST)
+  callbackAllowlist: callbackAllowlist
 });
 process.exit(outcome.exitCode);

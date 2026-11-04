@@ -18,7 +18,8 @@ staging copy, with **no paid AI calls, no production callbacks, and no YouTube a
 | Storage bucket | New bucket `savannah-staging-media`. The dispatcher refuses to start unless `GCS_BUCKET` contains "staging" | `environment.test.js` |
 | Project name | The dispatcher refuses to start unless `CLOUD_RUN_PROJECT` contains "staging" | `environment.test.js` |
 | Paid AI | Staging refuses to start if any of `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `PEXELS_API_KEY` is set. The staging job never imports `config.js`, so it cannot read those keys at all | `environment.test.js`; `staging-job-runner.js` |
-| Callbacks | Staging posts only to endpoints in `CALLBACK_URL_ALLOWLIST` (the staging web app only). A callback to any other URL fails the attempt before a render, and the dispatcher refuses it with 400 at submit | `dispatcherIntegration.test.js` (staging allowlist), `renderRequest.test.js` |
+| Callbacks | Staging posts only to endpoints in `CALLBACK_URL_ALLOWLIST`. Each entry is canonicalised at startup (https only; no credentials, fragment, whitespace or backslash), and a callback is allowed only if its canonical form is identical to an entry. Prefix matching is not used. A callback to any other endpoint is refused with 400 at submit, and the job never renders | `environment.test.js` (deceptive hostnames, path tricks, query and scheme differences, malformed input, startup refusal of invalid entries), `dispatcherIntegration.test.js` (staging allowlist) |
+| Retention | Job-state records are never deleted by age, in production or staging. Lifecycle rules delete only request payloads (production, 7 days) and, in staging only, payloads and renders (14 days, a backstop). See section 3a | `lifecycleConfig.test.js` |
 | Music | Staging loads only `music/staging-manifest.json` (one synthetic tone, CC0, no real music). Production refuses `MUSIC_MANIFEST_PATH` | `environment.test.js`, `musicLicence` tests |
 | YouTube | No YouTube credentials in staging. The staging Apps Script uses its existing environment guard, which refuses every upload. The publishing preview is read-only | `StagingIsolation_Tests.js` (5/5), `StagingProjectSimulation_Tests.js` (6/6) |
 | Wrong target | The verifier refuses to send any job request unless `/health` reports `environment=staging`, the expected project and the expected service | `stagingVerifier.test.js` (6 tests) |
@@ -39,6 +40,18 @@ staging copy, with **no paid AI calls, no production callbacks, and no YouTube a
 
 Not created: any production resource, any paid AI key, any YouTube credential, any load balancer, any scheduler.
 
+## 3a. Retention and lifecycle
+
+Job-state records (`job-states/`) hold the duplicate protection. They must outlive every render, so no lifecycle rule
+touches them. They are small (a few hundred bytes each). The lifecycle files are version-controlled and tested:
+
+| Bucket | Rule | Why |
+|---|---|---|
+| Production (`media-worker/storage/lifecycle.production.json`) | Delete `job-requests/` after 7 days. Nothing else is deleted by age | A payload is not needed once its attempt has started. A job whose payload has gone cannot start and is recorded as failed |
+| Staging (`media-worker/storage/lifecycle.staging.json`) | Delete `job-requests/` and `renders/` after 14 days | A backstop only. The real cleanup is deleting the whole bucket (section 6) |
+
+The retention of `renders/` in production is unchanged by this work; the rule above is not applied to production renders.
+
 ## 4. Permissions summary
 
 - The operator's own account: project owner of `savannah-staging-worker` only, for setup and cleanup.
@@ -46,22 +59,40 @@ Not created: any production resource, any paid AI key, any YouTube credential, a
 - `render-staging@`: reads and writes the staging bucket. No Cloud Run, Secret Manager or other project access.
 - No account in production is granted any role in staging, and no staging account is granted any role in production.
 
-## 5. Spending cap and cost estimate
+## 5. Spending controls and cost estimate
 
-- Budget: **£5 per month** on the staging billing account, with alerts at 50%, 90% and 100%. A budget alert does not
-  stop spending by itself. The cap holds because the staging run has no paid AI service to spend on, and it is
-  limited to the executions listed in §7.
-- Estimates (list price, to be confirmed in the billing calculator before approval):
+**A budget is an alert, not a spending limit.** The £5 budget on the staging billing account notifies the owner by
+email when actual or forecast cost reaches 50%, 90% and 100% of £5. It does not stop spending. Charges can also appear
+hours after they are incurred, so an alert can arrive late. The controls that actually limit spend are these:
+
+| Control | What it limits | Type |
+|---|---|---|
+| No paid AI keys in staging, enforced at startup (`environment.test.js`) | No paid AI service can be called | Hard, by construction |
+| Dispatcher max instances 1; render job tasks 1, parallelism 1, max retries 0, timeout 300 s | Number and length of executions | Hard, configured |
+| Executions only as listed in section 7, each with its own approval | Number of executions | Operational (owner approval) |
+| Staging project holds one image, one bucket and two secrets | Storage and build cost | Structural |
+| Budget alerts at 50%, 90% and 100% of £5 | Early warning only | Alert, not a cap |
+
+**Shutdown controls, fastest first:**
+1. Stop executions: delete `staging-render-job`'s running executions, or delete the job. Immediate. Stops all render work.
+2. Stop the entry point: set the dispatcher to zero traffic, or delete `savannah-staging-dispatcher`. Immediate. No new job can be accepted.
+3. Stop billing: unlink or disable billing on `savannah-staging-worker`. This is the emergency stop for every billable service in the project. It is not cleanup: re-linking billing restores service, but work in progress is interrupted.
+4. Shut down the project (section 6, step 6). Keeps a 30-day recovery window, then deletes everything in the project.
+
+An automatic cutoff (a budget notification that triggers a function to disable billing) is **not** part of this proposal. It would be a separate resource with its own approval.
+
+Estimates are list-price approximations, to be confirmed in the billing calculator before approval. They do not include the
+billing delay described above.
 
 | Item | Estimate |
 |---|---|
 | Artifact Registry, one image of about 150 MB | about £0.02 per month |
-| Cloud Build (if the image is built in staging), 2 to 3 minutes | about £0.02 per build |
+| Cloud Build, if the image is built in staging, 2 to 3 minutes | about £0.02 per build |
 | Dispatcher, idle (min instances 0) | about £0 |
 | One dry-run execution (CPU 1, 1 GiB, about 20 s) | under £0.01 |
 | One stub-pipeline execution (about 60 s) | under £0.01 |
 | Bucket and secrets | under £0.01 per month |
-| Whole staging run, §7 | under £0.20 |
+| Whole staging run, section 7 (about 12 executions at most) | under £0.20 |
 
 ## 6. Cleanup
 
@@ -95,7 +126,7 @@ Local suites that must stay green before and after staging: worker `node --test`
 
 | # | Approval | Covers |
 |---|---|---|
-| A1 | Create project `savannah-staging-worker` and link a budget-capped billing account | §3, §5 |
+| A1 | Create project `savannah-staging-worker`, link a billing account, and set the £5 budget as alerts only (section 5) | §3, §5 |
 | A2 | Create the Artifact Registry repo and push the staging image (rebuilt from the approved commit) | §3 |
 | A3 | Create bucket `savannah-staging-media` with the settings in §3 | §3 |
 | A4 | Create the two staging secrets (random values, staging only) and the two service accounts with §4 roles | §3, §4 |
@@ -117,3 +148,6 @@ storage, YouTube uploads, or any change to the production callback endpoint.
 - Recovery needs an operator to confirm that no execution is running. A job still running after its task timeout (300 s in staging, 1200 s in production) could be recovered by mistake. Check `/jobs/status` before using recovery.
 - A job whose state write fails after a successful render stays `running` (blocked). Recovery needs the explicit operation, and it refuses if the video was delivered.
 - The stub pipeline does not render. S3 proves the callback, inbox and persistence path, not video quality.
+- Stale reads: the store reads a generation and its content together (a download of exactly that generation), and every write is conditional on the generation the caller read. Tests model a competing writer at each step with a fake bucket. Real-bucket behaviour is measured in S6.
+- A competing writer that races a stale write is refused, never merged, and the newer state is kept (tests cover queued, running, failed, succeeded and recovered).
+- The budget is an alert and not a cap (section 5). Spend is bounded by the controls in section 5, not by the budget.

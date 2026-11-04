@@ -50,10 +50,87 @@ test("an unknown environment name is refused, so a typo cannot fall through to p
   assert.throws(() => environmentOf({ SAVANNAH_ENVIRONMENT: "stagging" }), /production or staging/);
 });
 
-test("a callback is allowed only to an endpoint on the allowlist, and an empty allowlist means no restriction", () => {
-  const allowlist = ["https://script.google.com/macros/s/STAGING/exec"];
-  assert.equal(callbackAllowed("https://script.google.com/macros/s/STAGING/exec?route=media-worker-callback", allowlist), true);
+const STAGING_EXEC = "https://script.google.com/macros/s/STAGING/exec?route=media-worker-callback";
+
+test("a callback is allowed only to the exact endpoint on the allowlist; an empty allowlist means no restriction", () => {
+  const allowlist = [STAGING_EXEC];
+  assert.equal(callbackAllowed(STAGING_EXEC, allowlist), true);
   assert.equal(callbackAllowed("https://script.google.com/macros/s/PRODUCTION/exec?route=media-worker-callback", allowlist), false);
   assert.equal(callbackAllowed("https://attacker.example/exec", allowlist), false);
   assert.equal(callbackAllowed("https://anything.example/exec", []), true);
+});
+
+test("deceptive hostnames are refused, because matching is exact and never a prefix", () => {
+  const allowlist = [STAGING_EXEC];
+  const deceptive = [
+    "https://script.google.com.attacker.example/macros/s/STAGING/exec?route=media-worker-callback",
+    "https://script.google.com.evil/macros/s/STAGING/exec?route=media-worker-callback",
+    "https://evil-script.google.com/macros/s/STAGING/exec?route=media-worker-callback",
+    "https://script.google.com@attacker.example/macros/s/STAGING/exec?route=media-worker-callback",
+    "https://attacker.example/script.google.com/macros/s/STAGING/exec?route=media-worker-callback"
+  ];
+  for (const url of deceptive) assert.equal(callbackAllowed(url, allowlist), false, url);
+});
+
+test("path tricks are refused: dot segments, extended paths and a different deployment ID", () => {
+  const allowlist = [STAGING_EXEC];
+  const tricks = [
+    "https://script.google.com/macros/s/STAGING/exec/../PRODUCTION/exec?route=media-worker-callback",
+    "https://script.google.com/macros/s/STAGING/exec/extra?route=media-worker-callback",
+    "https://script.google.com/macros/s/STAGING-OTHER/exec?route=media-worker-callback",
+    "https://script.google.com/macros/s/STAGING/execute?route=media-worker-callback"
+  ];
+  for (const url of tricks) assert.equal(callbackAllowed(url, allowlist), false, url);
+});
+
+test("query, fragment, credential and scheme differences are refused", () => {
+  const allowlist = [STAGING_EXEC];
+  const differences = [
+    "https://script.google.com/macros/s/STAGING/exec?route=other",
+    "https://script.google.com/macros/s/STAGING/exec",
+    "https://script.google.com/macros/s/STAGING/exec?route=media-worker-callback&extra=1",
+    "https://script.google.com/macros/s/STAGING/exec?route=media-worker-callback#fragment",
+    "https://user:secret@script.google.com/macros/s/STAGING/exec?route=media-worker-callback",
+    "http://script.google.com/macros/s/STAGING/exec?route=media-worker-callback",
+    "ftp://script.google.com/macros/s/STAGING/exec?route=media-worker-callback"
+  ];
+  for (const url of differences) assert.equal(callbackAllowed(url, allowlist), false, url);
+});
+
+test("malformed or unexpected input is refused", () => {
+  const allowlist = [STAGING_EXEC];
+  const malformed = [
+    "", "   ", "not a url", "https://", "https://script.google.com/macros/s/STAGING/exec?route=media-worker-callback\n",
+    "https://script.google.com\\macros\\s\\STAGING\\exec", "https://script.google.com/macros/s/STAGING/exec?route=media-worker-callback\u0000",
+    undefined, null, 42, {}, ["https://script.google.com/macros/s/STAGING/exec?route=media-worker-callback"]
+  ];
+  for (const value of malformed) assert.equal(callbackAllowed(value, allowlist), false, String(value));
+  assert.equal(callbackAllowed(STAGING_EXEC + "x".repeat(3000), allowlist), false, "over-long input is refused");
+});
+
+test("an equivalent spelling of the same endpoint is the same endpoint: case, default port and dot segments normalise", () => {
+  const allowlist = [STAGING_EXEC];
+  assert.equal(callbackAllowed("HTTPS://SCRIPT.GOOGLE.COM:443/macros/s/STAGING/exec?route=media-worker-callback", allowlist), true);
+  // A dot segment that normalises to the same path is the same endpoint, so it is allowed; one that normalises to a
+  // different path is a different endpoint, and is refused (see the path tricks test).
+  assert.equal(callbackAllowed("https://script.google.com/macros/s/./STAGING/exec?route=media-worker-callback", allowlist), true);
+});
+
+test("an invalid allowlist entry is an error at startup, never a silent match", () => {
+  assert.throws(() => assertEnvironment(with_({ CALLBACK_URL_ALLOWLIST: "https://script.google.com/a/b, http://example.com/exec" })),
+    /must use https/);
+  assert.throws(() => assertEnvironment(with_({ CALLBACK_URL_ALLOWLIST: "https://user:pw@script.google.com/exec" })), /credentials/);
+  assert.throws(() => assertEnvironment(with_({ CALLBACK_URL_ALLOWLIST: "not a url" })), /whitespace|valid URL/);
+  assert.throws(() => assertEnvironment({ CALLBACK_URL_ALLOWLIST: "https://script.google.com/exec#x" }), /fragment/);
+});
+
+test("the staging allowlist is canonicalised at startup, so a loose spelling in config still matches exactly", () => {
+  const result = assertEnvironment(with_({ CALLBACK_URL_ALLOWLIST: "HTTPS://SCRIPT.GOOGLE.COM:443/macros/s/STAGING/exec?route=media-worker-callback" }));
+  assert.deepEqual(result.callbackAllowlist, [STAGING_EXEC]);
+  assert.equal(callbackAllowed(STAGING_EXEC, result.callbackAllowlist), true);
+});
+
+test("loopback http is accepted for local tests only", () => {
+  assert.equal(callbackAllowed("http://127.0.0.1:18082/exec", ["http://127.0.0.1:18082/exec"]), true);
+  assert.equal(callbackAllowed("http://example.com/exec", ["http://example.com/exec"]), false);
 });

@@ -1,0 +1,9 @@
+{
+  "note": "Staging bucket lifecycle, a backstop only. The staging run is cleaned up by deleting the bucket (APPROVAL_PROPOSAL.md section 6). Job-state records (job-states/) have NO rule, so they are never removed by age while a run is in progress. Payloads and renders are deleted after 14 days in case cleanup is missed.",
+  "rule": [
+    {
+      "action": { "type": "Delete" },
+      "condition": { "age": 14, "matchesPrefix": ["job-requests/", "renders/"] }
+    }
+  ]
+}

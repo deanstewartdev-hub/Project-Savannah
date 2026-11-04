@@ -8,6 +8,9 @@ export const ENVIRONMENTS = Object.freeze(["production", "staging"]);
 // Keys that would let a staging process call a paid AI service. Staging must not have them at all.
 export const PAID_KEY_NAMES = Object.freeze(["OPENAI_API_KEY", "ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID", "PEXELS_API_KEY"]);
 
+const LOOPBACK_HOSTS = Object.freeze(["127.0.0.1", "localhost"]);
+const MAX_ENDPOINT_LENGTH = 2048;
+
 export function parseList(value) {
   return String(value || "")
     .split(",")
@@ -23,11 +26,45 @@ export function environmentOf(env) {
   return value;
 }
 
+// Turns one endpoint into its canonical form, or throws. Accepted: an https URL with a host, no credentials and no
+// fragment, and no whitespace, control characters or backslashes. Plain http is accepted only for loopback, which
+// is for local tests. The canonical form is WHATWG's href, so ports, dot segments and case are normalised before
+// any comparison, and two URLs are the same endpoint only if their canonical forms are identical.
+export function normalizeEndpoint(raw) {
+  if (typeof raw !== "string" || raw.length === 0 || raw.length > MAX_ENDPOINT_LENGTH) {
+    throw new Error("The endpoint must be a non-empty string of at most " + MAX_ENDPOINT_LENGTH + " characters.");
+  }
+  if (/[\s\\\u0000-\u001f\u007f]/.test(raw)) {
+    throw new Error("The endpoint contains whitespace, a backslash or a control character.");
+  }
+  let url;
+  try {
+    url = new URL(raw);
+  } catch (error) {
+    throw new Error("The endpoint is not a valid URL.");
+  }
+  if (url.username !== "" || url.password !== "") {
+    throw new Error("The endpoint must not contain credentials.");
+  }
+  if (url.hash !== "") {
+    throw new Error("The endpoint must not contain a fragment.");
+  }
+  if (url.hostname === "") {
+    throw new Error("The endpoint must have a host.");
+  }
+  const loopback = LOOPBACK_HOSTS.indexOf(url.hostname) !== -1;
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) {
+    throw new Error("The endpoint must use https (http is allowed only for loopback tests).");
+  }
+  return url.href;
+}
+
 // Throws unless the environment is production, or it is staging and every staging check passes.
-// Returns the callback allowlist (empty for production, which keeps its existing behaviour).
+// Returns the callback allowlist as canonical endpoints (empty for production, which keeps its existing behaviour).
+// An invalid allowlist entry is an error at startup, never silently ignored.
 export function assertEnvironment(env) {
   const environment = environmentOf(env);
-  const callbackAllowlist = parseList(env.CALLBACK_URL_ALLOWLIST);
+  const callbackAllowlist = parseList(env.CALLBACK_URL_ALLOWLIST).map(normalizeEndpoint);
   if (environment === "production") {
     if (env.MUSIC_MANIFEST_PATH) {
       throw new Error("Production must use the verified manifest, not MUSIC_MANIFEST_PATH.");
@@ -50,9 +87,23 @@ export function assertEnvironment(env) {
   return { environment: environment, callbackAllowlist: callbackAllowlist };
 }
 
-// A callback is posted only if it starts with an allowed endpoint. An empty allowlist allows everything, which is
-// only ever the production behaviour (assertEnvironment refuses staging without an allowlist).
+// Exact endpoint matching. A callback is allowed only if its canonical form equals the canonical form of an allowlist
+// entry. Prefix matching is never used: a prefix could be extended by a longer hostname, path or query. An empty
+// allowlist allows everything, which is only the production behaviour (staging always has one, see assertEnvironment).
+// A callback that cannot be normalised is refused, and an allowlist entry that cannot be normalised matches nothing.
 export function callbackAllowed(callbackUrl, allowlist) {
   if (!allowlist || allowlist.length === 0) return true;
-  return allowlist.some((prefix) => String(callbackUrl || "").indexOf(prefix) === 0);
+  let canonical;
+  try {
+    canonical = normalizeEndpoint(callbackUrl);
+  } catch (error) {
+    return false;
+  }
+  return allowlist.some((entry) => {
+    try {
+      return normalizeEndpoint(entry) === canonical;
+    } catch (error) {
+      return false;
+    }
+  });
 }
