@@ -30,7 +30,7 @@ staging copy, with **no paid AI calls, no production callbacks, and no YouTube a
 |---|---|---|
 | Project | `savannah-staging-worker` | Billing linked only to a budget with alerts (see §5) |
 | Artifact Registry | repo `staging-images` | One image: the v18 candidate, rebuilt from the approved commit |
-| Bucket | `savannah-staging-media` | Uniform bucket-level access, public access prevention enforced, no versioning, lifecycle rule deleting objects after 7 days |
+| Bucket | `savannah-staging-media` | Uniform bucket-level access, public access prevention enforced, no versioning, 14-day lifecycle backstop for `job-requests/` and `renders/` only; no lifecycle deletion of `job-states/` |
 | Secret | `staging-submit-secret`, `staging-callback-secret` | Staging-only random values. Not copied from production |
 | Cloud Run service | `savannah-staging-dispatcher` | Min instances 0, max instances 1, CPU 1, 512 MiB. Env: `SAVANNAH_ENVIRONMENT=staging`, `CLOUD_RUN_PROJECT=savannah-staging-worker`, `GCS_BUCKET=savannah-staging-media`, `RENDER_JOB_NAME=staging-render-job`, `RENDER_JOB_ALLOWED_IMAGES=<staging image digest>`, `CALLBACK_URL_ALLOWLIST=<staging web app /exec URL>`, `MUSIC_MANIFEST_PATH=music/staging-manifest.json`. Secret: `JOB_SUBMIT_SECRET` from `staging-submit-secret`. Unauthenticated invocation allowed (the app-level secret gates `/jobs`, as in production) |
 | Cloud Run job | `staging-render-job` | Image: the same v18 digest (runs `staging-job-runner.js` via the `CMD` override). Task timeout 300 s, max retries 0, parallelism 1, tasks 1, CPU 1, 1 GiB. Env as above, no paid keys. No secrets |
