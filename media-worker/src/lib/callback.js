@@ -82,8 +82,14 @@ export async function postCallbackWithRetry(callbackUrl, payload, options = {}) 
   const delays = options.delaysMs || DEFAULT_CALLBACK_RETRY_DELAYS_MS;
   const sleep = options.sleep || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const log = options.log || ((message) => console.warn(message));
+  const failFirst = Number.isInteger(options.failFirstAttempts) ? options.failFirstAttempts : 0;
   for (let attempt = 0; ; attempt++) {
     try {
+      // Staging test control only (see stagingTestFaults.js). The first failFirst attempts are
+      // rejected before anything is sent, so the retry below is the first real delivery.
+      if (attempt < failFirst) {
+        throw Object.assign(new Error(`Injected transient callback failure (staging test, attempt ${attempt + 1}).`), { httpStatus: 503 });
+      }
       return await postCallback(callbackUrl, payload, options.callbackSecret);
     } catch (error) {
       if (attempt >= delays.length || !isRetryableCallbackError(error)) throw error;

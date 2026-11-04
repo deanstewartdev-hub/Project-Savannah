@@ -53,6 +53,7 @@ export async function executeRenderRequest({
   postCallback,
   dryRun = false,
   callbackAllowlist = [],
+  callbackTestFaults = {},
   now = () => new Date().toISOString(),
   log = console
 }) {
@@ -89,7 +90,8 @@ export async function executeRenderRequest({
     log.error(`[${jobId}] the request payload could not be deleted; the job state still protects this jobId:`, error);
   }
 
-  const callbackOptions = { callbackSecret: request.callbackSecret };
+  // callbackTestFaults is empty except in the staging runner (staging-only test controls).
+  const callbackOptions = { callbackSecret: request.callbackSecret, ...callbackTestFaults };
   let result;
   try {
     result = await runJob({

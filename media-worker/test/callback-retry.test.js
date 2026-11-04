@@ -151,3 +151,25 @@ test("classifier: unknown errors are retryable, tagged permanent ones are not", 
   // a deliverable video can never succeed on resend.
   assert.equal(isRetryableCallbackError(Object.assign(new Error("x"), { rejection: "Malformed callback: completed without an https video URL." })), false);
 });
+
+// Staging test control (S5): the first attempts are rejected before anything is sent, so the existing retry
+// routine must deliver the payload itself. The bridge sees exactly one delivery, with the identical payload.
+test("staging test fault: an injected transient failure is retried and delivered exactly once", async () => {
+  const r = recorder();
+  await withServer([{ body: { success: true, queued: true } }], async (url, seen) => {
+    await postCallbackWithRetry(url, payload, { ...r.options, failFirstAttempts: 1 });
+    assert.equal(seen.length, 1, "the injected attempt must not reach the bridge");
+    assert.deepEqual(JSON.parse(seen[0]), payload);
+    assert.deepEqual(r.slept, [5], "exactly one retry delay after the injected failure");
+    assert.ok(r.logs.some((m) => /Injected transient callback failure/.test(m)), "the injected failure is logged");
+  });
+});
+
+test("staging test fault: more injected failures than retries still fail after the bounded schedule", async () => {
+  const r = recorder();
+  await withServer([{ body: { success: true } }], async (url, seen) => {
+    await assert.rejects(postCallbackWithRetry(url, payload, { ...r.options, failFirstAttempts: 4 }), /Injected transient/);
+    assert.equal(seen.length, 0);
+    assert.deepEqual(r.slept, [5, 10, 20]);
+  });
+});

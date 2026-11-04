@@ -5,6 +5,7 @@ import { executeRenderRequest } from "./lib/renderRequest.js";
 import { assertEnvironment } from "./lib/environment.js";
 import { createStubPipeline } from "./lib/stubPipeline.js";
 import { MUSIC_MANIFEST } from "./lib/musicManifest.js";
+import { stagingTestFaults } from "./lib/stagingTestFaults.js";
 
 // The staging render job. It runs the real request handling, job state and callback, with the stub pipeline in
 // place of every paid step (narration, alignment, visuals, assembly). It never imports config.js, so it cannot
@@ -21,11 +22,21 @@ if (!jobId || !attemptId) {
   process.exit(1);
 }
 
+// Staging-only test controls (S5, S7). Off unless set; refused outside staging.
+let faults;
+try {
+  faults = stagingTestFaults(process.env);
+} catch (faultError) {
+  console.error(faultError.message);
+  process.exit(1);
+}
+
 const pipeline = createStubPipeline({
   manifest: MUSIC_MANIFEST,
   existsFn: objectExists,
   downloadFn: downloadToFile,
-  minSeconds: 3
+  minSeconds: 3,
+  fail: faults.failRenderAfterMusic
 });
 
 const outcome = await executeRenderRequest({
@@ -37,6 +48,7 @@ const outcome = await executeRenderRequest({
   runJob: pipeline,
   postCallback: postCallbackWithRetry,
   dryRun: process.env.DRY_RUN === "true",
-  callbackAllowlist: callbackAllowlist
+  callbackAllowlist: callbackAllowlist,
+  callbackTestFaults: faults.callbackTestFaults
 });
 process.exit(outcome.exitCode);
