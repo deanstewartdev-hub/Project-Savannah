@@ -66,3 +66,41 @@ export async function objectExists(destination) {
   const [exists] = await bucket.file(destination).exists();
   return exists;
 }
+
+// Job state store (see jobState.js). Conditional writes use Cloud Storage generation preconditions: a create
+// succeeds only if the object is absent, and a replace succeeds only if the generation read is still current.
+// A lost race returns { ok: false }; any other storage error is thrown, so the caller fails closed.
+export const jobStateStore = {
+  async read(path) {
+    const file = bucket.file(path);
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    const [contents] = await file.download();
+    const [metadata] = await file.getMetadata();
+    return { value: JSON.parse(contents.toString("utf8")), generation: String(metadata.generation) };
+  },
+  async createIfAbsent(path, value) {
+    try {
+      await bucket.file(path).save(JSON.stringify(value), {
+        contentType: "application/json",
+        preconditionOpts: { ifGenerationMatch: 0 }
+      });
+      return { ok: true };
+    } catch (error) {
+      if (error && error.code === 412) return { ok: false, reason: "exists" };
+      throw error;
+    }
+  },
+  async replaceIfGeneration(path, value, generation) {
+    try {
+      await bucket.file(path).save(JSON.stringify(value), {
+        contentType: "application/json",
+        preconditionOpts: { ifGenerationMatch: Number(generation) }
+      });
+      return { ok: true };
+    } catch (error) {
+      if (error && error.code === 412) return { ok: false, reason: "changed" };
+      throw error;
+    }
+  }
+};

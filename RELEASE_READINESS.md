@@ -1592,3 +1592,45 @@ Open:
 - [ ] Chefchaouen Versions 1 and 2 decision
 
 **Recommendation: NO-GO for production.** The code is tested locally and fails closed, but no real-service staging run has happened, the in-flight duplicate gap is unmeasured, and the track and Versions 1 and 2 decisions are open. Go/no-go is re-assessed after T1 to T10 pass in staging with the approvals above.
+
+### 18g. Duplicate-render safeguards: atomic reservation, persistent state, explicit recovery (4 November 2026)
+
+Local only. No cloud resource was created, linked or deployed, and no render, music upload, production change or YouTube action ran. Production is unchanged: dispatcher `00015-bay` at 100%, render job `d010ddcf…`, main app v97.
+
+**What the safeguards are**
+
+1. **Atomic reservation.** Each jobId has one state object, `job-states/<jobId>.json`. A submission creates it with a create-only write (`ifGenerationMatch: 0`). Only one writer can succeed. Every later change replaces the object only if the generation read is still current. The Cloud Storage store is `jobStateStore` in `storage.js`. A lost race returns a refusal. Any other storage error throws, and the dispatcher answers 503, so a storage error never starts paid work.
+2. **Persistent states.** `queued`, `running`, `succeeded`, `failed` and `uncertain` survive restarts because they live in Cloud Storage, not in the request payload. The request payload is deleted once the attempt starts, but the state keeps protecting the jobId. The record holds no secret, and it keeps a history of attempts.
+3. **Attempts.** The dispatcher gives each submission an attempt ID and passes it to the execution as `ATTEMPT_ID`. The job may move the state only while it holds the attempt. A stale or recovered execution cannot start or finish another attempt. The production job refuses to run without `ATTEMPT_ID`.
+4. **Uncertain starts never restart automatically.** If Cloud Run returns a definite refusal (INVALID_ARGUMENT, NOT_FOUND, PERMISSION_DENIED, FAILED_PRECONDITION, UNAUTHENTICATED, or HTTP 400/401/403/404), the attempt ends as `failed`. Any other error (deadline, unavailable, internal) leaves the job `uncertain`.
+5. **Explicit recovery only.** `POST /jobs/recover` restarts a `queued`, `failed`, `uncertain` or `running` job with a new attempt, and only with the exact confirmation phrase `restart <jobId>: no execution is running`. A succeeded job is never recoverable. A job whose video was already delivered is refused.
+6. **Callback idempotency and reconciliation unchanged.** Callback delivery, retries and the inbox are as before. A callback that cannot be delivered is logged, and the outcome is still recorded as succeeded.
+7. **Historical records.** Jobs created before this change have no state object. They stay protected by the existing checks: a waiting request, or a delivered `final.mp4`, refuses a repeat with 409.
+
+**Environment identity (item 7).** `SAVANNAH_ENVIRONMENT` defaults to `production`, which needs no new settings. A staging deployment refuses to start unless its project and bucket names contain "staging", it names an explicit callback allowlist, and it holds no paid AI key. Production refuses `MUSIC_MANIFEST_PATH`, so a staging manifest cannot reach it. `/health` reports environment, project and service, and the staging verifier checks all three before sending any job request. The staging job (`staging-job-runner.js`) never imports `config.js`, so it cannot read paid keys.
+
+**Tests and results**
+
+| Suite | Result | What it covers |
+|---|---|---|
+| `test/jobState.test.js` | 13 / 13 | Two simultaneous submissions (one reserves); duplicates while queued, running, after success and after failure; storage errors on reserve, read and outcome writes; uncertain start, never restarted automatically; definite refusal; interrupted process and recovery, with the stale attempt unable to finish; a stale generation write refused; no secret in the state record |
+| `test/dispatcherIntegration.test.js` | 23 / 23 | Accepted request, execution, callback, state persisted after payload deletion; failed render and explicit recovery; simultaneous HTTP submissions (one 202, two 409); duplicate while queued, running (from inside the render) and after success, with replay refused; duplicates after failure; uncertain start and recovery; definite refusal; storage errors on reserve, duplicate check, and request upload; interrupted render and the old attempt; delivered video never re-rendered; refusals before any write; wrong image and empty allowlist; placeholder run; wrong secret; health identity; staging callback allowlist; crash after reservation; crash after the request is stored; crash after Cloud Run created the execution (one execution only); state survives a restart (queued, succeeded, running) |
+| `test/renderRequest.test.js` | 7 / 7 | The attempt that holds the job runs it; a non-holder is refused and nothing is read or deleted; a disallowed callback fails before any render; payload delete failure logged and the job continues; callback failure logged, outcome still succeeded; state write failure after success logged and left running (blocked); unreadable payload fails the attempt |
+| `test/environment.test.js` | 9 / 9 | Production default and manifest refusal; complete staging accepted; project, bucket, allowlist and every paid key each refused; unknown environment refused; callback allowlist |
+| `test/stagingVerifier.test.js` | 6 / 6 | Identity matching per field; expected names must say staging; end-to-end run of the script against a staging dispatcher (6 of 6, five refusals, no accepted request, secret never printed); identity mismatch stops before any job request; a production dispatcher refused even with matching names; refuses without identity settings |
+| Worker suite (`node --test`) | **245 / 245** | All of the above and the existing suites |
+| Main-app suite (`node node-tests/run-local.cjs`) | **exit 0, 458 PASS lines** | Includes the chain integration 8/8, upload recovery, music and metadata, configuration compatibility (updated for the new source locations) |
+
+Two bugs were found and fixed by the tests. The integration test's callback receiver answered `ok: true` where Apps Script answers `success: true`, which the sender retried. Two tests had callbacks to a closed port, which made them wait through the real retry schedule; they now use a receiver.
+
+**Remaining risks (not fixed here)**
+
+1. **Real bucket behaviour is unmeasured.** Generation preconditions are modelled in memory. The installed `@google-cloud/storage` passes `ifGenerationMatch` through on save, but S6 (§18g approval proposal) must confirm it on a real bucket.
+2. **Recovery can repeat paid work if misused.** A `running` job whose execution is still alive could be recovered by mistake, and a second render would then start. The confirmation phrase is the only guard. Before recovery, check `/jobs/status` and the execution. Production's task timeout (1200 s) bounds how long a running job can stay alive.
+3. **A job can be stuck `queued`** if the dispatcher dies after reserving and before the execution starts or fails. Duplicates are refused, so the job blocks until an explicit recovery. This is deliberate (fail closed), but operators will see it.
+4. **Mixed versions.** A production job image that expects `ATTEMPT_ID` refuses to run under the old dispatcher, which never sets it. The shared render job must not be updated while the old dispatcher is serving (the §18d sequence already requires this). The dispatcher and the render job must be deployed as one matched pair.
+5. **The legacy in-process route (`routes/jobs.js`, used only by the retired Railway server) has no job state.** It must not be used for production renders.
+6. **Historical jobs have no state record.** They rely on the request and `final.mp4` checks. An old jobId whose request was already deleted and whose video was never delivered (a failed historical render) is not blocked by the state, so repeating it would start a new execution. Such jobs are not re-used by the main app, which always reserves new IDs.
+7. **Stub staging video.** The staging pipeline does not render. S3 proves the callback and persistence path only.
+
+**Ready for isolated staging approval?** Yes, as a planning decision: the safeguards are implemented, tested locally, and the proposal lists every resource, permission, cap, cleanup step and test (`tools/staging/APPROVAL_PROPOSAL.md`). Real-service verification should start only after the approvals in that proposal (A1 to A12) are given. The production go/no-go remains NO-GO until S1 to S11 pass in staging and the manifest, the MP3 and the Versions 1 and 2 decision are closed.

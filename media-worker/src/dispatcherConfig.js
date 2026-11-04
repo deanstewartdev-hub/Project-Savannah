@@ -1,5 +1,6 @@
 import { optionalSecretEnv, requireSecretEnv } from "./lib/secretFormat.js";
 import { parseAllowedImages } from "./lib/renderJobGuard.js";
+import { assertEnvironment } from "./lib/environment.js";
 
 // Deliberately separate from config.js: the dispatcher process must never require
 // OPENAI_API_KEY/ELEVENLABS_API_KEY/ELEVENLABS_VOICE_ID/PEXELS_API_KEY just to boot, since
@@ -13,8 +14,15 @@ function required(name) {
   return value;
 }
 
+// Environment identity is checked at startup: a staging dispatcher with a production project, bucket, missing
+// callback allowlist or a paid key refuses to start. Production needs no new settings and keeps its behaviour.
+const environment = assertEnvironment(process.env);
+
 export const dispatcherConfig = {
   port: Number(process.env.PORT) || 8080,
+  environment: environment.environment,
+  // Set by Cloud Run itself; identifies the service in /health so a verifier can confirm which one it reached.
+  serviceName: process.env.K_SERVICE || "",
   // Must never resolve to "" - see requireSecretEnv: an empty JOB_SUBMIT_SECRET used
   // to make requireAuth() wave every request through unauthenticated (SAV-13).
   jobSubmitSecret: requireSecretEnv("JOB_SUBMIT_SECRET"),
@@ -29,5 +37,8 @@ export const dispatcherConfig = {
   renderJobName: required("RENDER_JOB_NAME"),
   // Container images of the render job that verify music (see lib/renderJobGuard.js). Empty means
   // no job will start, which is the fail-closed default.
-  allowedRenderImages: parseAllowedImages(process.env.RENDER_JOB_ALLOWED_IMAGES)
+  allowedRenderImages: parseAllowedImages(process.env.RENDER_JOB_ALLOWED_IMAGES),
+  // Callback endpoints this environment may post to. Empty in production (no restriction, as before);
+  // required in staging.
+  callbackUrlAllowlist: environment.callbackAllowlist
 };
