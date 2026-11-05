@@ -704,6 +704,9 @@ const ProductionController = (() => {
       if (!source.approvedMetadataHash || source.approvedMetadataHash !== reviewed.metadataHash) {
         throw error_("The YouTube details changed after review, or were never approved. Review the exact details again before uploading.");
       }
+      // A staging project must refuse BEFORE the publishing record is written, so a refused staging attempt
+      // leaves no record behind. (upload() keeps its own identical guard as a second layer.)
+      assertNotStaging_("YouTube upload");
       let job = PublishingJobRepository.save(PublishingJobModel.create({
         id: attemptId,
         renderJobId: renderJob.id,
