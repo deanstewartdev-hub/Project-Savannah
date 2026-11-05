@@ -323,13 +323,35 @@ const StagingVerificationService = (() => {
     return { jobId: jobId, renderId: renderId, drained: drained, row: row, receipts: receipts };
   }
 
+  // STAGING ONLY, read-only: the Render Jobs row and the inbox receipts for one staging render ID.
+  function reportRenderRow(env, renderId) {
+    assertStaging_(env);
+    const row = env.renderJobs().filter(function (job) { return job.renderId === renderId; })[0] || null;
+    const receipts = env.receipts().filter(function (r) { return r.renderId === renderId; }).map(function (r) {
+      return { status: r.status, result: r.result || "PENDING", handled: !!r.handled };
+    });
+    return {
+      renderId: renderId,
+      row: row ? { jobId: row.id, status: row.status, errorMessage: row.errorMessage || "", videoUrl: row.videoUrl || "" } : null,
+      receipts: receipts
+    };
+  }
+
   return {
     seed: function (env) { return seed(env || defaultEnv_()); },
     verify: function (env) { return verify(env || defaultEnv_()); },
     publishSafety: function (env) { return publishSafety(env || defaultEnv_()); },
-    attachRenderRow: function (renderId, env) { return attachRenderRow(env || defaultEnv_(), renderId); }
+    attachRenderRow: function (renderId, env) { return attachRenderRow(env || defaultEnv_(), renderId); },
+    reportRenderRow: function (renderId, env) { return reportRenderRow(env || defaultEnv_(), renderId); }
   };
 })();
+
+/** STAGING ONLY, read-only. Logs the S7 failed render's row and receipts. */
+function stagingReportS7Row() {
+  const report = StagingVerificationService.reportRenderRow("cr-065edd3a-f3d0-4273-ae42-67e7f574246e");
+  Logger.log("S7 report " + JSON.stringify(report));
+  return report;
+}
 
 /** STAGING ONLY. S7: attach a synthetic row to an existing failed staging render ID and apply its receipt. */
 function stagingAttachRenderRow(renderId) {
