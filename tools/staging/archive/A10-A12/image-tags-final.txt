@@ -1,0 +1,4 @@
+Listing items under project savannah-staging-worker, location europe-west2, repository staging-images.
+
+sha256:164c21e210a876807da4404c55b3933aa650ccdf282b43a745cfc629cd3f8b7a	fe300e0
+sha256:ff5a864953e5c9e43a691896b5b890113dcac1efab2901bbe04b6099549b8ba5	s5s7-67eb5cf

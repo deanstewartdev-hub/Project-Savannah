@@ -1,0 +1,4 @@
+status:
+  traffic:
+  - percent: 100
+    revisionName: savannah-staging-dispatcher-00004-bnr

@@ -1,0 +1,16 @@
+gs://savannah-staging-media/:
+
+gs://savannah-staging-media/job-requests/:
+gs://savannah-staging-media/job-requests/cr-a8-dryrun-53799efe6005fdfa57eb5a17.json
+
+gs://savannah-staging-media/job-states/:
+gs://savannah-staging-media/job-states/cr-065edd3a-f3d0-4273-ae42-67e7f574246e.json
+gs://savannah-staging-media/job-states/cr-5eb82aec-72e1-4948-8af5-d24e6bbef32c.json
+gs://savannah-staging-media/job-states/cr-a8-dryrun-53799efe6005fdfa57eb5a17.json
+gs://savannah-staging-media/job-states/cr-f158cc11-7363-46a8-9e3a-2063aef77bf7.json
+gs://savannah-staging-media/job-states/cr-s5-45cc13319119.json
+gs://savannah-staging-media/job-states/cr-s6-740831907d3a.json
+gs://savannah-staging-media/job-states/cr-s6r-139f18955fd6.json
+
+gs://savannah-staging-media/music/:
+gs://savannah-staging-media/music/staging-test-tone.mp3

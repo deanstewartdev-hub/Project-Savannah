@@ -1673,3 +1673,13 @@ Full results and deviations: GitHub Issue #28, comment 6639897160. Summary:
 - **A6 blocked:** the existing staging Apps Script bridge needs an owner browser session to set script properties and authorise the web app. The callback allowlist holds the placeholder `STAGING-PENDING` until then. No callback test can run before the bridge exists.
 - **Deviations** from the proposal (a new service's first revision takes traffic; project-level logWriter and a default bucket soft-delete were added; the default Compute Editor role was removed; an early secret version with a carriage return was replaced) are listed in the issue comment.
 - **Not done:** A8–A12. Paused for fresh approval.
+
+### 18j. Staging milestones A10 to A12: non-allowlisted image, rollback drill, cleanup (5 November 2026)
+
+Archive and evidence: `tools/staging/archive/A10-A12/README.md`. Issue #28 holds the milestone-level PASS/FAIL. Scope: staging only. No production change, no paid AI call, no YouTube action, and no staging Cloud Run execution beyond the seven already used.
+
+- **A10 / S8 (PASS).** The staging job was pointed at the earlier staging image `164c21e2…`, which is not in `RENDER_JOB_ALLOWED_IMAGES` (`ff5a8649…`). One dry-run request with a fresh render ID returned HTTP 409 ("not running a music-verified image, so no render was started"). Executions 7 before and after. Bucket 9 objects before and after. The job was restored to `ff5a8649…`.
+- **A11 / S10 (PASS).** Dispatcher traffic moved to `00003-tt9` and back to `00004-bnr`, with the staging identity checked at each step. The job image was swapped to `164c21e2…` and back to `ff5a8649…`. Row counts (Render Jobs 13, Publishing Jobs 1, SEO Pack 4, Render Callback Inbox 12) were identical before and after. Bucket and execution counts were also unchanged. Worker suite 277/277; main-app suite 464 PASS, 0 FAIL.
+- **Known gap.** Drive export of the staging spreadsheet is refused for the available credential, so the spreadsheet is kept in Drive as the archive copy rather than exported.
+
+**A12 cleanup log** (added as each step is verified)
