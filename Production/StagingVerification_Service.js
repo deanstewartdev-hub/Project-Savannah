@@ -353,6 +353,26 @@ function stagingReportS7Row() {
   return report;
 }
 
+/** STAGING ONLY, read-only. Exact data-row counts of the staging spreadsheet's tables, for before/after proofs. */
+function stagingRowCounts() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!/staging/i.test(String(ss.getName() || "")) || PropertiesService.getScriptProperties().getProperty("SAVANNAH_ENVIRONMENT") !== "staging") {
+    throw new Error("Refused: staging row counts run only in the staging project and spreadsheet.");
+  }
+  const count = function (name) {
+    const sheet = ss.getSheetByName(name);
+    return sheet ? Math.max(0, sheet.getLastRow() - 1) : null;
+  };
+  const counts = {
+    renderJobs: count("Render Jobs"),
+    publishingJobs: count("Publishing Jobs"),
+    seoPacks: count("SEO Pack"),
+    callbackInbox: count("Render Callback Inbox")
+  };
+  Logger.log("ROW COUNTS " + JSON.stringify(counts));
+  return counts;
+}
+
 /** STAGING ONLY, read-only. Logs the S5 render's row and receipts (the fresh cr-<uuid> from stagingSeedRenderJobs). */
 function stagingReportS5Row() {
   const report = StagingVerificationService.reportRenderRow("cr-f158cc11-7363-46a8-9e3a-2063aef77bf7");
