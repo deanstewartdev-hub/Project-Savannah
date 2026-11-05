@@ -200,6 +200,7 @@ const StagingVerificationService = (() => {
       queueTick: function () { return ProductionQueueService.processNext(); },
       qualityPasses: function (job) { return RenderQualityService.evaluate(job).passed === true; },
       publishingJobs: function () { return PublishingJobRepository.getAll(); },
+      renderJobs: function () { return RenderJobRepository.getAll(); },
       readiness: function () { return ReleaseReadinessService.run(); }
     };
   }
@@ -301,12 +302,39 @@ const StagingVerificationService = (() => {
     return { tag: tag, jobId: jobId, renderId: renderId, packId: packId, status: failed ? "FAILED" : "PASSED", checks: checks };
   }
 
+  // STAGING ONLY. Attaches a synthetic Render Jobs row to an existing staging render ID, then applies the
+  // pending callback receipts for that ID through the real inbox. Never overwrites a row, never touches another
+  // render, never starts a job. Used for S7: the failed callback must update the matching row.
+  function attachRenderRow(env, renderId) {
+    assertStaging_(env);
+    if (!/^cr-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(renderId || ""))) {
+      throw new Error("A staging render ID in the cr-<uuid> form is required.");
+    }
+    if (env.renderJobs().some(function (job) { return job.renderId === renderId; })) {
+      throw new Error("A Render Jobs row already exists for this render ID; it is not overwritten.");
+    }
+    const jobId = "RND-STGS7-" + env.uuid().replace(/-/g, "").slice(0, 8).toUpperCase();
+    env.createRenderJob(jobId, renderId);
+    const drained = env.drain();
+    const row = env.renderJobs().filter(function (job) { return job.renderId === renderId; })[0] || null;
+    const receipts = env.receipts().filter(function (r) { return r.renderId === renderId; }).map(function (r) {
+      return { receiptId: r.receiptId, status: r.status, result: r.result || "PENDING", handled: !!r.handled };
+    });
+    return { jobId: jobId, renderId: renderId, drained: drained, row: row, receipts: receipts };
+  }
+
   return {
     seed: function (env) { return seed(env || defaultEnv_()); },
     verify: function (env) { return verify(env || defaultEnv_()); },
-    publishSafety: function (env) { return publishSafety(env || defaultEnv_()); }
+    publishSafety: function (env) { return publishSafety(env || defaultEnv_()); },
+    attachRenderRow: function (renderId, env) { return attachRenderRow(env || defaultEnv_(), renderId); }
   };
 })();
+
+/** STAGING ONLY. S7: attach a synthetic row to an existing failed staging render ID and apply its receipt. */
+function stagingAttachRenderRow(renderId) {
+  return StagingVerificationService.attachRenderRow(renderId);
+}
 
 /** STAGING ONLY. S9 publishing-safety check (see tools/staging/APPROVAL_PROPOSAL.md). */
 function stagingPublishSafetyRun() {
