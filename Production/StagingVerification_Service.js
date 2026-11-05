@@ -353,6 +353,13 @@ function stagingReportS7Row() {
   return report;
 }
 
+/** STAGING ONLY, read-only. Logs the S5 render's row and receipts (the fresh cr-<uuid> from stagingSeedRenderJobs). */
+function stagingReportS5Row() {
+  const report = StagingVerificationService.reportRenderRow("cr-f158cc11-7363-46a8-9e3a-2063aef77bf7");
+  Logger.log("S5 report " + JSON.stringify(report));
+  return report;
+}
+
 /** STAGING ONLY. S7: attach a synthetic row to an existing failed staging render ID and apply its receipt. */
 function stagingAttachRenderRow(renderId) {
   return StagingVerificationService.attachRenderRow(renderId);
