@@ -1,3 +1,19 @@
 {
-  "tracks": []
+  "tracks": [
+    {
+      "id": "scott-buckley-beyond-these-walls",
+      "file": "music/scott-buckley-beyond-these-walls.mp3",
+      "title": "Beyond These Walls",
+      "artist": "Scott Buckley",
+      "licence": "CC-BY-4.0",
+      "sourceUrl": "https://www.scottbuckley.com.au/library/beyond-these-walls/",
+      "termsUrl": "https://www.scottbuckley.com.au/library/using-this-music/",
+      "attributionRequired": true,
+      "attribution": "'Beyond These Walls' by Scott Buckley - released under CC-BY 4.0. www.scottbuckley.com.au",
+      "monetizationAllowed": true,
+      "verifiedBy": "Owner approval recorded in GitHub Issue #29 (5 November 2026). Licence terms read from the artist's pages on 3 November 2026. The audio file has not been downloaded or checked by hash in this repository.",
+      "verifiedOn": "2026-11-05",
+      "contentIdNote": "Artist uses Smart Content ID. Credit must appear in the YouTube description; a claim is possible even with correct credit."
+    }
+  ]
 }

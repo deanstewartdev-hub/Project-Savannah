@@ -257,13 +257,15 @@ test("the widest allowed caption phrase fits inside the side margins (Arial uppe
   assert.ok(CAPTION_LIMITS.maxCharacters * 0.62 * fontPx <= usable, "longest phrase fits");
 });
 
-test("candidate tracks are not in the verified manifest, so the worker cannot use them", async () => {
+test("only the owner-approved candidate is in the verified manifest; the other candidates are not", async () => {
   const { readFileSync } = await import("node:fs");
   const manifest = JSON.parse(readFileSync(new URL("../music/manifest.json", import.meta.url), "utf8"));
   const candidates = JSON.parse(readFileSync(new URL("../music/candidates.json", import.meta.url), "utf8"));
   const verifiedIds = new Set(manifest.tracks.map((t) => t.id));
+  // Owner approval (Issue #29, 5 November 2026) admits "Beyond These Walls" only.
+  const APPROVED = "scott-buckley-beyond-these-walls";
   for (const candidate of candidates.candidates) {
-    assert.equal(verifiedIds.has(candidate.id), false, candidate.id + " must not be in the manifest yet");
+    assert.equal(verifiedIds.has(candidate.id), candidate.id === APPROVED, `${candidate.id} verified-manifest membership`);
     assert.equal(candidate.attributionRequired, true, "CC BY 4.0 candidates require credit");
     assert.match(candidate.attribution, /released under CC-BY 4\.0/);
   }
