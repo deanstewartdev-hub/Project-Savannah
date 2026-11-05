@@ -204,11 +204,118 @@ const StagingVerificationService = (() => {
     };
   }
 
+  // S9 (STAGING ONLY): publishing safety. The synthetic fixture supplies INPUTS only (marked synthetic: true).
+  // Every gate is the real one: RenderQualityService, RenderReviewService, ProductionController.previewPublish
+  // and ProductionController.publish. Nothing here bypasses a gate. The publish attempt must be refused by
+  // assertNotStaging_ inside YouTubeService.upload.
+  function publishSafety(env) {
+    assertStaging_(env);
+    const checks = [];
+    const record = function (id, label, pass, detail) {
+      checks.push({ id: id, label: label, result: pass ? "PASS" : "FAIL", detail: detail || "" });
+    };
+    const tag = env.uuid().replace(/-/g, "").slice(0, 8).toUpperCase();
+    const packId = "SEO-STGPUB" + tag;
+    const jobId = "RND-STGPUB" + tag;
+    const renderId = "cr-" + env.uuid().toLowerCase();
+    const publishingFor = function () {
+      return env.publishingJobs().filter(function (p) { return p.renderJobId === jobId; });
+    };
+
+    SeoRepository.save({
+      id: packId, scriptId: "SCR-STAGING",
+      titleOptions: ["Synthetic staging title A", "Synthetic staging title B"],
+      description: "Synthetic staging description.", tags: ["staging"], hashtags: ["#staging"], keywords: ["staging"],
+      thumbnailText: "STAGING", pinnedComment: "Synthetic staging comment.", metadata: { synthetic: true }
+    });
+    const probe = {
+      synthetic: true, durationSeconds: 40, width: 1080, height: 1920, hasAudio: true,
+      passesResolutionGate: true, passesSilenceGate: true, passesBlackFrameGate: true,
+      clippingDetected: false, loudness: { integratedLufs: -14 }
+    };
+    const job = RenderJobRepository.save(RenderJobModel.create({
+      id: jobId, renderId: renderId, scriptId: "SCR-STAGING", seoPackId: packId, templateId: "cloud-run-worker",
+      status: "SUCCEEDED", progress: 100,
+      videoUrl: "https://example.invalid/savannah-staging/publish-safety-" + tag + ".mp4",
+      providerResponse: { synthetic: true, probe: probe },
+      // The verified track summary, copied from media-worker/music/staging-manifest.json (the staging-only tone).
+      requestPayload: {
+        synthetic: true,
+        music: {
+          id: "staging-test-tone", title: "Staging test tone (synthetic)", licence: "CC0-1.0",
+          sourceUrl: "https://example.invalid/synthetic-staging-tone", attributionRequired: false, attribution: ""
+        }
+      }
+    }));
+
+    let ready = false;
+    try {
+      const quality = RenderQualityService.evaluate(job);
+      record("S9.1", "Synthetic fixture passes the real render quality gate", quality.passed === true,
+        quality.passed ? "" : quality.issues.join(" "));
+      ready = quality.passed === true;
+    } catch (error) {
+      record("S9.1", "Synthetic fixture passes the real render quality gate", false, String(error && error.message || error));
+    }
+    if (ready) {
+      // RenderReviewService.approve() reads the signed-in user's email, which this staging project is not
+      // authorised for (spreadsheet scope only). So the fixture writes the same review record approve() writes,
+      // marked synthetic. The real RenderReviewService.assertApproved gate still reads it, and the real quality
+      // gate ran above. No gate is bypassed.
+      try {
+        PropertiesService.getScriptProperties().setProperty("RENDER_REVIEW_" + jobId, JSON.stringify({
+          approved: true, reviewedAt: new Date().toISOString(), reviewer: "staging-synthetic-fixture"
+        }));
+        RenderReviewService.assertApproved(jobId);
+        record("S9.2", "Real review gate (assertApproved) accepts the synthetic fixture approval", true, jobId);
+      } catch (error) {
+        ready = false;
+        record("S9.2", "Real review gate (assertApproved) accepts the synthetic fixture approval", false, String(error && error.message || error));
+      }
+    }
+    if (ready) {
+      const beforePreview = publishingFor().length;
+      const preview = ProductionController.previewPublish({ renderJobId: jobId, timezoneOffsetMinutes: 0 });
+      const details = preview && preview.success === true ? preview.data : null;
+      const previewOk = !!details && /^PUB-[0-9A-F]{8}$/.test(details.uploadAttemptId || "") && !!details.metadataHash;
+      record("S9.3", "Read-only preview returns the exact details, attempt ID and metadata hash", previewOk,
+        previewOk ? "title: " + details.title + " | attempt " + details.uploadAttemptId : JSON.stringify(preview).slice(0, 300));
+      record("S9.4", "Preview wrote no publishing record", publishingFor().length === beforePreview,
+        "before " + beforePreview + ", after " + publishingFor().length);
+      if (previewOk) {
+        const attempt = ProductionController.publish({
+          renderJobId: jobId, timezoneOffsetMinutes: 0,
+          uploadAttemptId: details.uploadAttemptId, approvedMetadataHash: details.metadataHash
+        });
+        const refused = /Refused in staging: YouTube upload/.test(JSON.stringify(attempt));
+        record("S9.5", "Publish is refused by the staging guard inside the YouTube upload path", refused,
+          refused ? "" : JSON.stringify(attempt).slice(0, 300));
+        const records = publishingFor();
+        record("S9.6", "No publishing record is written before the guard refuses", records.length === 0,
+          records.length ? "a record was written first: " + records.map(function (p) {
+            return p.id + " status " + p.status + " (" + String(p.errorMessage || "").slice(0, 80) + ")";
+          }).join("; ") : "none");
+      }
+    }
+    const failed = checks.filter(function (c) { return c.result === "FAIL"; }).length;
+    return { tag: tag, jobId: jobId, renderId: renderId, packId: packId, status: failed ? "FAILED" : "PASSED", checks: checks };
+  }
+
   return {
     seed: function (env) { return seed(env || defaultEnv_()); },
-    verify: function (env) { return verify(env || defaultEnv_()); }
+    verify: function (env) { return verify(env || defaultEnv_()); },
+    publishSafety: function (env) { return publishSafety(env || defaultEnv_()); }
   };
 })();
+
+/** STAGING ONLY. S9 publishing-safety check (see tools/staging/APPROVAL_PROPOSAL.md). */
+function stagingPublishSafetyRun() {
+  const report = StagingVerificationService.publishSafety();
+  Logger.log("Publishing safety " + report.status + " (fixture " + report.jobId + ")\n" + report.checks.map(function (c) {
+    return c.result + "  " + c.id + "  " + c.label + (c.detail ? "\n        " + c.detail : "");
+  }).join("\n"));
+  return report;
+}
 
 /** STAGING ONLY. Step 1 of CALLBACK_INBOX_STAGING.md. */
 function stagingSeedRenderJobs() {
