@@ -336,6 +336,11 @@ function stagingAttachRenderRow(renderId) {
   return StagingVerificationService.attachRenderRow(renderId);
 }
 
+/** STAGING ONLY. S7 for the one recorded failed render (job cr-065edd3a-f3d0-4273-ae42-67e7f574246e). */
+function stagingAttachS7FailedRow() {
+  return stagingAttachRenderRow("cr-065edd3a-f3d0-4273-ae42-67e7f574246e");
+}
+
 /** STAGING ONLY. S9 publishing-safety check (see tools/staging/APPROVAL_PROPOSAL.md). */
 function stagingPublishSafetyRun() {
   const report = StagingVerificationService.publishSafety();
