@@ -4,6 +4,7 @@ import { writeWordPopAss } from "../lib/ass.js";
 import { config } from "../config.js";
 import { segmentLengths } from "./visualSelection.js";
 import { buildMusicGainFilter } from "../lib/musicLicence.js";
+import { beatVisualSpans } from "./beatTiming.js";
 
 function escapeForFilter(filePath) {
   // The subtitles filter's own argument parser splits on ':' (filename:option=value),
@@ -107,7 +108,7 @@ function buildCrossfadeGraph(clipDurations, crossfadeSeconds) {
   return { filters, totalDuration: runningDuration };
 }
 
-export async function assembleVideo({ timedBeats, visuals, narrationPath, musicPath, workDir }) {
+export async function assembleVideo({ timedBeats, visuals, narrationPath, narrationSeconds, musicPath, workDir }) {
   const { width, height, fps } = config.video;
 
   // Every clip except the last is rendered `crossfadeSeconds` longer than its nominal
@@ -119,10 +120,13 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, musicP
   // Sequential, not Promise.all: running N ffmpeg encodes concurrently multiplies peak
   // memory by N, which SIGKILLs the process on memory-constrained hosts (observed on
   // Railway's trial tier) even though no single beat's encode is large on its own.
+  // The beat visuals cover the whole narration timeline (speech and the pauses that belong to each beat),
+  // so the finished video is exactly as long as the narration. See beatVisualSpans.
   const isLast = (index) => index === timedBeats.length - 1;
+  const spans = beatVisualSpans(timedBeats, narrationSeconds);
   const normalizedClips = [];
-  for (const [index, beat] of timedBeats.entries()) {
-    const nominalDuration = beat.end - beat.start;
+  for (const [index] of timedBeats.entries()) {
+    const nominalDuration = spans[index].duration;
     const renderDuration = isLast(index)
       ? nominalDuration
       : nominalDuration + config.video.crossfadeSeconds;
@@ -140,6 +144,10 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, musicP
     normalizedClips.length > 1
       ? buildCrossfadeGraph(clipDurations, config.video.crossfadeSeconds)
       : { filters: [], totalDuration: clipDurations[0] };
+  // Fail closed: the video, the music and the output must all be the narration's length.
+  if (Math.abs(totalDuration - narrationSeconds) > 0.05) {
+    throw new Error(`Assembled timeline (${totalDuration.toFixed(3)} s) does not match the narration (${narrationSeconds.toFixed(3)} s).`);
+  }
 
   const videoLabel = normalizedClips.length > 1 ? "vconcat" : "0:v";
   const captionedLabel = "vfinal";
@@ -182,7 +190,9 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, musicP
     "-c:a", "aac",
     "-b:a", "192k",
     "-movflags", "+faststart",
-    "-shortest",
+    // Explicit length, not -shortest: -shortest would end the output at whichever stream ends first and
+    // could quietly cut the narration. Both streams are built to exactly the narration length.
+    "-t", totalDuration.toFixed(3),
     outPath
   ]);
 

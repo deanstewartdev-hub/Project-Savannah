@@ -6,6 +6,7 @@ import { computeBeatTimings } from "./beatTiming.js";
 import { resolveBeatVisuals } from "./visuals.js";
 import { assembleVideo } from "./assemble.js";
 import { probeVideo } from "./probe.js";
+import { assertNarrationComplete } from "./narrationCompleteness.js";
 import { deliverResult } from "./deliver.js";
 import { config } from "../config.js";
 import { prepareMusic } from "./prepareMusic.js";
@@ -69,11 +70,15 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
     });
     log("visuals:done");
 
+    // The narration file's own measured length is the reference for completeness (Issue #29).
+    const narrationSeconds = Number((await probeAudio(narrationPath)).format.duration);
+
     log("assembly:start");
     const assembled = await assembleVideo({
       timedBeats,
       visuals,
       narrationPath,
+      narrationSeconds,
       musicPath: music.localPath,
       workDir
     });
@@ -82,6 +87,15 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
     log("probe:start");
     const probeResult = await probeVideo(assembled.outPath);
     log("probe:done");
+    // Fail closed before delivery: a video that does not carry the whole narration is never delivered.
+    assertNarrationComplete({
+      narrationSeconds,
+      videoSeconds: probeResult.videoDurationSeconds ?? probeResult.durationSeconds,
+      audioSeconds: probeResult.audioDurationSeconds,
+      alignedWords,
+      scriptWordCount: fullScript.split(/\s+/).filter(Boolean).length
+    });
+    log("completeness:passed");
     log("deliver:start");
     const delivery = await deliverResult(jobId, {
       videoPath: assembled.outPath,

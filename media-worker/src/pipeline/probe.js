@@ -68,9 +68,15 @@ export async function probeVideo(filePath) {
 
   const durationSeconds = Number(info.format.duration);
   const clippingDetected = loudness.truePeakDb > -0.5;
+  // Stream lengths are reported separately so the narration-completeness gate can compare each stream with
+  // the narration (a container length alone can hide a cut audio stream).
+  const videoDurationSeconds = videoStream && videoStream.duration ? Number(videoStream.duration) : null;
+  const audioDurationSeconds = audioStream && audioStream.duration ? Number(audioStream.duration) : null;
 
   return {
     durationSeconds,
+    videoDurationSeconds,
+    audioDurationSeconds,
     width: videoStream ? Number(videoStream.width) : null,
     height: videoStream ? Number(videoStream.height) : null,
     hasAudio: Boolean(audioStream),
