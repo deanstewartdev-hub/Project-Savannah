@@ -56,3 +56,13 @@ export function beatVisualSpans(timedBeats, narrationSeconds) {
     return { start, end, duration: end - start };
   });
 }
+
+// The length each beat's visual must be rendered at: its span on the narration timeline, plus the crossfade
+// it overlaps into the next beat (every beat except the last). The visual planner (visuals.js) and the assembler
+// (assemble.js) both use this one function, so the footage they ask for and the footage they cut can never differ.
+export function beatRenderSeconds(timedBeats, narrationSeconds, crossfadeSeconds) {
+  const spans = beatVisualSpans(timedBeats, narrationSeconds);
+  return spans.map((span, index) =>
+    index === spans.length - 1 ? span.duration : span.duration + crossfadeSeconds
+  );
+}

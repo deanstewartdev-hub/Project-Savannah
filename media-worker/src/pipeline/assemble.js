@@ -4,7 +4,7 @@ import { writeWordPopAss } from "../lib/ass.js";
 import { config } from "../config.js";
 import { segmentLengths } from "./visualSelection.js";
 import { buildMusicGainFilter } from "../lib/musicLicence.js";
-import { beatVisualSpans } from "./beatTiming.js";
+import { beatRenderSeconds } from "./beatTiming.js";
 
 function escapeForFilter(filePath) {
   // The subtitles filter's own argument parser splits on ':' (filename:option=value),
@@ -122,14 +122,10 @@ export async function assembleVideo({ timedBeats, visuals, narrationPath, narrat
   // Railway's trial tier) even though no single beat's encode is large on its own.
   // The beat visuals cover the whole narration timeline (speech and the pauses that belong to each beat),
   // so the finished video is exactly as long as the narration. See beatVisualSpans.
-  const isLast = (index) => index === timedBeats.length - 1;
-  const spans = beatVisualSpans(timedBeats, narrationSeconds);
+  const renderDurations = beatRenderSeconds(timedBeats, narrationSeconds, config.video.crossfadeSeconds);
   const normalizedClips = [];
   for (const [index] of timedBeats.entries()) {
-    const nominalDuration = spans[index].duration;
-    const renderDuration = isLast(index)
-      ? nominalDuration
-      : nominalDuration + config.video.crossfadeSeconds;
+    const renderDuration = renderDurations[index];
     const outPath = workDir.path(`beat-${index}-norm.mp4`);
     await normalizeBeatClip(visuals[index], renderDuration, outPath);
     normalizedClips.push({ path: outPath, duration: renderDuration });

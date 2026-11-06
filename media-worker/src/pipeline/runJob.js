@@ -63,15 +63,17 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
     log("alignment:done");
     const timedBeats = computeBeatTimings(beats, alignedWords);
 
+    // The narration file's own measured length is the reference for completeness (Issue #29), and the
+    // visual planner needs it too, so it is measured before any footage is planned.
+    const narrationSeconds = Number((await probeAudio(narrationPath)).format.duration);
+
     log("visuals:start");
     const visuals = await resolveBeatVisuals(timedBeats, workDir, {
       allowAiStills,
+      narrationSeconds,
       log: (message) => console.log(`[${jobId}] ${message}`)
     });
     log("visuals:done");
-
-    // The narration file's own measured length is the reference for completeness (Issue #29).
-    const narrationSeconds = Number((await probeAudio(narrationPath)).format.duration);
 
     log("assembly:start");
     const assembled = await assembleVideo({

@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import OpenAI from "openai";
 import { config } from "../config.js";
 import { planBeatVisuals } from "./visualSelection.js";
+import { beatRenderSeconds } from "./beatTiming.js";
 
 const openai = new OpenAI({ apiKey: config.openaiApiKey });
 
@@ -49,13 +50,15 @@ async function generateFallbackStill(prompt, destPath) {
 // clip reused across beats. Second, the chosen files are fetched and any labelled AI stills
 // are generated. A beat with no acceptable footage either fails the job with a visual-coverage
 // error or, when allowAiStills is set, becomes a still that is labelled as AI-generated.
-export async function resolveBeatVisuals(beats, workDir, { allowAiStills = false, log = () => {} } = {}) {
-  // Each beat must be covered for its own length plus the crossfade it overlaps into the next
-  // beat (assemble.js pads every clip except the last by the crossfade).
-  const withCoverage = beats.map((beat, index) => ({
-    ...beat,
-    coverSeconds: (beat.end - beat.start) + (index < beats.length - 1 ? config.video.crossfadeSeconds : 0)
-  }));
+export async function resolveBeatVisuals(beats, workDir, { allowAiStills = false, log = () => {}, narrationSeconds } = {}) {
+  // Each beat must be covered for the length assemble.js will render it at: its span on the full
+  // narration timeline (speech plus the pauses that belong to it) plus the crossfade into the next beat.
+  // Both sides use beatRenderSeconds, so the planner asks for exactly the footage the assembler needs.
+  if (!Number.isFinite(narrationSeconds)) {
+    throw new Error("resolveBeatVisuals needs the narration length to plan footage.");
+  }
+  const coverage = beatRenderSeconds(beats, narrationSeconds, config.video.crossfadeSeconds);
+  const withCoverage = beats.map((beat, index) => ({ ...beat, coverSeconds: coverage[index] }));
   const plan = await planBeatVisuals(withCoverage, searchPexelsVideos, { allowAiStills });
 
   return Promise.all(
