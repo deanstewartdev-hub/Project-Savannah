@@ -209,6 +209,18 @@ export function previousTokens(plan) {
   return new Set(words);
 }
 
+// Prompt for a labelled AI still. It always names the beat's location (a still for a Burano line must show
+// Burano, not a generic town) and asks for one real scene, so the image cannot become a collage or a title card.
+export function stillPrompt(beat) {
+  const subject = String(beat.imagePrompt || beat.visualQuery || "").trim();
+  const place = String(beat.location || "").trim();
+  const parts = [];
+  if (place && !subject.toLowerCase().includes(place.toLowerCase())) parts.push("Location: " + place);
+  if (subject) parts.push(subject);
+  parts.push("One real scene, a single vertical 9:16 photograph, realistic. No collage, no split screen, no text, no logos.");
+  return parts.join(". ");
+}
+
 export async function planBeatVisuals(beats, search, options = {}) {
   const usedIds = new Set();
   const cache = new Map();
@@ -305,7 +317,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
       type: "still",
       synthetic: true,
       label: "AI-generated illustration, not authentic footage",
-      prompt: beat.imagePrompt || beat.visualQuery || "",
+      prompt: stillPrompt(beat),
       queriesTried: tried,
       reason: "no relevant footage found; labelled AI still used"
     });

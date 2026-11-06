@@ -156,7 +156,8 @@ test("planBeatVisuals uses a labelled AI still only when explicitly allowed", as
   assert.equal(plan[0].type, "still");
   assert.equal(plan[0].synthetic, true);
   assert.equal(plan[0].label, "AI-generated illustration, not authentic footage");
-  assert.equal(plan[0].prompt, DOOR_BEAT.imagePrompt);
+  assert.ok(plan[0].prompt.includes(DOOR_BEAT.imagePrompt));
+  assert.ok(plan[0].prompt.includes("single") || plan[0].prompt.includes("One real scene"));
 });
 
 test("the approved Chefchaouen door scene picks the Chefchaouen clip, not the Santorini one", async () => {
