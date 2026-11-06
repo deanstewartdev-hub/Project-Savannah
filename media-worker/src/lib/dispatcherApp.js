@@ -76,7 +76,8 @@ export function createDispatcherApp({
     if (typeof jobId !== "string" || !/^[A-Za-z0-9-]{8,80}$/.test(jobId)) {
       return { status: 400, error: "jobId must be 8 to 80 letters, digits or hyphens." };
     }
-    return { fields: { jobId, beats, callbackUrl, callbackSecret, dryRun: dryRun === true, music: music } };
+    // Optional and off by default. A scene with no acceptable footage becomes a labelled AI still only when set.
+    return { fields: { jobId, beats, callbackUrl, callbackSecret, dryRun: dryRun === true, allowAiStills: body.allowAiStills === true, music: music } };
   }
 
   // Refuses any job whose video was already delivered, and any jobId with a request still waiting. These checks
@@ -114,6 +115,7 @@ export function createDispatcherApp({
         beats: fields.beats,
         musicTrackId: fields.music.musicTrackId,
         legacyPlaceholderMusic: fields.music.legacyPlaceholderMusic,
+        allowAiStills: fields.allowAiStills === true,
         callbackUrl: fields.callbackUrl,
         callbackSecret: fields.callbackSecret,
         submittedAt: now()

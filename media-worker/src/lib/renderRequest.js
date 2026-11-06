@@ -25,6 +25,7 @@ export function parseJobRequest(raw) {
     beats: raw.beats,
     musicTrackId: raw.musicTrackId,
     legacyPlaceholderMusic: raw.legacyPlaceholderMusic === true,
+    allowAiStills: raw.allowAiStills === true,
     callbackUrl: raw.callbackUrl,
     callbackSecret: typeof raw.callbackSecret === "string" && raw.callbackSecret.length > 0 ? raw.callbackSecret : undefined
   };
@@ -98,7 +99,8 @@ export async function executeRenderRequest({
       jobId,
       beats: request.beats,
       musicTrackId: request.musicTrackId,
-      legacyPlaceholderMusic: request.legacyPlaceholderMusic
+      legacyPlaceholderMusic: request.legacyPlaceholderMusic,
+      allowAiStills: request.allowAiStills
     });
   } catch (renderError) {
     log.error(`Job ${jobId} failed:`, renderError);

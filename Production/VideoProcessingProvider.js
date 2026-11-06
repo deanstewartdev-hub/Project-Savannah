@@ -109,6 +109,9 @@ const CloudRunFFmpegProvider = (() => {
   // paid step, which is the intended safe state.
   const MUSIC_TRACK_ID = "scott-buckley-beyond-these-walls";
   const MUSIC_TRACK_ID_SHAPE = /^[a-z0-9][a-z0-9-]{2,79}$/;
+  // A scene with no acceptable Pexels footage becomes a still labelled "AI-generated illustration, not authentic
+  // footage" instead of failing the render. The worker only does this when this flag is sent.
+  const ALLOW_AI_STILLS = true;
 
   function submitRender(script, seoPack, options) {
     if (!script || !script.id) throw error_("A valid script is required.");
@@ -161,6 +164,7 @@ const CloudRunFFmpegProvider = (() => {
       jobId: jobId,
       beats: beats,
       musicTrackId: MUSIC_TRACK_ID,
+      allowAiStills: ALLOW_AI_STILLS,
       callbackUrl: callbackUrl,
       callbackSecret: callbackSecret_()
     });
