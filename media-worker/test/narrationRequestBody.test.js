@@ -41,6 +41,31 @@ test("the model and voice settings come from configuration, so a voice or model 
   assert.equal(body.text, "A test passage.");
 });
 
+test("the eleven_v4 request sends only stability and similarity, at 0.50 and 0.75", () => {
+  const body = narrationRequestBody("A test passage.", {
+    modelId: "eleven_v4",
+    stability: 0.5,
+    similarityBoost: 0.75,
+    style: 0.3,
+    useSpeakerBoost: true
+  });
+  assert.equal(body.model_id, "eleven_v4");
+  assert.deepEqual(body.voice_settings, { stability: 0.5, similarity_boost: 0.75 });
+  assert.equal("style" in body.voice_settings, false);
+  assert.equal("use_speaker_boost" in body.voice_settings, false);
+});
+
+test("the multilingual v2 request still carries style and speaker boost", () => {
+  const body = narrationRequestBody("A test passage.", {
+    modelId: "eleven_multilingual_v2",
+    stability: 0.5,
+    similarityBoost: 0.75,
+    style: 0.3,
+    useSpeakerBoost: true
+  });
+  assert.deepEqual(body.voice_settings, { stability: 0.5, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true });
+});
+
 test("the default configuration loaded at start-up matches the previous request", async () => {
   const { config } = await import("../src/config.js");
   assert.equal(config.narration.modelId, "eleven_multilingual_v2");
