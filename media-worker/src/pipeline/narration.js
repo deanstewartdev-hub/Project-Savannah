@@ -1,6 +1,20 @@
 import { writeFile } from "node:fs/promises";
 import { config } from "../config.js";
 
+// The request body for the single narration call. Kept separate so it can be checked without any network call.
+export function narrationRequestBody(fullScript, narration = config.narration) {
+  return {
+    text: fullScript,
+    model_id: narration.modelId,
+    voice_settings: {
+      stability: narration.stability,
+      similarity_boost: narration.similarityBoost,
+      style: narration.style,
+      use_speaker_boost: narration.useSpeakerBoost
+    }
+  };
+}
+
 // Generates the ENTIRE narration in a single ElevenLabs call so prosody carries across
 // the whole script. Per-scene generation (one call per beat, concatenated after) is what
 // produced the audible pitch resets in the Creatomate-era pipeline — see section 2.2 of
@@ -15,16 +29,7 @@ export async function generateContinuousNarration(fullScript, workDir) {
         "Content-Type": "application/json",
         Accept: "audio/mpeg"
       },
-      body: JSON.stringify({
-        text: fullScript,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.3,
-          use_speaker_boost: true
-        }
-      })
+      body: JSON.stringify(narrationRequestBody(fullScript))
     }
   );
 
