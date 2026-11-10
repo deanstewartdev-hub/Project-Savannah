@@ -34,11 +34,29 @@ async function downloadTo(url, destPath) {
   return destPath;
 }
 
+export class AiStillLimitError extends Error {
+  constructor(planned, limit) {
+    super(`This job needs ${planned} AI-generated stills; the limit is ${limit}. No images were generated.`);
+    this.name = "AiStillLimitError";
+    this.code = "AI_STILL_LIMIT";
+    this.planned = planned;
+    this.limit = limit;
+  }
+}
+
+// Counts the planned AI stills and refuses the job before any image request if there are too many.
+export function assertAiStillLimit(plan, limit) {
+  const planned = plan.filter((entry) => entry.type === "still").length;
+  if (planned > limit) throw new AiStillLimitError(planned, limit);
+  return planned;
+}
+
 async function generateFallbackStill(prompt, destPath) {
   const result = await openai.images.generate({
     model: "gpt-image-2",
     prompt,
-    size: "1024x1536"
+    size: "1024x1536",
+    quality: config.aiStills.quality
   });
   const b64 = result.data[0].b64_json;
   await writeFile(destPath, Buffer.from(b64, "base64"));
@@ -50,7 +68,14 @@ async function generateFallbackStill(prompt, destPath) {
 // clip reused across beats. Second, the chosen files are fetched and any labelled AI stills
 // are generated. A beat with no acceptable footage either fails the job with a visual-coverage
 // error or, when allowAiStills is set, becomes a still that is labelled as AI-generated.
-export async function resolveBeatVisuals(beats, workDir, { allowAiStills = false, log = () => {}, narrationSeconds } = {}) {
+export async function resolveBeatVisuals(beats, workDir, {
+  allowAiStills = false,
+  log = () => {},
+  narrationSeconds,
+  search = searchPexelsVideos,
+  generateStill = generateFallbackStill,
+  stillLimit = config.aiStills.maxPerJob
+} = {}) {
   // Each beat must be covered for the length assemble.js will render it at: its span on the full
   // narration timeline (speech plus the pauses that belong to it) plus the crossfade into the next beat.
   // Both sides use beatRenderSeconds, so the planner asks for exactly the footage the assembler needs.
@@ -59,7 +84,9 @@ export async function resolveBeatVisuals(beats, workDir, { allowAiStills = false
   }
   const coverage = beatRenderSeconds(beats, narrationSeconds, config.video.crossfadeSeconds);
   const withCoverage = beats.map((beat, index) => ({ ...beat, coverSeconds: coverage[index] }));
-  const plan = await planBeatVisuals(withCoverage, searchPexelsVideos, { allowAiStills });
+  const plan = await planBeatVisuals(withCoverage, search, { allowAiStills });
+  // Fail before any image request if the plan needs more AI stills than this job may use.
+  assertAiStillLimit(plan, stillLimit);
 
   return Promise.all(
     plan.map(async (entry) => {
@@ -81,7 +108,7 @@ export async function resolveBeatVisuals(beats, workDir, { allowAiStills = false
         return { type: "video", segments };
       }
       const localPath = workDir.path(`beat-${entry.beatIndex}-still.png`);
-      await generateFallbackStill(entry.prompt, localPath);
+      await generateStill(entry.prompt, localPath);
       return { type: "still", path: localPath, synthetic: true, label: entry.label, queriesTried: entry.queriesTried };
     })
   );

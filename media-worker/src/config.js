@@ -37,6 +37,12 @@ export const config = {
   openaiApiKey: requiredSecret("OPENAI_API_KEY"),
   elevenLabsApiKey: requiredSecret("ELEVENLABS_API_KEY"),
   elevenLabsVoiceId: required("ELEVENLABS_VOICE_ID"),
+  // Labelled AI stills: a job may use at most this many. The check runs on the plan before any image request,
+  // so a job that needs more fails with no image generated. Quality is set explicitly to bound per-image cost.
+  aiStills: {
+    maxPerJob: 2,
+    quality: "medium"
+  },
   // Narration model and voice settings. The defaults are exactly what production has always sent, so an
   // unchanged environment behaves the same. Rolling back a voice or model is a configuration change.
   narration: {
