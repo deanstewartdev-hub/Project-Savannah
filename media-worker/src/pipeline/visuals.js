@@ -51,16 +51,30 @@ export function assertAiStillLimit(plan, limit) {
   return planned;
 }
 
-async function generateFallbackStill(prompt, destPath) {
-  const result = await openai.images.generate({
-    model: "gpt-image-2",
-    prompt,
-    size: "1024x1536",
-    quality: config.aiStills.quality
-  });
+// Image requests never retry automatically. The OpenAI SDK retries failed requests by default (up to two
+// extra attempts), and each extra attempt could be a billed image. The count limit is per plan, so retries
+// must be off for these calls. Verified against the installed SDK (openai 4.104.0): request options override the client default.
+export const IMAGE_REQUEST_OPTIONS = Object.freeze({ maxRetries: 0 });
+
+// Generates one labelled AI still with the given client. Separate from the module client so it can be tested
+// against a local server, with no call to OpenAI.
+export async function generateStillWithClient(client, prompt, destPath) {
+  const result = await client.images.generate(
+    {
+      model: "gpt-image-2",
+      prompt,
+      size: "1024x1536",
+      quality: config.aiStills.quality
+    },
+    IMAGE_REQUEST_OPTIONS
+  );
   const b64 = result.data[0].b64_json;
   await writeFile(destPath, Buffer.from(b64, "base64"));
   return destPath;
+}
+
+async function generateFallbackStill(prompt, destPath) {
+  return generateStillWithClient(openai, prompt, destPath);
 }
 
 // Resolves every beat's visual in two steps. First, a plan: each beat tries its location-
