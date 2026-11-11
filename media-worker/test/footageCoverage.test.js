@@ -97,7 +97,7 @@ test("a 1080p 16:9 landscape clip is accepted only when the fallback allows it, 
   assert.equal(selectClip([video], ANTELOPE, new Set()), null, "not chosen without the fallback");
   const chosen = selectClip([video], ANTELOPE, new Set(), 0, null, null, true);
   assert.equal(chosen.framing, "landscape-crop");
-  assert.match(chosen.reason, /centre-cropped to 9:16 \(crop upscale 1\.78x\)/);
+  assert.match(chosen.reason, /centre-cropped to 9:16 \(crop upscale 1\.78x, keeps 32% of the width\)/);
 });
 
 test("a 720p landscape clip is refused, because its crop would need 2.67x upscaling", () => {
@@ -220,4 +220,84 @@ test("preflight allows two unsupported beats when two stills are allowed, and pa
     landscapeFallback: true
   });
   assert.equal(clear.stills, 0);
+});
+
+// ---- Follow-up: 1.95:1 landscape, shared memoised search, duplicate footage, missing locations ----
+
+const { memoizeSearch, maxDistinctAssignment } = await import("../src/pipeline/visualSelection.js");
+
+test("2048x1080 (1.90:1) landscape footage is accepted, and its centre crop keeps 30% of the width", () => {
+  const video = landscapeClip(80, "antelope-canyon-light-beams", { width: 2048, height: 1080 });
+  const info = landscapeCropFile(video);
+  assert.ok(info, "2048x1080 is now a usable crop");
+  assert.ok(info.keptWidthFraction >= 0.28 && info.keptWidthFraction < 0.3, "9:16 from 1.90:1 keeps about 29.7% of the width");
+  const chosen = selectClip([video], ANTELOPE, new Set(), 0, null, null, true);
+  assert.equal(chosen.framing, "landscape-crop");
+  assert.match(chosen.reason, /keeps 30% of the width/);
+});
+
+test("the aspect ceiling is 1.95:1 (accepted at the limit), and wider footage is refused", () => {
+  assert.ok(landscapeCropFile(landscapeClip(81, "antelope-canyon", { width: 2106, height: 1080 })), "1.95:1 is accepted");
+  assert.equal(landscapeCropFile(landscapeClip(82, "antelope-canyon", { width: 2140, height: 1080 })), null, "1.98:1 is refused");
+  assert.equal(landscapeCropFile(landscapeClip(83, "antelope-canyon", { width: 2560, height: 1080 })), null, "2.37:1 is refused");
+});
+
+test("every accepted landscape crop keeps at least 28% of the frame width", () => {
+  for (const [width, height] of [[1920, 1080], [2048, 1080], [2106, 1080], [3840, 2160]]) {
+    const info = landscapeCropFile(landscapeClip(90, "antelope-canyon", { width, height }));
+    assert.ok(info && info.keptWidthFraction >= 0.28, `${width}x${height} keeps enough of the frame`);
+  }
+});
+
+test("memoised search: the preflight and the planner share results, so the planner adds no Pexels requests", async () => {
+  const raw = [];
+  const memo = memoizeSearch(async (query, orientation) => {
+    raw.push(`${orientation}:${query}`);
+    return [portraitClip(100, "antelope-canyon-light-beams")];
+  });
+  await preflightVisualSupply([ANTELOPE], { allowAiStills: false, search: memo, landscapeFallback: true });
+  const afterPreflight = raw.length;
+  await planBeatVisuals([ANTELOPE], memo, { landscapeFallback: true });
+  assert.equal(raw.length, afterPreflight, "the planner made no new request");
+  assert.equal(memo.calls(), raw.length, "every request was counted once");
+  assert.equal(new Set(raw).size, raw.length, "no query was requested twice");
+});
+
+test("duplicate footage: two beats that can only use the same clip need a still for one of them", async () => {
+  const beatA = { ...ANTELOPE, coverSeconds: 3 };
+  const beatB = { ...ANTELOPE, text: "Another line.", coverSeconds: 3 };
+  const onlyClip = async () => [portraitClip(110, "antelope-canyon-light-beams")];
+  await assert.rejects(
+    preflightVisualSupply([beatA, beatB], { allowAiStills: false, search: onlyClip, landscapeFallback: true }),
+    (error) => error instanceof VisualCoverageError && /cannot each get a different relevant clip/.test(error.message)
+  );
+  const allowed = await preflightVisualSupply([beatA, beatB], {
+    allowAiStills: true, search: onlyClip, stillLimit: 2, landscapeFallback: true
+  });
+  assert.equal(allowed.lowerBound, 1, "one beat must become a still");
+  assert.equal(allowed.stills, 1);
+});
+
+test("the bipartite bound: beats are matched to distinct clips", () => {
+  assert.equal(maxDistinctAssignment([new Set([1]), new Set([1]), new Set([1, 2])]), 2);
+  assert.equal(maxDistinctAssignment([new Set([1, 2]), new Set([1, 2]), new Set([1, 2])]), 2);
+  assert.equal(maxDistinctAssignment([new Set([1, 2]), new Set([2, 3]), new Set([3, 1])]), 3);
+  assert.equal(maxDistinctAssignment([new Set(), new Set([4])]), 1, "a beat with no candidate matches nothing");
+});
+
+test("a beat with no location is refused before any paid step, by default", async () => {
+  const noLocation = { ...ANTELOPE, location: "" };
+  const search = async () => [portraitClip(120, "antelope-canyon-light-beams-x")];
+  await assert.rejects(
+    preflightVisualSupply([noLocation], { allowAiStills: true, search, landscapeFallback: true, requireLocation: true }),
+    (error) => error instanceof VisualCoverageError && /has no location/.test(error.message)
+  );
+  const lifted = await preflightVisualSupply([noLocation], {
+    allowAiStills: true, search, landscapeFallback: true, requireLocation: false
+  });
+  assert.equal(lifted.stills, 0, "with the check lifted, subject-only relevance can still be used");
+});
+
+test("the location requirement is on in configuration by default", () => {
+  assert.equal(config.footage.requireLocation, true);
 });

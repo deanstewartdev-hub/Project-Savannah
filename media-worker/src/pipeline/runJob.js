@@ -3,7 +3,7 @@ import { downloadToFile, objectExists } from "../lib/storage.js";
 import { generateContinuousNarration } from "./narration.js";
 import { alignNarration } from "./alignment.js";
 import { computeBeatTimings } from "./beatTiming.js";
-import { preflightVisualSupply, resolveBeatVisuals } from "./visuals.js";
+import { createSharedPexelsSearch, preflightVisualSupply, resolveBeatVisuals } from "./visuals.js";
 import { assembleVideo } from "./assemble.js";
 import { probeVideo } from "./probe.js";
 import { assertNarrationComplete } from "./narrationCompleteness.js";
@@ -57,9 +57,11 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
 
     // Unpaid: Pexels searches only. A script whose beats cannot be illustrated is refused before ElevenLabs
     // or Whisper is called, instead of after.
+    // One memoised search per job: the preflight and the planner share every Pexels result.
+    const visualSearch = createSharedPexelsSearch();
     log("visual-preflight:start");
-    const preflight = await preflightVisualSupply(beats, { allowAiStills });
-    log(`visual-preflight:passed (${beats.length - preflight.unsupported.length} of ${beats.length} beats have candidate footage)`);
+    const preflight = await preflightVisualSupply(beats, { allowAiStills, search: visualSearch });
+    log(`visual-preflight:passed (at least ${preflight.lowerBound} of ${beats.length} beats need a still, at most ${preflight.stills} allowed)`);
 
     log("narration:start");
     const narrationPath = await generateContinuousNarration(fullScript, workDir);
@@ -77,6 +79,7 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
     const visuals = await resolveBeatVisuals(timedBeats, workDir, {
       allowAiStills,
       narrationSeconds,
+      search: visualSearch,
       log: (message) => console.log(`[${jobId}] ${message}`)
     });
     log("visuals:done");

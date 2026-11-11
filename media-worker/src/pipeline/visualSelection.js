@@ -26,7 +26,11 @@ const MAX_QUERY_WORDS = 4;
 const OUTPUT_WIDTH = 1080;
 export const MAX_CROP_UPSCALE = 1.8;
 const LANDSCAPE_ASPECT_MIN = 1.7;
-const LANDSCAPE_ASPECT_MAX = 1.85;
+// 1.95:1 admits 2048x1080 (1.90:1) footage from Pexels. The 9:16 centre crop keeps (9/16) / aspect of the
+// frame's width: 28.8% at 1.95:1. A crop keeping less than MIN_KEPT_WIDTH_FRACTION cuts out too much of the
+// frame, so it is refused.
+const LANDSCAPE_ASPECT_MAX = 1.95;
+export const MIN_KEPT_WIDTH_FRACTION = 0.28;
 // A landscape clip must be clearly more relevant than a portrait one to be chosen over it.
 const LANDSCAPE_PENALTY = 3;
 
@@ -166,7 +170,9 @@ export function landscapeCropFile(video) {
     const cropWidth = (file.height * 9) / 16; // source pixels in the 9:16 centre crop
     const upscale = OUTPUT_WIDTH / cropWidth;
     if (upscale > MAX_CROP_UPSCALE) continue;
-    if (!best || upscale < best.upscale) best = { file, upscale, cropWidth };
+    const keptWidthFraction = (9 / 16) / aspect;
+    if (keptWidthFraction < MIN_KEPT_WIDTH_FRACTION) continue;
+    if (!best || upscale < best.upscale) best = { file, upscale, cropWidth, keptWidthFraction };
   }
   return best;
 }
@@ -177,7 +183,9 @@ function framingFor(video, allowLandscape) {
   if (portrait) return { file: portrait, framing: "portrait", cropUpscale: null };
   if (!allowLandscape) return null;
   const landscape = landscapeCropFile(video);
-  return landscape ? { file: landscape.file, framing: "landscape-crop", cropUpscale: landscape.upscale } : null;
+  return landscape
+    ? { file: landscape.file, framing: "landscape-crop", cropUpscale: landscape.upscale, keptWidthFraction: landscape.keptWidthFraction }
+    : null;
 }
 
 // Chooses the best acceptable, not-yet-used clip from one query's results. Returns null when
@@ -214,7 +222,8 @@ export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders
   }
   if (!best) return null;
   const reason = best.framing.framing === "landscape-crop"
-    ? best.reason + "; landscape footage centre-cropped to 9:16 (crop upscale " + best.framing.cropUpscale.toFixed(2) + "x)"
+    ? best.reason + "; landscape footage centre-cropped to 9:16 (crop upscale " + best.framing.cropUpscale.toFixed(2) + "x, keeps " +
+      Math.round(best.framing.keptWidthFraction * 100) + "% of the width)"
     : best.reason;
   return {
     type: "video",
@@ -424,7 +433,7 @@ export async function planBeatVisuals(beats, search, options = {}) {
 // clip that passes the relevance and crop checks. That does not depend on the narration length, so it is never
 // a guess: such a beat would need a still whatever the timing turns out to be. Beats that do have a candidate
 // may still fail the duration check later, after narration. Uses the same queries and checks as the planner.
-export async function unsupportedBeats(beats, search, options = {}) {
+export async function coverageCandidates(beats, search, options = {}) {
   const landscapeFallback = options.landscapeFallback === true;
   const cache = new Map();
   const cachedSearch = async (query, orientation) => {
@@ -432,23 +441,75 @@ export async function unsupportedBeats(beats, search, options = {}) {
     if (!cache.has(key)) cache.set(key, (await search(query, orientation)) || []);
     return cache.get(key);
   };
-  const unsupported = [];
+  const coverage = [];
   for (let index = 0; index < beats.length; index += 1) {
     const beat = beats[index];
     const tried = [];
-    let supported = false;
+    const candidateIds = new Set();
     for (const query of buildSearchQueries(beat)) {
       tried.push(query);
       const videos = [
         ...(await cachedSearch(query, "portrait")),
         ...(landscapeFallback ? await cachedSearch(query, "landscape") : [])
       ];
-      if (videos.some((video) => judgeVideo(video, beat).accepted && framingFor(video, landscapeFallback) !== null)) {
-        supported = true;
-        break;
+      for (const video of videos) {
+        if (judgeVideo(video, beat).accepted && framingFor(video, landscapeFallback) !== null) candidateIds.add(video.id);
       }
     }
-    if (!supported) unsupported.push({ beatIndex: index, queriesTried: tried });
+    coverage.push({
+      beatIndex: index,
+      queriesTried: tried,
+      candidateIds,
+      missingLocation: !String(beat.location || "").trim()
+    });
   }
-  return unsupported;
+  return coverage;
+}
+
+// Beats with no candidate clip in any query variant or orientation.
+export async function unsupportedBeats(beats, search, options = {}) {
+  const coverage = await coverageCandidates(beats, search, options);
+  return coverage
+    .filter((entry) => entry.candidateIds.size === 0)
+    .map((entry) => ({ beatIndex: entry.beatIndex, queriesTried: entry.queriesTried }));
+}
+
+// Largest number of beats that can each be given a different clip (bipartite matching, augmenting paths).
+// Each beat with footage needs at least one clip and no clip is shared, so (beats − this) is a lower bound on
+// the stills the planner must generate, whatever the narration timing.
+export function maxDistinctAssignment(candidateSets) {
+  const beatOfClip = new Map();
+  const tryBeat = (beat, visited) => {
+    for (const clip of candidateSets[beat]) {
+      if (visited.has(clip)) continue;
+      visited.add(clip);
+      if (!beatOfClip.has(clip) || tryBeat(beatOfClip.get(clip), visited)) {
+        beatOfClip.set(clip, beat);
+        return true;
+      }
+    }
+    return false;
+  };
+  let matched = 0;
+  for (let beat = 0; beat < candidateSets.length; beat += 1) {
+    if (tryBeat(beat, new Set())) matched += 1;
+  }
+  return matched;
+}
+
+// One Pexels search per (query, orientation) for the whole job: the unpaid preflight and the planner share the
+// results, so the same query is never requested twice. Concurrent callers share one in-flight request.
+export function memoizeSearch(search) {
+  const cache = new Map();
+  let calls = 0;
+  const memo = (query, orientation = "portrait") => {
+    const key = orientation + "|" + query;
+    if (!cache.has(key)) {
+      calls += 1;
+      cache.set(key, Promise.resolve().then(() => search(query, orientation)));
+    }
+    return cache.get(key);
+  };
+  memo.calls = () => calls;
+  return memo;
 }

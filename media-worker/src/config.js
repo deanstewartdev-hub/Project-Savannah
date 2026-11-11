@@ -46,7 +46,10 @@ export const config = {
   // Landscape (16:9) footage is used only when portrait footage fails for a beat, and is centre-cropped to 9:16.
   // FOOTAGE_LANDSCAPE_FALLBACK=false turns it off without a code change.
   footage: {
-    landscapeFallback: process.env.FOOTAGE_LANDSCAPE_FALLBACK !== "false"
+    landscapeFallback: process.env.FOOTAGE_LANDSCAPE_FALLBACK !== "false",
+    // A beat with no location cannot have its footage checked for the place, so the job is refused before any
+    // paid step. FOOTAGE_REQUIRE_LOCATION=false lifts this (subject-only relevance is then used).
+    requireLocation: process.env.FOOTAGE_REQUIRE_LOCATION !== "false"
   },
   // Narration model and voice settings. The defaults are exactly what production has always sent, so an
   // unchanged environment behaves the same. Rolling back a voice or model is a configuration change.

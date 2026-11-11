@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import OpenAI from "openai";
 import { config } from "../config.js";
-import { planBeatVisuals, unsupportedBeats, VisualCoverageError } from "./visualSelection.js";
+import { planBeatVisuals, coverageCandidates, maxDistinctAssignment, memoizeSearch, VisualCoverageError } from "./visualSelection.js";
 import { beatRenderSeconds } from "./beatTiming.js";
 
 const openai = new OpenAI({ apiKey: config.openaiApiKey });
@@ -94,21 +94,38 @@ export async function preflightVisualSupply(beats, {
   allowAiStills = false,
   search = searchPexelsVideos,
   stillLimit = config.aiStills.maxPerJob,
-  landscapeFallback = config.footage.landscapeFallback
+  landscapeFallback = config.footage.landscapeFallback,
+  requireLocation = config.footage.requireLocation
 } = {}) {
-  const unsupported = await unsupportedBeats(beats, search, { landscapeFallback });
-  if (unsupported.length === 0) return { unsupported, stills: 0 };
-  const first = unsupported[0];
-  if (!allowAiStills) {
+  const coverage = await coverageCandidates(beats, search, { landscapeFallback });
+  const missingLocation = coverage.filter((entry) => entry.missingLocation).map((entry) => entry.beatIndex);
+  // Without a location, relevance falls back to subject words alone, so the place cannot be checked. Refuse first.
+  if (requireLocation && missingLocation.length > 0) {
     throw new VisualCoverageError(
-      `No relevant footage for beat ${first.beatIndex + 1} after queries: ${first.queriesTried.join(" | ")}. Checked before narration; nothing was generated.`,
-      first.beatIndex
+      `Beat ${missingLocation[0] + 1} has no location, so its footage cannot be checked for the place. Add the location to the scene before rendering. Checked before narration; nothing was generated.`,
+      missingLocation[0]
     );
   }
-  if (unsupported.length > stillLimit) {
-    throw new AiStillLimitError(unsupported.length, stillLimit, { lowerBound: true });
+  // Lower bound on stills: beats that cannot each get a different clip (includes beats with no candidate at all).
+  const lowerBound = beats.length - maxDistinctAssignment(coverage.map((entry) => entry.candidateIds));
+  const unsupported = coverage.filter((entry) => entry.candidateIds.size === 0);
+  if (lowerBound === 0) return { stills: 0, lowerBound, unsupported, missingLocation };
+  if (!allowAiStills) {
+    const first = unsupported[0] || { beatIndex: 0, queriesTried: [] };
+    const detail = unsupported.length
+      ? `No relevant footage for beat ${first.beatIndex + 1} after queries: ${first.queriesTried.join(" | ")}.`
+      : `${lowerBound} beat(s) cannot each get a different relevant clip, because footage is shared between beats.`;
+    throw new VisualCoverageError(`${detail} Checked before narration; nothing was generated.`, first.beatIndex);
   }
-  return { unsupported, stills: unsupported.length };
+  if (lowerBound > stillLimit) {
+    throw new AiStillLimitError(lowerBound, stillLimit, { lowerBound: true });
+  }
+  return { stills: lowerBound, lowerBound, unsupported, missingLocation };
+}
+
+// One memoised Pexels search for a job: the unpaid preflight and the planner both use it.
+export function createSharedPexelsSearch() {
+  return memoizeSearch(searchPexelsVideos);
 }
 
 // Resolves every beat's visual in two steps. First, a plan: each beat tries its location-
