@@ -86,6 +86,14 @@ async function generateFallbackStill(prompt, destPath) {
   return generateStillWithClient(openai, prompt, destPath);
 }
 
+// A beat has a place when it names one, or, for a montage, when every part names one.
+function beatHasPlace(beat) {
+  if (Array.isArray(beat.montage) && beat.montage.length > 0) {
+    return beat.montage.every((part) => String(part.location || "").trim());
+  }
+  return Boolean(String(beat.location || "").trim());
+}
+
 // Unpaid preflight, run before narration. Uses Pexels searches only (no ElevenLabs, Whisper or image calls).
 // A beat with no relevant clip in any orientation would need a still whatever its timing, so such beats are
 // counted here. Refuses the job when footage is missing and stills are not allowed, or when more beats are
@@ -103,7 +111,7 @@ export async function preflightVisualSupply(beats, {
   if (requireLocation) {
     const missing = beats
       .map((beat, index) => ({ beat, index }))
-      .filter(({ beat }) => !beat.locationExempt && !String(beat.location || "").trim())
+      .filter(({ beat }) => !beat.locationExempt && !beatHasPlace(beat))
       .map(({ index }) => index);
     if (missing.length > 0) {
       throw new VisualCoverageError(

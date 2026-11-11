@@ -347,7 +347,48 @@ async function collectFootage(beat, queries, needed, ctx) {
   return { segments, covered };
 }
 
+// A montage beat lists parts, each with its own place and keywords. Every part gets its own clip, with an equal
+// share of the beat's seconds. A beat whose parts lack a clip fails, and then becomes a still as usual.
+export function montagePartBeat(part) {
+  const keywords = String(part.searchKeywords || "").trim();
+  const place = String(part.location || "").trim();
+  return {
+    location: place,
+    searchKeywords: keywords,
+    visualQuery: keywords || place,
+    imagePrompt: keywords || place
+  };
+}
+
+async function collectMontage(beat, ctx) {
+  const { usedIds, candidates, avoid, avoidWords, tried, landscapeFallback } = ctx;
+  const parts = beat.montage;
+  const share = (beat.coverSeconds || 0) / parts.length;
+  const segments = [];
+  for (const part of parts) {
+    const partBeat = montagePartBeat(part);
+    const queries = buildSearchQueries(partBeat);
+    const partUsedBefore = new Set(usedIds);
+    const pass = (allowLandscape) => collectFootage(partBeat, queries, share, {
+      usedIds, usedBefore: partUsedBefore, candidates, avoid, avoidWords, allowLandscape, tried
+    });
+    let found = await pass(false);
+    if (!footageCovers(found, share) && landscapeFallback) {
+      releaseSegments(found.segments, usedIds);
+      found = await pass(true);
+    }
+    if (!footageCovers(found, share)) {
+      releaseSegments(found.segments, usedIds);
+      releaseSegments(segments, usedIds);
+      return { segments: [], covered: 0, ok: false };
+    }
+    segments.push(...found.segments);
+  }
+  return { segments, covered: segments.reduce((sum, s) => sum + s.sourceDurationSeconds, 0), ok: true };
+}
+
 function footageCovers(found, needed) {
+  if (typeof found.ok === "boolean") return found.ok;
   if (needed === 0) return found.segments.length > 0;
   return segmentLengths(found.segments.map((s) => s.sourceDurationSeconds), needed) !== null;
 }
@@ -392,10 +433,15 @@ export async function planBeatVisuals(beats, search, options = {}) {
       usedIds, usedBefore, candidates, avoid, avoidWords, allowLandscape, tried
     });
 
-    let found = await pass(false);
-    if (!footageCovers(found, needed) && landscapeFallback) {
-      releaseSegments(found.segments, usedIds);
-      found = await pass(true);
+    let found;
+    if (Array.isArray(beat.montage) && beat.montage.length > 0) {
+      found = await collectMontage(beat, { usedIds, candidates, avoid, avoidWords, tried, landscapeFallback });
+    } else {
+      found = await pass(false);
+      if (!footageCovers(found, needed) && landscapeFallback) {
+        releaseSegments(found.segments, usedIds);
+        found = await pass(true);
+      }
     }
     if (footageCovers(found, needed)) {
       plan.push({
@@ -444,6 +490,19 @@ export async function coverageCandidates(beats, search, options = {}) {
   const coverage = [];
   for (let index = 0; index < beats.length; index += 1) {
     const beat = beats[index];
+    if (Array.isArray(beat.montage) && beat.montage.length > 0) {
+      // A montage needs a clip for every part. Missing one part makes the whole beat unsupported.
+      const subs = await coverageCandidates(beat.montage.map(montagePartBeat), search, options);
+      const union = new Set();
+      for (const sub of subs) for (const id of sub.candidateIds) union.add(id);
+      const complete = subs.every((sub) => sub.candidateIds.size > 0);
+      coverage.push({
+        beatIndex: index,
+        queriesTried: subs.flatMap((sub) => sub.queriesTried),
+        candidateIds: complete ? union : new Set()
+      });
+      continue;
+    }
     const tried = [];
     const candidateIds = new Set();
     for (const query of buildSearchQueries(beat)) {

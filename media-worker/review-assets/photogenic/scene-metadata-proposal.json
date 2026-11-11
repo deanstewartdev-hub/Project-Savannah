@@ -1,0 +1,66 @@
+{
+  "status": "PROPOSAL ONLY. Not applied to production. Requires owner review and separate approval.",
+  "script": {
+    "title": "The Most Photogenic Places on Earth",
+    "scriptId": "SCR-6928b7a7-8575-42e1-925d-5d2bc8a8d6ef",
+    "ideaId": "IDEA-CEDCBE89",
+    "observedStatus": "APPROVED",
+    "observedRecordVersion": 3
+  },
+  "preservedFields": [
+    "every scene's narration (must match the saved text exactly)",
+    "onScreenText",
+    "visualDirection",
+    "estimatedSeconds",
+    "status (stays APPROVED)",
+    "approval records and the approval queue"
+  ],
+  "changes": [
+    { "scene": 1, "add": { "location": "Antelope Canyon", "searchKeywords": "antelope canyon light" }, "note": "establishing drone shot" },
+    { "scene": 2, "add": { "location": "Antelope Canyon", "searchKeywords": "antelope canyon walls" }, "note": "sandstone close-ups" },
+    { "scene": 3, "add": { "location": "Burano", "searchKeywords": "burano colourful houses" }, "note": "colourful houses and street view" },
+    { "scene": 4, "add": { "location": "Santorini", "searchKeywords": "santorini blue domes" }, "note": "aerial terrace views" },
+    {
+      "scene": 5,
+      "add": {
+        "montage": [
+          { "location": "Burano", "searchKeywords": "burano colourful houses" },
+          { "location": "Santorini", "searchKeywords": "santorini blue domes" },
+          { "location": "Antelope Canyon", "searchKeywords": "antelope canyon light" }
+        ]
+      },
+      "note": "three-location recap. Needs montage support in the Script model, the Apps Script request builder and the worker (implemented in the worker on this branch; the schema and provider changes are NOT yet in production code)."
+    }
+  ],
+  "keywordPolicy": {
+    "chosen": "place-led keywords. The place is the first keyword, so a clip must contain the place name, and the subject words only rank clips.",
+    "consequence": "Relevance is place-only. Clips that show the place without the described shot (for example a ground-level canyon clip for a drone shot) are accepted. Owner decision required.",
+    "rejectedAlternative": "subject-led keywords (for example 'sandstone light beams', 'terraces aerial sea'). These match no Pexels slugs for the place, so the planner finds no clips for scenes 1, 2 and 4, and it would need 3 AI stills."
+  },
+  "expectedCoverage": {
+    "method": "Pexels search metadata only, through the worker's planner. No narration, alignment, images or downloads. Scene durations are the saved estimatedSeconds, not aligned beat timings.",
+    "preflightLowerBoundStills": 0,
+    "plannerStills": 0,
+    "pexelsSearchRequests": 22,
+    "chosenClips": [
+      { "scene": 1, "pexelsId": 16524527, "seconds": 9, "url": "https://www.pexels.com/video/antelope-canyon-16524527/" },
+      { "scene": 2, "pexelsId": 16524525, "seconds": 11, "url": "https://www.pexels.com/video/antelope-canyon-16524525/" },
+      { "scene": 3, "pexelsId": 29918560, "seconds": 11, "url": "https://www.pexels.com/video/colorful-houses-reflected-in-burano-canal-29918560/" },
+      { "scene": 4, "pexelsId": 32500600, "seconds": 28, "url": "https://www.pexels.com/video/santorini-white-cliffs-and-blue-sea-vista-32500600/" },
+      { "scene": 5, "part": "Burano", "pexelsId": 29918561, "seconds": 12, "url": "https://www.pexels.com/video/colorful-houses-in-burano-under-clear-blue-sky-29918561/" },
+      { "scene": 5, "part": "Santorini", "pexelsId": 31573932, "seconds": 8, "url": "https://www.pexels.com/video/stunning-view-of-santorini-s-iconic-architecture-31573932/" },
+      { "scene": 5, "part": "Antelope Canyon", "pexelsId": 16524530, "seconds": 10, "url": "https://www.pexels.com/video/antelope-canyon-16524530/" }
+    ],
+    "footageDepth": {
+      "Antelope Canyon": "4 relevant clips; 2 are used by scenes 1 and 2, 2 remain for the recap",
+      "Burano": "25 relevant clips",
+      "Santorini": "31 relevant clips"
+    }
+  },
+  "openRisks": [
+    "Subject accuracy is not verified by metadata. Each chosen clip needs a human look before any render.",
+    "Scene timing uses estimatedSeconds. The real beat timings come from alignment and may move the coverage numbers.",
+    "Montage parts share the scene equally (about 2.2 s each). That is a short cut, so review the recap pacing.",
+    "The approved narration must be verified byte-for-byte before applying any metadata change."
+  ]
+}
