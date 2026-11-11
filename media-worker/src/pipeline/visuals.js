@@ -97,19 +97,27 @@ export async function preflightVisualSupply(beats, {
   landscapeFallback = config.footage.landscapeFallback,
   requireLocation = config.footage.requireLocation
 } = {}) {
-  const coverage = await coverageCandidates(beats, search, { landscapeFallback });
-  const missingLocation = coverage.filter((entry) => entry.missingLocation).map((entry) => entry.beatIndex);
-  // Without a location, relevance falls back to subject words alone, so the place cannot be checked. Refuse first.
-  if (requireLocation && missingLocation.length > 0) {
-    throw new VisualCoverageError(
-      `Beat ${missingLocation[0] + 1} has no location, so its footage cannot be checked for the place. Add the location to the scene before rendering. Checked before narration; nothing was generated.`,
-      missingLocation[0]
-    );
+  // Location check first, before any Pexels request. A beat without a place cannot have its footage checked for
+  // the place. Only a beat that is explicitly marked locationExempt (a generic intro or transition, set per beat
+  // by the script) is allowed through. The rule itself stays on by default.
+  if (requireLocation) {
+    const missing = beats
+      .map((beat, index) => ({ beat, index }))
+      .filter(({ beat }) => !beat.locationExempt && !String(beat.location || "").trim())
+      .map(({ index }) => index);
+    if (missing.length > 0) {
+      throw new VisualCoverageError(
+        `Beat ${missing[0] + 1} has no location, so its footage cannot be checked for the place. Add the location to the scene before rendering. Checked before any Pexels request or narration; nothing was generated.`,
+        missing[0]
+      );
+    }
   }
-  // Lower bound on stills: beats that cannot each get a different clip (includes beats with no candidate at all).
+  const coverage = await coverageCandidates(beats, search, { landscapeFallback });
+  // Lower bound on stills: beats that cannot each get a different clip. It counts only candidate existence,
+  // not clip duration, framing, subject position or per-beat narration timing, so it is a minimum, not a guarantee.
   const lowerBound = beats.length - maxDistinctAssignment(coverage.map((entry) => entry.candidateIds));
   const unsupported = coverage.filter((entry) => entry.candidateIds.size === 0);
-  if (lowerBound === 0) return { stills: 0, lowerBound, unsupported, missingLocation };
+  if (lowerBound === 0) return { stills: 0, lowerBound, stillLimit, unsupported };
   if (!allowAiStills) {
     const first = unsupported[0] || { beatIndex: 0, queriesTried: [] };
     const detail = unsupported.length
@@ -120,7 +128,7 @@ export async function preflightVisualSupply(beats, {
   if (lowerBound > stillLimit) {
     throw new AiStillLimitError(lowerBound, stillLimit, { lowerBound: true });
   }
-  return { stills: lowerBound, lowerBound, unsupported, missingLocation };
+  return { stills: lowerBound, lowerBound, stillLimit, unsupported };
 }
 
 // One memoised Pexels search for a job: the unpaid preflight and the planner both use it.

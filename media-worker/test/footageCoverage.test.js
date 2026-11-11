@@ -285,17 +285,48 @@ test("the bipartite bound: beats are matched to distinct clips", () => {
   assert.equal(maxDistinctAssignment([new Set(), new Set([4])]), 1, "a beat with no candidate matches nothing");
 });
 
-test("a beat with no location is refused before any paid step, by default", async () => {
+test("a beat with no location is refused before any Pexels request, and the rule stays on by default", async () => {
   const noLocation = { ...ANTELOPE, location: "" };
-  const search = async () => [portraitClip(120, "antelope-canyon-light-beams-x")];
+  let searches = 0;
+  const search = async () => {
+    searches += 1;
+    return [portraitClip(120, "antelope-canyon-light-beams-x")];
+  };
   await assert.rejects(
-    preflightVisualSupply([noLocation], { allowAiStills: true, search, landscapeFallback: true, requireLocation: true }),
-    (error) => error instanceof VisualCoverageError && /has no location/.test(error.message)
+    preflightVisualSupply([ANTELOPE, noLocation], { allowAiStills: true, search, landscapeFallback: true, requireLocation: true }),
+    (error) => error instanceof VisualCoverageError && /Beat 2 has no location/.test(error.message) && /before any Pexels request/.test(error.message)
   );
+  assert.equal(searches, 0, "zero search requests were made for a script that fails the location check");
+});
+
+test("a beat explicitly marked locationExempt may have no location; the rule still applies to the others", async () => {
+  const exempt = { ...ANTELOPE, location: "", locationExempt: true };
+  const search = async () => [portraitClip(121, "antelope-canyon-light-beams-x")];
+  const passed = await preflightVisualSupply([exempt], { allowAiStills: true, search, landscapeFallback: true, requireLocation: true });
+  assert.equal(passed.stills, 0);
+  await assert.rejects(
+    preflightVisualSupply([exempt, { ...ANTELOPE, location: "  " }], { allowAiStills: true, search, landscapeFallback: true, requireLocation: true }),
+    (error) => error instanceof VisualCoverageError && /Beat 2 has no location/.test(error.message)
+  );
+});
+
+test("with the location check lifted, a beat without a place can still use subject-only relevance", async () => {
+  const noLocation = { ...ANTELOPE, location: "" };
+  const search = async () => [portraitClip(122, "antelope-canyon-light-beams-x")];
   const lifted = await preflightVisualSupply([noLocation], {
     allowAiStills: true, search, landscapeFallback: true, requireLocation: false
   });
-  assert.equal(lifted.stills, 0, "with the check lifted, subject-only relevance can still be used");
+  assert.equal(lifted.stills, 0);
+});
+
+test("the preflight reports the minimum required and the maximum allowed separately", async () => {
+  const unseen = (i) => ({ text: "x", visualQuery: `Unseen ${i}`, imagePrompt: `Unseen ${i}`, location: `Nowhere ${i}`, coverSeconds: 3 });
+  const result = await preflightVisualSupply([unseen(0), unseen(1), unseen(2)], {
+    allowAiStills: true, search: async () => [], stillLimit: 5, landscapeFallback: true
+  });
+  assert.equal(result.lowerBound, 3, "minimum stills required");
+  assert.equal(result.stillLimit, 5, "maximum allowed is reported as the limit, not as a count");
+  assert.equal(result.stills, 3);
 });
 
 test("the location requirement is on in configuration by default", () => {

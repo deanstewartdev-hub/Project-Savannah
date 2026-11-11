@@ -459,8 +459,7 @@ export async function coverageCandidates(beats, search, options = {}) {
     coverage.push({
       beatIndex: index,
       queriesTried: tried,
-      candidateIds,
-      missingLocation: !String(beat.location || "").trim()
+      candidateIds
     });
   }
   return coverage;

@@ -61,7 +61,7 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
     const visualSearch = createSharedPexelsSearch();
     log("visual-preflight:start");
     const preflight = await preflightVisualSupply(beats, { allowAiStills, search: visualSearch });
-    log(`visual-preflight:passed (at least ${preflight.lowerBound} of ${beats.length} beats need a still, at most ${preflight.stills} allowed)`);
+    log(`visual-preflight:passed (minimum stills required ${preflight.lowerBound}; maximum allowed ${preflight.stillLimit}; the timed planner may need more)`);
 
     log("narration:start");
     const narrationPath = await generateContinuousNarration(fullScript, workDir);
