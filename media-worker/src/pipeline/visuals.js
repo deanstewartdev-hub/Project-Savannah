@@ -1,21 +1,29 @@
 import { writeFile } from "node:fs/promises";
 import OpenAI from "openai";
 import { config } from "../config.js";
-import { planBeatVisuals } from "./visualSelection.js";
+import { planBeatVisuals, unsupportedBeats, VisualCoverageError } from "./visualSelection.js";
 import { beatRenderSeconds } from "./beatTiming.js";
 
 const openai = new OpenAI({ apiKey: config.openaiApiKey });
 
-async function searchPexelsVideos(query) {
+// Pexels search URL for one query and orientation ("portrait" or "landscape"). Fifteen results per query
+// (was eight): portrait-only search with eight results left too few relevant clips for some places.
+export function pexelsSearchUrl(query, orientation = "portrait", perPage = 15) {
+  if (orientation !== "portrait" && orientation !== "landscape") {
+    throw new Error(`Unknown Pexels orientation: ${orientation}`);
+  }
   const url = new URL("https://api.pexels.com/videos/search");
   url.searchParams.set("query", query);
-  url.searchParams.set("orientation", "portrait");
+  url.searchParams.set("orientation", orientation);
   // "medium" (Full HD) not "large" (4K) - the final output is 1080x1920, so a 4K source
   // just costs extra decode/scale memory and CPU on the render worker for no visual gain.
   url.searchParams.set("size", "medium");
-  url.searchParams.set("per_page", "8");
+  url.searchParams.set("per_page", String(perPage));
+  return url;
+}
 
-  const response = await fetch(url, {
+async function searchPexelsVideos(query, orientation = "portrait") {
+  const response = await fetch(pexelsSearchUrl(query, orientation), {
     headers: { Authorization: config.pexelsApiKey }
   });
   if (!response.ok) {
@@ -35,8 +43,9 @@ async function downloadTo(url, destPath) {
 }
 
 export class AiStillLimitError extends Error {
-  constructor(planned, limit) {
-    super(`This job needs ${planned} AI-generated stills; the limit is ${limit}. No images were generated.`);
+  // lowerBound: the preflight counts only beats with no footage at all, so the true count may be higher.
+  constructor(planned, limit, { lowerBound = false } = {}) {
+    super(`This job needs ${lowerBound ? "at least " : ""}${planned} AI-generated stills; the limit is ${limit}. No images were generated.`);
     this.name = "AiStillLimitError";
     this.code = "AI_STILL_LIMIT";
     this.planned = planned;
@@ -77,6 +86,31 @@ async function generateFallbackStill(prompt, destPath) {
   return generateStillWithClient(openai, prompt, destPath);
 }
 
+// Unpaid preflight, run before narration. Uses Pexels searches only (no ElevenLabs, Whisper or image calls).
+// A beat with no relevant clip in any orientation would need a still whatever its timing, so such beats are
+// counted here. Refuses the job when footage is missing and stills are not allowed, or when more beats are
+// missing than the still limit allows. Beats that have candidates may still fail the duration check later.
+export async function preflightVisualSupply(beats, {
+  allowAiStills = false,
+  search = searchPexelsVideos,
+  stillLimit = config.aiStills.maxPerJob,
+  landscapeFallback = config.footage.landscapeFallback
+} = {}) {
+  const unsupported = await unsupportedBeats(beats, search, { landscapeFallback });
+  if (unsupported.length === 0) return { unsupported, stills: 0 };
+  const first = unsupported[0];
+  if (!allowAiStills) {
+    throw new VisualCoverageError(
+      `No relevant footage for beat ${first.beatIndex + 1} after queries: ${first.queriesTried.join(" | ")}. Checked before narration; nothing was generated.`,
+      first.beatIndex
+    );
+  }
+  if (unsupported.length > stillLimit) {
+    throw new AiStillLimitError(unsupported.length, stillLimit, { lowerBound: true });
+  }
+  return { unsupported, stills: unsupported.length };
+}
+
 // Resolves every beat's visual in two steps. First, a plan: each beat tries its location-
 // specific query variants and keeps only Pexels clips that pass the relevance gate, with no
 // clip reused across beats. Second, the chosen files are fetched and any labelled AI stills
@@ -88,7 +122,8 @@ export async function resolveBeatVisuals(beats, workDir, {
   narrationSeconds,
   search = searchPexelsVideos,
   generateStill = generateFallbackStill,
-  stillLimit = config.aiStills.maxPerJob
+  stillLimit = config.aiStills.maxPerJob,
+  landscapeFallback = config.footage.landscapeFallback
 } = {}) {
   // Each beat must be covered for the length assemble.js will render it at: its span on the full
   // narration timeline (speech plus the pauses that belong to it) plus the crossfade into the next beat.
@@ -98,7 +133,7 @@ export async function resolveBeatVisuals(beats, workDir, {
   }
   const coverage = beatRenderSeconds(beats, narrationSeconds, config.video.crossfadeSeconds);
   const withCoverage = beats.map((beat, index) => ({ ...beat, coverSeconds: coverage[index] }));
-  const plan = await planBeatVisuals(withCoverage, search, { allowAiStills });
+  const plan = await planBeatVisuals(withCoverage, search, { allowAiStills, landscapeFallback });
   // Fail before any image request if the plan needs more AI stills than this job may use.
   assertAiStillLimit(plan, stillLimit);
 
@@ -116,7 +151,9 @@ export async function resolveBeatVisuals(beats, workDir, {
             pexelsId: segment.pexelsId,
             sourceUrl: segment.sourceUrl,
             query: segment.query,
-            reason: segment.reason
+            reason: segment.reason,
+            framing: segment.framing,
+            cropUpscale: segment.cropUpscale
           });
         }
         return { type: "video", segments };

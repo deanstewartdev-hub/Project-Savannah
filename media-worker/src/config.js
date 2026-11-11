@@ -43,6 +43,11 @@ export const config = {
     maxPerJob: 2,
     quality: "medium"
   },
+  // Landscape (16:9) footage is used only when portrait footage fails for a beat, and is centre-cropped to 9:16.
+  // FOOTAGE_LANDSCAPE_FALLBACK=false turns it off without a code change.
+  footage: {
+    landscapeFallback: process.env.FOOTAGE_LANDSCAPE_FALLBACK !== "false"
+  },
   // Narration model and voice settings. The defaults are exactly what production has always sent, so an
   // unchanged environment behaves the same. Rolling back a voice or model is a configuration change.
   narration: {

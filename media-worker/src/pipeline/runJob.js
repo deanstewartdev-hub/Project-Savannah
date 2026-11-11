@@ -3,7 +3,7 @@ import { downloadToFile, objectExists } from "../lib/storage.js";
 import { generateContinuousNarration } from "./narration.js";
 import { alignNarration } from "./alignment.js";
 import { computeBeatTimings } from "./beatTiming.js";
-import { resolveBeatVisuals } from "./visuals.js";
+import { preflightVisualSupply, resolveBeatVisuals } from "./visuals.js";
 import { assembleVideo } from "./assemble.js";
 import { probeVideo } from "./probe.js";
 import { assertNarrationComplete } from "./narrationCompleteness.js";
@@ -54,6 +54,12 @@ export async function runJob({ jobId, beats, musicTrackId, musicTrackPath, music
     log(`music:validated ${music.info.durationSeconds.toFixed(1)}s ${music.info.codec}`);
 
     const fullScript = beats.map((beat) => beat.text.trim()).join(" ");
+
+    // Unpaid: Pexels searches only. A script whose beats cannot be illustrated is refused before ElevenLabs
+    // or Whisper is called, instead of after.
+    log("visual-preflight:start");
+    const preflight = await preflightVisualSupply(beats, { allowAiStills });
+    log(`visual-preflight:passed (${beats.length - preflight.unsupported.length} of ${beats.length} beats have candidate footage)`);
 
     log("narration:start");
     const narrationPath = await generateContinuousNarration(fullScript, workDir);
