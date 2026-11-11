@@ -11,8 +11,28 @@ const NON_SUBJECT_WORDS = new Set([
   "below", "above", "leading", "climbing", "someone", "touching", "walking", "passing", "lined"
 ]);
 
+// Shot words name how a clip was filmed (camera type or motion). They never decide whether a clip is
+// relevant: the place and the subject do. A clip that also shows the shot gets a small preference.
+const SHOT_WORDS = new Set(["drone", "aerial", "sweeping", "overhead", "flyover", "flying", "timelapse"]);
+// The shot words worth adding to a search query. Motion words such as "sweeping" are weak search terms.
+const QUERY_SHOT_WORDS = ["drone", "aerial", "overhead", "flyover"];
+
 const MAX_KEYWORDS = 4;
 const MAX_QUERY_WORDS = 4;
+
+// Landscape footage (16:9) is centre-cropped to 9:16 by the assembler. Its effective resolution is the
+// width of that crop in source pixels, scaled up to the 1080-pixel output width. A crop that would need
+// more than MAX_CROP_UPSCALE times upscaling (for example 720p source) is refused.
+const OUTPUT_WIDTH = 1080;
+export const MAX_CROP_UPSCALE = 1.8;
+const LANDSCAPE_ASPECT_MIN = 1.7;
+// 1.95:1 admits 2048x1080 (1.90:1) footage from Pexels. The 9:16 centre crop keeps (9/16) / aspect of the
+// frame's width: 28.8% at 1.95:1. A crop keeping less than MIN_KEPT_WIDTH_FRACTION cuts out too much of the
+// frame, so it is refused.
+const LANDSCAPE_ASPECT_MAX = 1.95;
+export const MIN_KEPT_WIDTH_FRACTION = 0.28;
+// A landscape clip must be clearly more relevant than a portrait one to be chosen over it.
+const LANDSCAPE_PENALTY = 3;
 
 export class VisualCoverageError extends Error {
   constructor(message, beatIndex) {
@@ -30,18 +50,31 @@ export function tokenize(text) {
     .filter((word) => word.length > 1);
 }
 
-// Keywords for search: an explicit list from the script wins; otherwise the subject words of
-// the scene direction, with camera and grammar words removed.
-export function deriveKeywords(beat) {
+// The text a beat's keywords come from: an explicit list from the script, otherwise the scene direction.
+function keywordSource(beat) {
   const explicit = Array.isArray(beat.searchKeywords)
     ? beat.searchKeywords.join(" ")
     : String(beat.searchKeywords || "");
-  const source = explicit.trim() || String(beat.visualQuery || beat.imagePrompt || "");
+  return explicit.trim() || String(beat.visualQuery || beat.imagePrompt || "");
+}
+
+// Keywords for search: an explicit list from the script wins; otherwise the subject words of
+// the scene direction, with camera, grammar and shot words removed.
+export function deriveKeywords(beat) {
   const words = [];
-  for (const word of tokenize(source)) {
-    if (NON_SUBJECT_WORDS.has(word) || words.includes(word)) continue;
+  for (const word of tokenize(keywordSource(beat))) {
+    if (NON_SUBJECT_WORDS.has(word) || SHOT_WORDS.has(word) || words.includes(word)) continue;
     words.push(word);
     if (words.length === MAX_KEYWORDS) break;
+  }
+  return words;
+}
+
+// Shot words named in the beat (for example "drone" or "sweeping"), in the order they appear.
+export function shotWordsFor(beat) {
+  const words = [];
+  for (const word of tokenize(keywordSource(beat))) {
+    if (SHOT_WORDS.has(word) && !words.includes(word)) words.push(word);
   }
   return words;
 }
@@ -50,14 +83,18 @@ function location(beat) {
   return tokenize(beat.location).join(" ");
 }
 
-// Ordered query variants: place plus subject first, then place plus a second subject, then
-// the place alone. Without a location, only subject-only variants are used.
+// Ordered query variants: place plus subject first, then place plus a shot word (for example "drone"),
+// then place plus a second subject pair, then the place alone. Place words are removed from the subject
+// words so a query never repeats the place. Without a location, only subject-only variants are used.
 export function buildSearchQueries(beat) {
   const place = location(beat);
-  const keywords = deriveKeywords(beat);
+  const placeWords = tokenize(beat.location);
+  const keywords = deriveKeywords(beat).filter((word) => !placeWords.includes(word));
+  const queryShots = shotWordsFor(beat).filter((word) => QUERY_SHOT_WORDS.includes(word));
   const candidates = [];
   if (place) {
     candidates.push(place + " " + keywords.slice(0, 2).join(" "));
+    if (queryShots.length) candidates.push(place + " " + queryShots[0]);
     candidates.push(place + " " + keywords.slice(2, 4).join(" "));
     candidates.push(place);
   }
@@ -85,7 +122,8 @@ export function evidenceFor(video, beat) {
   const keywords = deriveKeywords(beat);
   const locationMatch = place.length === 0 ? null : place.every((word) => tokens.has(word));
   const matchedKeywords = keywords.filter((word) => tokens.has(word));
-  return { locationMatch, matchedKeywords, keywordCount: keywords.length };
+  const shotMatches = shotWordsFor(beat).filter((word) => tokens.has(word)).length;
+  return { locationMatch, matchedKeywords, keywordCount: keywords.length, shotMatches };
 }
 
 // Decides whether one Pexels result is acceptable for a beat. A location is required when
@@ -121,17 +159,47 @@ function portraitFile(video) {
   return files.find((f) => f.width >= 1080) || files[files.length - 1] || null;
 }
 
+// The best 16:9 landscape file that can be centre-cropped to 9:16 without exceeding MAX_CROP_UPSCALE.
+// Returns null when no file qualifies (wrong aspect ratio, or too low a resolution for a clean crop).
+export function landscapeCropFile(video) {
+  let best = null;
+  for (const file of video.video_files || []) {
+    if (file.file_type !== "video/mp4" || !(file.width > file.height)) continue;
+    const aspect = file.width / file.height;
+    if (aspect < LANDSCAPE_ASPECT_MIN || aspect > LANDSCAPE_ASPECT_MAX) continue;
+    const cropWidth = (file.height * 9) / 16; // source pixels in the 9:16 centre crop
+    const upscale = OUTPUT_WIDTH / cropWidth;
+    if (upscale > MAX_CROP_UPSCALE) continue;
+    const keptWidthFraction = (9 / 16) / aspect;
+    if (keptWidthFraction < MIN_KEPT_WIDTH_FRACTION) continue;
+    if (!best || upscale < best.upscale) best = { file, upscale, cropWidth, keptWidthFraction };
+  }
+  return best;
+}
+
+// How a clip can be used: portrait as it is, or (only when allowed) a landscape clip centre-cropped.
+function framingFor(video, allowLandscape) {
+  const portrait = portraitFile(video);
+  if (portrait) return { file: portrait, framing: "portrait", cropUpscale: null };
+  if (!allowLandscape) return null;
+  const landscape = landscapeCropFile(video);
+  return landscape
+    ? { file: landscape.file, framing: "landscape-crop", cropUpscale: landscape.upscale, keptWidthFraction: landscape.keptWidthFraction }
+    : null;
+}
+
 // Chooses the best acceptable, not-yet-used clip from one query's results. Returns null when
 // nothing qualifies, which makes the caller try the next query variant.
 // avoidUploaders: uploaders of the previous scene's footage. A clip from the same uploader is only
 // chosen when nothing else qualifies, so consecutive scenes come from different sources.
-export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders = null, avoidTokens = null) {
+// allowLandscape: also accept 16:9 clips that pass the crop checks (portrait clips are still preferred).
+export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders = null, avoidTokens = null, allowLandscape = false) {
   let best = null;
   for (const video of videos || []) {
     if (usedIds.has(video.id)) continue;
     if (Number(video.duration) < minSeconds) continue;
-    const file = portraitFile(video);
-    if (!file) continue;
+    const framing = framingFor(video, allowLandscape);
+    if (!framing) continue;
     const judgement = judgeVideo(video, beat);
     if (!judgement.accepted) continue;
     const uploader = video.user && video.user.name ? String(video.user.name) : "";
@@ -142,29 +210,35 @@ export function selectClip(videos, beat, usedIds, minSeconds = 0, avoidUploaders
       ? tokens.filter((t) => avoidTokens.has(t)).length / tokens.length
       : 0;
     const nearDuplicate = overlap >= 0.5;
-    const score = (judgement.evidence.locationMatch ? 10 : 0) + judgement.evidence.matchedKeywords.length -
+    const score = (judgement.evidence.locationMatch ? 10 : 0) +
+      judgement.evidence.matchedKeywords.length +
+      judgement.evidence.shotMatches -
+      (framing.framing === "landscape-crop" ? LANDSCAPE_PENALTY : 0) -
       (nearDuplicate ? 4 : 0) -
       (repeatsUploader ? 5 : 0);
     if (!best || score > best.score) {
-      best = { score, video, file, uploader, reason: judgement.reason };
+      best = { score, video, framing, uploader, reason: judgement.reason };
     }
   }
   if (!best) return null;
+  const reason = best.framing.framing === "landscape-crop"
+    ? best.reason + "; landscape footage centre-cropped to 9:16 (crop upscale " + best.framing.cropUpscale.toFixed(2) + "x, keeps " +
+      Math.round(best.framing.keptWidthFraction * 100) + "% of the width)"
+    : best.reason;
   return {
     type: "video",
     pexelsId: best.video.id,
-    link: best.file.link,
+    link: best.framing.file.link,
     sourceUrl: best.video.url,
     sourceDurationSeconds: best.video.duration,
     uploader: best.uploader,
     tokens: slugTokens(best.video.url),
-    reason: best.reason
+    framing: best.framing.framing,
+    cropUpscale: best.framing.cropUpscale,
+    reason
   };
 }
 
-// Plans every beat in order. `search(query)` resolves to Pexels video objects. Clips are
-// de-duplicated across the whole job. When no clip qualifies for a beat, the plan either
-// falls back to a labelled AI still (allowAiStills) or fails with a visual-coverage error.
 // Pure helper: the piece lengths that cover `durationSeconds` from the source clips, in order.
 // The beat is shared evenly across the clips, so no cut is a short tail; a clip shorter than
 // its share gives its whole length and the rest is spread over the others. Each piece is no
@@ -191,10 +265,6 @@ const MAX_SEGMENTS_PER_BEAT = 3;
 // A cut shorter than this reads as a flash, so a beat prefers one clip over a short tail.
 const MIN_CUT_SECONDS = 2.5;
 
-// Plans every beat in order. `search(query)` resolves to Pexels video objects. A beat with
-// `coverSeconds` collects clips until their durations cover it. When a beat cannot be covered
-// with relevant footage, the plan either falls back to a labelled AI still (allowAiStills)
-// or fails with a visual-coverage error.
 // Uploaders used by the most recent planned scene, so the next scene prefers different footage sources.
 export function previousUploaders(plan) {
   const last = plan && plan.length ? plan[plan.length - 1] : null;
@@ -221,13 +291,93 @@ export function stillPrompt(beat) {
   return parts.join(". ");
 }
 
+// Footage for one beat, from the queries in order. `candidates(query, allowLandscape)` returns the Pexels
+// results for a query. Pass one takes a single clip long enough for the beat; pass two collects several
+// clips (each at least MIN_CUT_SECONDS, except the last). Clips already used by earlier beats are skipped.
+async function collectFootage(beat, queries, needed, ctx) {
+  const { usedIds, usedBefore, candidates, avoid, avoidWords, allowLandscape, tried } = ctx;
+  const segments = [];
+  let covered = 0;
+
+  if (needed === 0) {
+    for (const query of queries) {
+      tried.push(query);
+      const chosen = selectClip(await candidates(query, allowLandscape), beat, usedIds, 0, avoid, avoidWords, allowLandscape);
+      if (chosen) {
+        chosen.query = query;
+        segments.push(chosen);
+        usedIds.add(chosen.pexelsId);
+        break;
+      }
+    }
+    return { segments, covered };
+  }
+
+  // First choice: one clip long enough for the whole beat, so the beat needs no cut.
+  for (const query of queries) {
+    tried.push(query);
+    const chosen = selectClip(await candidates(query, allowLandscape), beat, usedIds, needed, avoid, avoidWords, allowLandscape);
+    if (chosen) {
+      chosen.query = query;
+      segments.push(chosen);
+      usedIds.add(chosen.pexelsId);
+      covered = chosen.sourceDurationSeconds;
+      break;
+    }
+  }
+  if (covered >= needed) return { segments, covered };
+
+  // Otherwise, several clips.
+  segments.length = 0;
+  usedIds.clear();
+  for (const id of usedBefore) usedIds.add(id);
+  covered = 0;
+  for (const query of queries) {
+    while (segments.length < MAX_SEGMENTS_PER_BEAT && covered < needed) {
+      const chosen = selectClip(await candidates(query, allowLandscape), beat, usedIds, MIN_CUT_SECONDS, avoid, avoidWords, allowLandscape);
+      if (!chosen) break;
+      chosen.query = query;
+      segments.push(chosen);
+      usedIds.add(chosen.pexelsId);
+      covered += chosen.sourceDurationSeconds;
+    }
+    if (!tried.includes(query)) tried.push(query);
+    if (covered >= needed) break;
+  }
+  return { segments, covered };
+}
+
+function footageCovers(found, needed) {
+  if (needed === 0) return found.segments.length > 0;
+  return segmentLengths(found.segments.map((s) => s.sourceDurationSeconds), needed) !== null;
+}
+
+function releaseSegments(segments, usedIds) {
+  for (const segment of segments) usedIds.delete(segment.pexelsId);
+}
+
+// Plans every beat in order. `search(query, orientation)` resolves to Pexels video objects, with orientation
+// "portrait" or "landscape". Clips are de-duplicated across the whole job. A beat with `coverSeconds` collects
+// clips until their durations cover it. Portrait footage is tried first. Only when that fails, and only when
+// options.landscapeFallback is true, landscape footage is tried too, centre-cropped and checked for crop quality.
+// When a beat still cannot be covered with relevant footage, the plan either falls back to a labelled AI still
+// (allowAiStills) or fails with a visual-coverage error.
 export async function planBeatVisuals(beats, search, options = {}) {
   const usedIds = new Set();
   const cache = new Map();
-  const cachedSearch = async (query) => {
-    if (!cache.has(query)) cache.set(query, await search(query));
-    return cache.get(query);
+  const cachedSearch = async (query, orientation) => {
+    const key = orientation + "|" + query;
+    if (!cache.has(key)) cache.set(key, await search(query, orientation));
+    return cache.get(key);
   };
+  const candidates = async (query, allowLandscape) => {
+    const portrait = (await cachedSearch(query, "portrait")) || [];
+    if (!allowLandscape) return portrait;
+    const landscape = (await cachedSearch(query, "landscape")) || [];
+    const ids = new Set(portrait.map((video) => video.id));
+    return [...portrait, ...landscape.filter((video) => !ids.has(video.id))];
+  };
+  const landscapeFallback = options.landscapeFallback === true;
 
   const plan = [];
   for (let index = 0; index < beats.length; index += 1) {
@@ -237,75 +387,29 @@ export async function planBeatVisuals(beats, search, options = {}) {
     const needed = beat.coverSeconds || 0;
     const queries = buildSearchQueries(beat);
     const tried = [];
-    const segments = [];
-    const usedBeforeBeat = new Set(usedIds);
-    let covered = 0;
+    const usedBefore = new Set(usedIds);
+    const pass = (allowLandscape) => collectFootage(beat, queries, needed, {
+      usedIds, usedBefore, candidates, avoid, avoidWords, allowLandscape, tried
+    });
 
-    // First choice: one clip long enough for the whole beat, so the beat needs no cut.
-    if (needed > 0) {
-      for (const query of queries) {
-        tried.push(query);
-        const chosen = selectClip(await cachedSearch(query), beat, usedIds, needed, avoid, avoidWords);
-        if (chosen) {
-          chosen.query = query;
-          segments.push(chosen);
-          usedIds.add(chosen.pexelsId);
-          covered = chosen.sourceDurationSeconds;
-          break;
-        }
-      }
+    let found = await pass(false);
+    if (!footageCovers(found, needed) && landscapeFallback) {
+      releaseSegments(found.segments, usedIds);
+      found = await pass(true);
     }
-
-    // Otherwise, several clips. Every cut except one that finishes the beat must be at least
-    // MIN_CUT_SECONDS long, so the video has no flashes of a fraction of a second.
-    if (needed > 0 && covered < needed) {
-      segments.length = 0;
-      usedIds.clear();
-      for (const id of usedBeforeBeat) usedIds.add(id);
-      covered = 0;
-      for (const query of queries) {
-        while (segments.length < MAX_SEGMENTS_PER_BEAT && covered < needed) {
-          const chosen = selectClip(await cachedSearch(query), beat, usedIds, MIN_CUT_SECONDS, avoid, avoidWords);
-          if (!chosen) break;
-          chosen.query = query;
-          segments.push(chosen);
-          usedIds.add(chosen.pexelsId);
-          covered += chosen.sourceDurationSeconds;
-        }
-        if (!tried.includes(query)) tried.push(query);
-        if (covered >= needed) break;
-      }
-    }
-
-    if (needed === 0) {
-      for (const query of queries) {
-        tried.push(query);
-        const chosen = selectClip(await cachedSearch(query), beat, usedIds, 0, avoid, avoidWords);
-        if (chosen) {
-          chosen.query = query;
-          segments.push(chosen);
-          usedIds.add(chosen.pexelsId);
-          break;
-        }
-      }
-    }
-
-    const coverageOk = needed === 0
-      ? segments.length > 0
-      : segmentLengths(segments.map((s) => s.sourceDurationSeconds), needed) !== null;
-    if (coverageOk) {
+    if (footageCovers(found, needed)) {
       plan.push({
         beatIndex: index,
         type: "video",
-        segments,
+        segments: found.segments,
         queriesTried: tried,
-        reason: segments.map((s) => s.reason).join(" / ")
+        reason: found.segments.map((s) => s.reason).join(" / ")
       });
       continue;
     }
 
     // Release clips picked for this beat: the beat is not using them.
-    for (const segment of segments) usedIds.delete(segment.pexelsId);
+    releaseSegments(found.segments, usedIds);
     if (!options.allowAiStills) {
       throw new VisualCoverageError(
         "No relevant footage covering " + needed.toFixed(1) + " s for beat " + (index + 1) + " after queries: " + tried.join(" | "),
@@ -323,4 +427,88 @@ export async function planBeatVisuals(beats, search, options = {}) {
     });
   }
   return plan;
+}
+
+// Unpaid preflight, run before any narration. A beat is unsupported when none of its query variants returns a
+// clip that passes the relevance and crop checks. That does not depend on the narration length, so it is never
+// a guess: such a beat would need a still whatever the timing turns out to be. Beats that do have a candidate
+// may still fail the duration check later, after narration. Uses the same queries and checks as the planner.
+export async function coverageCandidates(beats, search, options = {}) {
+  const landscapeFallback = options.landscapeFallback === true;
+  const cache = new Map();
+  const cachedSearch = async (query, orientation) => {
+    const key = orientation + "|" + query;
+    if (!cache.has(key)) cache.set(key, (await search(query, orientation)) || []);
+    return cache.get(key);
+  };
+  const coverage = [];
+  for (let index = 0; index < beats.length; index += 1) {
+    const beat = beats[index];
+    const tried = [];
+    const candidateIds = new Set();
+    for (const query of buildSearchQueries(beat)) {
+      tried.push(query);
+      const videos = [
+        ...(await cachedSearch(query, "portrait")),
+        ...(landscapeFallback ? await cachedSearch(query, "landscape") : [])
+      ];
+      for (const video of videos) {
+        if (judgeVideo(video, beat).accepted && framingFor(video, landscapeFallback) !== null) candidateIds.add(video.id);
+      }
+    }
+    coverage.push({
+      beatIndex: index,
+      queriesTried: tried,
+      candidateIds
+    });
+  }
+  return coverage;
+}
+
+// Beats with no candidate clip in any query variant or orientation.
+export async function unsupportedBeats(beats, search, options = {}) {
+  const coverage = await coverageCandidates(beats, search, options);
+  return coverage
+    .filter((entry) => entry.candidateIds.size === 0)
+    .map((entry) => ({ beatIndex: entry.beatIndex, queriesTried: entry.queriesTried }));
+}
+
+// Largest number of beats that can each be given a different clip (bipartite matching, augmenting paths).
+// Each beat with footage needs at least one clip and no clip is shared, so (beats − this) is a lower bound on
+// the stills the planner must generate, whatever the narration timing.
+export function maxDistinctAssignment(candidateSets) {
+  const beatOfClip = new Map();
+  const tryBeat = (beat, visited) => {
+    for (const clip of candidateSets[beat]) {
+      if (visited.has(clip)) continue;
+      visited.add(clip);
+      if (!beatOfClip.has(clip) || tryBeat(beatOfClip.get(clip), visited)) {
+        beatOfClip.set(clip, beat);
+        return true;
+      }
+    }
+    return false;
+  };
+  let matched = 0;
+  for (let beat = 0; beat < candidateSets.length; beat += 1) {
+    if (tryBeat(beat, new Set())) matched += 1;
+  }
+  return matched;
+}
+
+// One Pexels search per (query, orientation) for the whole job: the unpaid preflight and the planner share the
+// results, so the same query is never requested twice. Concurrent callers share one in-flight request.
+export function memoizeSearch(search) {
+  const cache = new Map();
+  let calls = 0;
+  const memo = (query, orientation = "portrait") => {
+    const key = orientation + "|" + query;
+    if (!cache.has(key)) {
+      calls += 1;
+      cache.set(key, Promise.resolve().then(() => search(query, orientation)));
+    }
+    return cache.get(key);
+  };
+  memo.calls = () => calls;
+  return memo;
 }
