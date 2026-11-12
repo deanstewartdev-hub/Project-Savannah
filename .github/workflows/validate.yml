@@ -17,6 +17,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Install FFmpeg and FFprobe
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version
+          ffprobe -version
       - run: node node-tests/run-local.cjs
 
   media-worker:
@@ -33,4 +39,10 @@ jobs:
           cache: npm
           cache-dependency-path: media-worker/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - name: Install FFmpeg and FFprobe
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version
+          ffprobe -version
       - run: npm test
