@@ -1,5 +1,5 @@
 {
-  "status": "PROPOSAL ONLY. Not applied to production. Requires owner review and separate approval.",
+  "status": "PROPOSAL ONLY. Not applied to production. Requires owner review and separate approval. Narration and timing are not changed.",
   "script": {
     "title": "The Most Photogenic Places on Earth",
     "scriptId": "SCR-6928b7a7-8575-42e1-925d-5d2bc8a8d6ef",
@@ -8,7 +8,7 @@
     "observedRecordVersion": 3
   },
   "preservedFields": [
-    "every scene's narration (must match the saved text exactly)",
+    "every scene's narration (must match the saved text exactly, checked before any apply)",
     "onScreenText",
     "visualDirection",
     "estimatedSeconds",
@@ -16,51 +16,82 @@
     "approval records and the approval queue"
   ],
   "changes": [
-    { "scene": 1, "add": { "location": "Antelope Canyon", "searchKeywords": "antelope canyon light" }, "note": "establishing drone shot" },
-    { "scene": 2, "add": { "location": "Antelope Canyon", "searchKeywords": "antelope canyon walls" }, "note": "sandstone close-ups" },
-    { "scene": 3, "add": { "location": "Burano", "searchKeywords": "burano colourful houses" }, "note": "colourful houses and street view" },
-    { "scene": 4, "add": { "location": "Santorini", "searchKeywords": "santorini blue domes" }, "note": "aerial terrace views" },
+    {
+      "scene": 1,
+      "add": { "location": "Antelope Canyon", "searchKeywords": "antelope canyon light", "labelledStill": true },
+      "note": "No verified Antelope Canyon establishing drone footage exists in the candidates reviewed. The scene is a labelled AI still (not footage). It is labelled as AI-generated on screen and in the render record."
+    },
+    {
+      "scene": 2,
+      "add": { "location": "Antelope Canyon", "searchKeywords": "antelope canyon walls", "labelledStill": true },
+      "note": "Same reason as scene 1: no verified sandstone close-up of Antelope Canyon. Labelled AI still."
+    },
+    {
+      "scene": 3,
+      "add": { "location": "Burano", "searchKeywords": "burano colourful houses", "approvedClips": [29918560] },
+      "note": "Reviewed: the canal of coloured houses in Burano."
+    },
+    {
+      "scene": 4,
+      "add": { "location": "Santorini", "searchKeywords": "santorini blue domes", "approvedClips": [38087413] },
+      "note": "Reviewed: a drone-level aerial of the Santorini caldera cliff town, matching 'aerial terrace views'."
+    },
     {
       "scene": 5,
       "add": {
         "montage": [
-          { "location": "Antelope Canyon", "searchKeywords": "antelope canyon light" },
-          { "location": "Burano", "searchKeywords": "burano colourful houses" },
-          { "location": "Santorini", "searchKeywords": "santorini blue domes" }
+          { "location": "Antelope Canyon", "searchKeywords": "antelope canyon light", "approvedClips": [29510336] },
+          { "location": "Burano", "searchKeywords": "burano colourful houses", "approvedClips": [29918561] },
+          { "location": "Santorini", "searchKeywords": "santorini blue domes", "approvedClips": [32500600] }
         ]
       },
-      "note": "three-destination recap in the approved order Antelope Canyon, Burano, Santorini. One clip per place, each at least its equal share (about 2.17 s at 6.52 s). A missing place fails closed: the job is refused, never a still. The schema, Apps Script bridge and worker validation are implemented on the branch; production is unchanged."
+      "note": "Three-destination recap in the approved order Antelope Canyon, Burano, Santorini. One reviewed clip per place, each covering its equal share of the timed beat (about 2.17 s at the estimated 6.52 s). The Antelope clip is landscape: it is centre-cropped to 9:16 at 0.89x (downscaled from 4K). A missing place fails closed."
     }
   ],
+  "rejectedClips": [
+    { "pexelsId": 16524527, "reason": "Labelled 'antelope-canyon' but shows Horseshoe Bend (Colorado River overlook), not Antelope Canyon. Rejected." },
+    { "pexelsId": 16524525, "reason": "Same as 16524527: Horseshoe Bend. Rejected." },
+    { "pexelsId": 16524530, "reason": "Same as 16524527: Horseshoe Bend. Rejected." },
+    { "pexelsId": 31573932, "reason": "White houses on a hillside, not clearly Santorini. Unverified. Rejected." },
+    { "pexelsId": 32500600, "reason": "Accepted for the Santorini montage part only. Caldera cliffs seen from the sea; not an aerial terrace view, so scene 4 uses 38087413 instead." }
+  ],
   "keywordPolicy": {
-    "chosen": "place-led keywords. The place is the first keyword, so a clip must contain the place name, and the subject words only rank clips.",
-    "consequence": "Relevance is place-only. Clips that show the place without the described shot (for example a ground-level canyon clip for a drone shot) are accepted. Owner decision required.",
-    "rejectedAlternative": "subject-led keywords (for example 'sandstone light beams', 'terraces aerial sea'). These match no Pexels slugs for the place, so the planner finds no clips for scenes 1, 2 and 4, and it would need 3 AI stills."
+    "chosen": "Place-led keywords with reviewed clip IDs. Relevance still requires the place name in the clip metadata, and a reviewed clip list restricts a beat to clips a human has looked at.",
+    "consequence": "Metadata cannot prove what a clip shows. Only clips on the reviewed list are used for scenes 3, 4 and the montage. Every reviewed clip was checked by contact sheet of its own frames (see review-assets/photogenic/footage/accepted).",
+    "rejectedAlternative": "Place-only relevance without reviewed lists: the planner selected the Horseshoe Bend clips for Antelope Canyon, which were wrong."
   },
   "expectedCoverage": {
-    "method": "Pexels search metadata only, through the worker's planner. No narration, alignment, images or downloads. Scene durations are the saved estimatedSeconds, not aligned beat timings.",
-    "preflightLowerBoundStills": 0,
-    "plannerStills": 0,
-    "pexelsSearchRequests": 22,
-    "chosenClips": [
-      { "scene": 1, "pexelsId": 16524527, "seconds": 9, "url": "https://www.pexels.com/video/antelope-canyon-16524527/" },
-      { "scene": 2, "pexelsId": 16524525, "seconds": 11, "url": "https://www.pexels.com/video/antelope-canyon-16524525/" },
-      { "scene": 3, "pexelsId": 29918560, "seconds": 11, "url": "https://www.pexels.com/video/colorful-houses-reflected-in-burano-canal-29918560/" },
-      { "scene": 4, "pexelsId": 32500600, "seconds": 28, "url": "https://www.pexels.com/video/santorini-white-cliffs-and-blue-sea-vista-32500600/" },
-      { "scene": 5, "part": "Antelope Canyon", "pexelsId": 16524530, "seconds": 10, "url": "https://www.pexels.com/video/antelope-canyon-16524530/" },
-      { "scene": 5, "part": "Burano", "pexelsId": 29918561, "seconds": 12, "url": "https://www.pexels.com/video/colorful-houses-in-burano-under-clear-blue-sky-29918561/" },
-      { "scene": 5, "part": "Santorini", "pexelsId": 31573932, "seconds": 8, "url": "https://www.pexels.com/video/stunning-view-of-santorini-s-iconic-architecture-31573932/" }
+    "method": "Worker planner and preflight with free Pexels search metadata only. No narration, alignment, image generation or paid service. Scene durations are the saved estimatedSeconds; the aligned beat timings will change the shares and must be rechecked before any render.",
+    "preflightLowerBoundStills": 2,
+    "plannerStills": 2,
+    "stillLimit": 2,
+    "pexelsSearchRequests": 18,
+    "plan": [
+      { "scene": 1, "type": "labelled AI still", "seconds": 7.39 },
+      { "scene": 2, "type": "labelled AI still", "seconds": 9.57 },
+      { "scene": 3, "type": "footage", "pexelsId": 29918560, "sourceSeconds": 11, "neededSeconds": 10.87, "framing": "portrait" },
+      { "scene": 4, "type": "footage", "pexelsId": 38087413, "sourceSeconds": 14, "neededSeconds": 10, "framing": "portrait" },
+      { "scene": 5, "part": "Antelope Canyon", "type": "footage", "pexelsId": 29510336, "sourceSeconds": 7, "neededSeconds": 2.17, "framing": "landscape-crop", "cropUpscale": 0.89 },
+      { "scene": 5, "part": "Burano", "type": "footage", "pexelsId": 29918561, "sourceSeconds": 12, "neededSeconds": 2.17, "framing": "portrait" },
+      { "scene": 5, "part": "Santorini", "type": "footage", "pexelsId": 32500600, "sourceSeconds": 28, "neededSeconds": 2.17, "framing": "portrait" }
     ],
     "footageDepth": {
-      "Antelope Canyon": "4 relevant clips; 2 are used by scenes 1 and 2, 2 remain for the recap",
-      "Burano": "25 relevant clips",
-      "Santorini": "31 relevant clips"
+      "Antelope Canyon": "one verified interior clip (29510336); the other titled clips show Horseshoe Bend",
+      "Burano": "25 titled clips; 29918560 and 29918561 are two clips of the same street of houses",
+      "Santorini": "31 titled clips; reviewed 38087413 and 32500600"
     }
   },
+  "licensing": {
+    "footage": "Pexels License: free to use, including commercially, no attribution required. Do not resell the clips unedited or use them as the main product. Credit the uploader is optional; uploader names are recorded for each chosen clip.",
+    "music": "Beyond These Walls (Scott Buckley), CC BY 4.0: attribution is required and is already included in the description the pipeline produces.",
+    "aiStills": "Labelled AI-generated illustration (the label appears in the job record). Generated images are not footage and must not be presented as real footage."
+  },
   "openRisks": [
-    "Subject accuracy is not verified by metadata. Each chosen clip needs a human look before any render.",
-    "Scene timing uses estimatedSeconds. The real beat timings come from alignment and may move the coverage numbers.",
-    "Montage parts share the scene equally (about 2.2 s each). That is a short cut, so review the recap pacing.",
-    "The approved narration must be verified byte-for-byte before applying any metadata change."
+    "Antelope Canyon coverage is weak: only one verified interior clip exists in the candidates reviewed, and scenes 1 and 2 are labelled AI stills instead of footage.",
+    "Scene timing uses estimatedSeconds. Aligned beat timings change the shares and the coverage, and must be rechecked before any render.",
+    "The montage shares are about 2.2 s each. That is a short cut; the recap pacing needs a human review.",
+    "Scenes 3 and the Burano montage part are two clips of the same houses. They are different clips, but they look alike.",
+    "The Antelope montage clip is a 4K landscape clip cropped to 9:16. The crop keeps about 30% of the frame width, so the framing needs a human check.",
+    "The approved narration must be verified byte-for-byte before any metadata change is applied."
   ]
 }
