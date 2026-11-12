@@ -1,6 +1,6 @@
 // Shared by both the legacy single-process server (routes/jobs.js) and the dispatcher
 // (dispatcher.js) - identical validation either way, extracted so it's one implementation.
-import { montageError } from "../pipeline/visualSelection.js";
+import { beatControlsError, montageError } from "../pipeline/visualSelection.js";
 
 export function validateBeats(beats) {
   if (!Array.isArray(beats) || beats.length === 0) {
@@ -15,6 +15,8 @@ export function validateBeats(beats) {
     }
     const montage = montageError(beat.montage);
     if (montage) return `beats[${index}].${montage}`;
+    const controls = beatControlsError(beat);
+    if (controls) return `beats[${index}].${controls}`;
   }
   return null;
 }

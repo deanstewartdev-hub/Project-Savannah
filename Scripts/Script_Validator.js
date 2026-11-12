@@ -448,6 +448,7 @@ const ScriptValidator = (() => {
 
     scenes.forEach(function (scene, index) {
       validateSceneMontage_(scene, index + 1, errors);
+      validateSceneControls_(scene, index + 1, errors);
     });
 
     if (
@@ -639,7 +640,40 @@ const ScriptValidator = (() => {
       if (part.searchKeywords !== undefined && (typeof part.searchKeywords !== "string" || part.searchKeywords.trim().length > 80)) {
         errors.push(label + " searchKeywords must be text of at most 80 characters.");
       }
+      if (!approvedClipsValid_(part.approvedClips)) {
+        errors.push(label + " approvedClips must be a list of at most 5 positive whole Pexels clip IDs.");
+      }
     });
+  }
+
+  // True when a reviewed clip list is absent, or is at most 5 positive whole numbers.
+  function approvedClipsValid_(list) {
+    if (list === undefined) return true;
+    return Array.isArray(list) && list.length <= 5 && list.every(function (id) { return Number.isInteger(id) && id > 0; });
+  }
+
+  /**
+   * Checks the scene-level footage controls: reviewed clip IDs and a labelled still. A labelled still uses no footage,
+   * so it cannot also name clips or carry a montage.
+   *
+   * @param {*} scene Scene candidate.
+   * @param {number} sceneNumber Scene number for messages.
+   * @param {string[]} errors Validation errors.
+   */
+  function validateSceneControls_(scene, sceneNumber, errors) {
+    if (!scene || typeof scene !== "object") return;
+    if (!approvedClipsValid_(scene.approvedClips)) {
+      errors.push("Scene " + sceneNumber + " approvedClips must be a list of at most 5 positive whole Pexels clip IDs.");
+    }
+    if (scene.labelledStill !== undefined && typeof scene.labelledStill !== "boolean") {
+      errors.push("Scene " + sceneNumber + " labelledStill must be true or false.");
+    }
+    if (scene.labelledStill === true && Array.isArray(scene.approvedClips) && scene.approvedClips.length > 0) {
+      errors.push("Scene " + sceneNumber + " is a labelled still, so it cannot also name approved clips.");
+    }
+    if (scene.labelledStill === true && scene.montage !== undefined) {
+      errors.push("Scene " + sceneNumber + " montage cannot be a labelled still.");
+    }
   }
 
   function validateSceneString_(
@@ -1023,6 +1057,9 @@ const ScriptValidator = (() => {
     if (typeof scene.searchKeywords === "string" && scene.searchKeywords.trim()) {
       normalised.searchKeywords = scene.searchKeywords.trim();
     }
+    // Reviewed clip IDs and a labelled still, only when present (the controls are checked by validateSceneControls_).
+    if (Array.isArray(scene.approvedClips)) normalised.approvedClips = scene.approvedClips.slice(0, 5);
+    if (typeof scene.labelledStill === "boolean") normalised.labelledStill = scene.labelledStill;
     // The optional recap montage: its places, in order, with trimmed text. Only well-formed parts are copied.
     if (Array.isArray(scene.montage)) {
       normalised.montage = scene.montage
@@ -1032,6 +1069,7 @@ const ScriptValidator = (() => {
           if (typeof part.searchKeywords === "string" && part.searchKeywords.trim()) {
             place.searchKeywords = part.searchKeywords.trim();
           }
+          if (Array.isArray(part.approvedClips)) place.approvedClips = part.approvedClips.slice(0, 5);
           return place;
         });
     }

@@ -356,7 +356,8 @@ export function montagePartBeat(part) {
     location: place,
     searchKeywords: keywords,
     visualQuery: keywords || place,
-    imagePrompt: keywords || place
+    imagePrompt: keywords || place,
+    approvedClips: Array.isArray(part.approvedClips) ? part.approvedClips : undefined
   };
 }
 
@@ -364,6 +365,18 @@ export function montagePartBeat(part) {
 // keeps the assembler's equal split exact: every segment gets the same length, so no destination takes longer.
 export function isMontage(beat) {
   return Array.isArray(beat.montage) && beat.montage.length > 0;
+}
+
+// Human-reviewed clips for a beat or montage place. When a list is given, only those Pexels clips may be used, even if
+// other results match the place. Absent or empty means no restriction (the place rule alone applies).
+export function approvedSet(list) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return new Set(list);
+}
+
+export function approvedCandidates(base, allowed) {
+  if (!allowed) return base;
+  return async (query, allowLandscape) => (await base(query, allowLandscape)).filter((video) => allowed.has(video.id));
 }
 
 export const MONTAGE_MIN_PARTS = 2;
@@ -385,7 +398,32 @@ export function montageError(montage) {
     if (part.searchKeywords !== undefined && (typeof part.searchKeywords !== "string" || part.searchKeywords.length > 80)) {
       return `montage place ${index + 1} searchKeywords must be text of at most 80 characters`;
     }
+    const clips = approvedClipsError(part.approvedClips, `montage place ${index + 1}`);
+    if (clips) return clips;
   }
+  return null;
+}
+
+// Human-reviewed clip IDs for a beat or montage place: at most 5 positive whole Pexels IDs.
+export function approvedClipsError(list, label) {
+  if (list === undefined) return null;
+  if (!Array.isArray(list) || list.length > 5) return `${label} approvedClips must be a list of at most 5 Pexels clip IDs`;
+  for (const id of list) {
+    if (!Number.isInteger(id) || id <= 0) return `${label} approvedClips must contain positive whole numbers`;
+  }
+  return null;
+}
+
+// Scene-level controls: approved clips for a single-clip beat, and a labelled still. A labelled still uses no footage,
+// so it cannot also name clips, and a montage cannot be a labelled still.
+export function beatControlsError(beat) {
+  const clips = approvedClipsError(beat.approvedClips, "beat");
+  if (clips) return clips;
+  if (beat.labelledStill !== undefined && typeof beat.labelledStill !== "boolean") return "labelledStill must be true or false";
+  if (beat.labelledStill === true && Array.isArray(beat.approvedClips) && beat.approvedClips.length > 0) {
+    return "a labelled still cannot also name approved clips";
+  }
+  if (beat.labelledStill === true && isMontage(beat)) return "a montage cannot be a labelled still";
   return null;
 }
 
@@ -412,9 +450,10 @@ async function collectMontage(beat, ctx) {
   for (const [index, part] of parts.entries()) {
     const partBeat = montagePartBeat(part);
     const queries = buildSearchQueries(partBeat);
-    let chosen = await pickOneClip(partBeat, queries, share, { usedIds, candidates, avoid, avoidWords, tried, allowLandscape: false });
+    const partCandidates = approvedCandidates(candidates, approvedSet(part.approvedClips));
+    let chosen = await pickOneClip(partBeat, queries, share, { usedIds, candidates: partCandidates, avoid, avoidWords, tried, allowLandscape: false });
     if (!chosen && landscapeFallback) {
-      chosen = await pickOneClip(partBeat, queries, share, { usedIds, candidates, avoid, avoidWords, tried, allowLandscape: true });
+      chosen = await pickOneClip(partBeat, queries, share, { usedIds, candidates: partCandidates, avoid, avoidWords, tried, allowLandscape: true });
     }
     if (!chosen) {
       releaseSegments(segments, usedIds);
@@ -469,11 +508,32 @@ export async function planBeatVisuals(beats, search, options = {}) {
     const avoid = previousUploaders(plan);
     const avoidWords = previousTokens(plan);
     const needed = beat.coverSeconds || 0;
+    // A labelled still was asked for by the script: no footage is searched, and it is planned as a labelled AI still.
+    if (beat.labelledStill === true) {
+      if (!options.allowAiStills) {
+        throw new VisualCoverageError(
+          `Beat ${index + 1} is a labelled still, but AI stills are not allowed for this job. Nothing was generated.`,
+          index
+        );
+      }
+      plan.push({
+        beatIndex: index,
+        type: "still",
+        synthetic: true,
+        label: "AI-generated illustration, not authentic footage",
+        prompt: stillPrompt(beat),
+        queriesTried: [],
+        reason: "labelled still requested by the script"
+      });
+      continue;
+    }
+
     const queries = buildSearchQueries(beat);
     const tried = [];
     const usedBefore = new Set(usedIds);
+    const beatCandidates = approvedCandidates(candidates, approvedSet(beat.approvedClips));
     const pass = (allowLandscape) => collectFootage(beat, queries, needed, {
-      usedIds, usedBefore, candidates, avoid, avoidWords, allowLandscape, tried
+      usedIds, usedBefore, candidates: beatCandidates, avoid, avoidWords, allowLandscape, tried
     });
 
     let found;
@@ -541,6 +601,11 @@ export async function coverageCandidates(beats, search, options = {}) {
   const coverage = [];
   for (let index = 0; index < beats.length; index += 1) {
     const beat = beats[index];
+    if (beat.labelledStill === true) {
+      // A labelled still uses no footage, so it can never be matched to a clip: it is always a still.
+      coverage.push({ beatIndex: index, queriesTried: [], candidateIds: new Set(), labelledStill: true });
+      continue;
+    }
     if (isMontage(beat)) {
       // A montage needs one distinct clip per part, so each part keeps its own candidate set. The preflight matches
       // those sets separately. candidateIds is empty when any part is missing, so the beat counts as unsupported.
@@ -559,6 +624,7 @@ export async function coverageCandidates(beats, search, options = {}) {
     }
     const tried = [];
     const candidateIds = new Set();
+    const allowed = approvedSet(beat.approvedClips);
     for (const query of buildSearchQueries(beat)) {
       tried.push(query);
       const videos = [
@@ -566,6 +632,7 @@ export async function coverageCandidates(beats, search, options = {}) {
         ...(landscapeFallback ? await cachedSearch(query, "landscape") : [])
       ];
       for (const video of videos) {
+        if (allowed && !allowed.has(video.id)) continue;
         if (judgeVideo(video, beat).accepted && framingFor(video, landscapeFallback) !== null) candidateIds.add(video.id);
       }
     }

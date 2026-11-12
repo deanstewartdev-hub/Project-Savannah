@@ -104,6 +104,9 @@ function buildRenderBeats(script) {
       location: location,
       searchKeywords: searchKeywords
     };
+    // Reviewed clip IDs and a labelled still are sent only when present. The worker checks their shape.
+    if (Array.isArray(scene.approvedClips)) beat.approvedClips = scene.approvedClips;
+    if (scene.labelledStill === true) beat.labelledStill = true;
     const montage = montageForScene_(scene, index);
     if (montage) beat.montage = montage;
     return beat;
@@ -118,10 +121,12 @@ function montageForScene_(scene, index) {
   return scene.montage.map(function (part, partIndex) {
     const location = String(part && part.location || "").trim().slice(0, 60);
     if (!location) throw new Error("Scene " + (index + 1) + " montage place " + (partIndex + 1) + " needs a location.");
-    return {
+    const place = {
       location: location,
       searchKeywords: String(part.searchKeywords || "").trim().slice(0, 80)
     };
+    if (Array.isArray(part.approvedClips)) place.approvedClips = part.approvedClips;
+    return place;
   });
 }
 

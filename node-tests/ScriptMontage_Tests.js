@@ -135,6 +135,49 @@ const cases = [
       /montage place 2 needs a location/
     );
   }]
+  ,
+  ['reviewed clips and a labelled still survive validator, formatter, model and the render beats', () => {
+    const source = sourceWith((scene, index) => {
+      if (index === 0) return { labelledStill: true };
+      if (index === 2) return { location: 'Burano', searchKeywords: 'burano colourful houses', approvedClips: [29918560] };
+      if (index === 4) return { montage: [
+        { location: 'Antelope Canyon', searchKeywords: 'antelope canyon light', approvedClips: [29510336] },
+        { location: 'Burano', searchKeywords: 'burano colourful houses', approvedClips: [29918561] },
+        { location: 'Santorini', searchKeywords: 'santorini blue domes', approvedClips: [32500600] }
+      ] };
+      return {};
+    });
+    const { validated, sandbox } = runPipeline(source);
+    assert.equal(validated.valid, true, 'validator accepts: ' + JSON.stringify(validated.errors || []));
+    const formatted = vm.runInContext('ScriptFormatter', sandbox).format(validated);
+    const model = vm.runInContext('ScriptModel', sandbox).fromFormattedResult(formatted, { ideaId: 'IDEA-C4EF1471', status: 'FORMATTED' });
+    assert.equal(model.scenes[0].labelledStill, true);
+    assert.deepEqual(JSON.parse(JSON.stringify(model.scenes[2].approvedClips)), [29918560]);
+    const providerSandbox = loadApps(['Production/VideoProcessingProvider.js']);
+    const beats = vm.runInContext('buildRenderBeats', providerSandbox)({ id: 'SCR-test', title: model.title, location: '', scenes: model.scenes });
+    assert.equal(beats[0].labelledStill, true, 'the labelled still reaches the worker');
+    assert.deepEqual(JSON.parse(JSON.stringify(beats[2].approvedClips)), [29918560], 'the reviewed Burano clip reaches the worker');
+    assert.deepEqual(JSON.parse(JSON.stringify(beats[4].montage.map((p) => p.approvedClips))), [[29510336], [29918561], [32500600]], 'each montage place keeps its reviewed clip');
+    for (const beat of [beats[1], beats[3]]) {
+      assert.equal('approvedClips' in beat, false, 'a beat without reviewed clips gets no key');
+      assert.equal('labelledStill' in beat, false, 'a beat without a labelled still gets no key');
+    }
+  }],
+  ['malformed reviewed clips and labelled-still combinations are refused by the validator', () => {
+    const cases = [
+      [(scene, i) => (i === 0 ? { approvedClips: [1.5] } : {}), /approvedClips must be a list of at most 5 positive whole Pexels clip IDs/],
+      [(scene, i) => (i === 0 ? { approvedClips: [1, 2, 3, 4, 5, 6] } : {}), /at most 5 positive whole Pexels clip IDs/],
+      [(scene, i) => (i === 0 ? { labelledStill: 'yes' } : {}), /labelledStill must be true or false/],
+      [(scene, i) => (i === 0 ? { labelledStill: true, approvedClips: [29918560] } : {}), /labelled still, so it cannot also name approved clips/],
+      [(scene, i) => (i === 4 ? { labelledStill: true, montage: [{ location: 'Burano' }, { location: 'Santorini' }] } : {}), /montage cannot be a labelled still/],
+      [(scene, i) => (i === 4 ? { montage: [{ location: 'Burano', approvedClips: [0] }, { location: 'Santorini' }] } : {}), /montage place 1 approvedClips must be a list/]
+    ];
+    for (const [fields, pattern] of cases) {
+      const result = runPipeline(sourceWith(fields)).validated;
+      assert.equal(result.valid, false, 'refused');
+      assert.ok((result.errors || []).some((e) => pattern.test(e)), 'message: ' + JSON.stringify(result.errors));
+    }
+  }]
 ];
 
 let failed = 0;

@@ -217,6 +217,9 @@ const ScriptFormatter = (() => {
     if (typeof scene.searchKeywords === "string" && scene.searchKeywords.trim()) {
       formattedScene.searchKeywords = scene.searchKeywords.trim();
     }
+    // Reviewed clip IDs and a labelled still, carried through only when present.
+    if (Array.isArray(scene.approvedClips)) formattedScene.approvedClips = scene.approvedClips.slice(0, 5);
+    if (typeof scene.labelledStill === "boolean") formattedScene.labelledStill = scene.labelledStill;
     // The optional recap montage, in its given order, carried through only when present.
     if (Array.isArray(scene.montage)) {
       formattedScene.montage = scene.montage
@@ -226,6 +229,7 @@ const ScriptFormatter = (() => {
           if (typeof part.searchKeywords === "string" && part.searchKeywords.trim()) {
             place.searchKeywords = part.searchKeywords.trim();
           }
+          if (Array.isArray(part.approvedClips)) place.approvedClips = part.approvedClips.slice(0, 5);
           return place;
         });
     }
