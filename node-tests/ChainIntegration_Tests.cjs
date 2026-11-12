@@ -103,7 +103,8 @@ async function main() {
           const input = options && options.payload ? options.payload : undefined;
           if (input !== undefined) args.push('--data-binary', '@-');
           requests.push({ method, url, payload: input ? JSON.parse(input) : null });
-          const out = execFileSync('curl.exe', args, { input: input, encoding: 'utf8' });
+          // Windows ships curl.exe; the Linux CI runner ships curl. Same arguments either way.
+          const out = execFileSync(process.platform === 'win32' ? 'curl.exe' : 'curl', args, { input: input, encoding: 'utf8' });
           const cut = out.lastIndexOf('\n__STATUS__');
           const status = Number(out.slice(cut + '\n__STATUS__'.length));
           const text = out.slice(0, cut);
