@@ -554,6 +554,17 @@ const ScriptModel = (() => {
       const searchKeywords = normaliseOptionalString_(scene.searchKeywords);
       if (location) normalisedScene.location = location;
       if (searchKeywords) normalisedScene.searchKeywords = searchKeywords;
+      // The optional recap montage: its places in their given order, kept only when present.
+      if (Array.isArray(scene.montage)) {
+        normalisedScene.montage = scene.montage
+          .filter(function (part) { return part && typeof part === "object"; })
+          .map(function (part) {
+            const place = { location: normaliseOptionalString_(part.location) || "" };
+            const keywords = normaliseOptionalString_(part.searchKeywords);
+            if (keywords) place.searchKeywords = keywords;
+            return place;
+          });
+      }
       return normalisedScene;
     });
   }

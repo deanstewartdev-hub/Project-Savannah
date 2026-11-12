@@ -217,6 +217,18 @@ const ScriptFormatter = (() => {
     if (typeof scene.searchKeywords === "string" && scene.searchKeywords.trim()) {
       formattedScene.searchKeywords = scene.searchKeywords.trim();
     }
+    // The optional recap montage, in its given order, carried through only when present.
+    if (Array.isArray(scene.montage)) {
+      formattedScene.montage = scene.montage
+        .filter(function (part) { return part && typeof part === "object"; })
+        .map(function (part) {
+          const place = { location: typeof part.location === "string" ? part.location.trim() : "" };
+          if (typeof part.searchKeywords === "string" && part.searchKeywords.trim()) {
+            place.searchKeywords = part.searchKeywords.trim();
+          }
+          return place;
+        });
+    }
     return formattedScene;
   }
 

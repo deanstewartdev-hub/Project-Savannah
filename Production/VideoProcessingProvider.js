@@ -79,6 +79,52 @@ const CreatomateProviderAdapter = (() => {
   return { testConnection: testConnection, submitRender: submitRender, getRender: getRender };
 })();
 
+/**
+ * Builds the worker's beats from a script's scenes. Top-level so it can be tested on its own. The narration is sent
+ * exactly as saved. A recap montage (scene.montage) is sent as its places, in order, and a malformed one fails here,
+ * before any worker request is made.
+ *
+ * @param {Object} script Approved script.
+ * @return {Object[]} Beats for the worker.
+ */
+function buildRenderBeats(script) {
+  const scenes = Array.isArray(script.scenes) ? script.scenes : [];
+  return scenes.map(function (scene, index) {
+    const narration = String(scene && scene.narration || "").trim();
+    if (!narration) throw new Error("Scene " + (index + 1) + " has no narration text.");
+    const visualDirection = String(scene && scene.visualDirection || "").trim();
+    // Optional search fields: a place name and short subject keywords. Scripts without
+    // them still send the scene direction, and the worker derives keywords from it.
+    const location = String(scene && scene.location || script.location || "").trim().slice(0, 60);
+    const searchKeywords = String(scene && scene.searchKeywords || "").trim().slice(0, 80);
+    const beat = {
+      text: narration,
+      visualQuery: (visualDirection || script.title || "travel").slice(0, 120),
+      imagePrompt: (visualDirection || narration).slice(0, 400),
+      location: location,
+      searchKeywords: searchKeywords
+    };
+    const montage = montageForScene_(scene, index);
+    if (montage) beat.montage = montage;
+    return beat;
+  });
+}
+
+function montageForScene_(scene, index) {
+  if (!scene || scene.montage === undefined || scene.montage === null) return null;
+  if (!Array.isArray(scene.montage) || scene.montage.length < 2 || scene.montage.length > 3) {
+    throw new Error("Scene " + (index + 1) + " montage needs 2 to 3 places.");
+  }
+  return scene.montage.map(function (part, partIndex) {
+    const location = String(part && part.location || "").trim().slice(0, 60);
+    if (!location) throw new Error("Scene " + (index + 1) + " montage place " + (partIndex + 1) + " needs a location.");
+    return {
+      location: location,
+      searchKeywords: String(part.searchKeywords || "").trim().slice(0, 80)
+    };
+  });
+}
+
 const CloudRunFFmpegProvider = (() => {
   function testConnection() {
     // /health, not /healthz: Cloud Run's platform layer intercepts the literal path
@@ -119,22 +165,7 @@ const CloudRunFFmpegProvider = (() => {
     const scenes = Array.isArray(script.scenes) ? script.scenes : [];
     if (!scenes.length) throw error_("The script has no scenes.");
 
-    const beats = scenes.map(function (scene, index) {
-      const narration = String(scene && scene.narration || "").trim();
-      if (!narration) throw error_("Scene " + (index + 1) + " has no narration text.");
-      const visualDirection = String(scene && scene.visualDirection || "").trim();
-      // Optional search fields: a place name and short subject keywords. Scripts without
-      // them still send the scene direction, and the worker derives keywords from it.
-      const location = String(scene && scene.location || script.location || "").trim().slice(0, 60);
-      const searchKeywords = String(scene && scene.searchKeywords || "").trim().slice(0, 80);
-      return {
-        text: narration,
-        visualQuery: (visualDirection || script.title || "travel").slice(0, 120),
-        imagePrompt: (visualDirection || narration).slice(0, 400),
-        location: location,
-        searchKeywords: searchKeywords
-      };
-    });
+    const beats = buildRenderBeats(script);
 
     // Redundant with ScriptValidator's word-count check by design: existing approved
     // scripts may predate that fix, and this is also the only check that runs on the

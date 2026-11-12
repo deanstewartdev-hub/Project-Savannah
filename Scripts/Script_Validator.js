@@ -446,6 +446,10 @@ const ScriptValidator = (() => {
       };
     }
 
+    scenes.forEach(function (scene, index) {
+      validateSceneMontage_(scene, index + 1, errors);
+    });
+
     if (
       scenes.length <
       rules.minimumSceneCount
@@ -604,6 +608,40 @@ const ScriptValidator = (() => {
    * @param {number} sceneNumber Scene number.
    * @param {string[]} errors Validation errors.
    */
+  /**
+   * Checks an optional recap montage: two or three places, each with a location. A montage is refused here rather
+   * than later, so a malformed montage never reaches a render.
+   *
+   * @param {*} scene Scene candidate.
+   * @param {number} sceneNumber Scene number for messages.
+   * @param {string[]} errors Validation errors.
+   */
+  function validateSceneMontage_(scene, sceneNumber, errors) {
+    if (!scene || typeof scene !== "object" || scene.montage === undefined) return;
+    const montage = scene.montage;
+    if (!Array.isArray(montage)) {
+      errors.push("Scene " + sceneNumber + " montage must be a list of places.");
+      return;
+    }
+    if (montage.length < 2 || montage.length > 3) {
+      errors.push("Scene " + sceneNumber + " montage needs 2 to 3 places.");
+      return;
+    }
+    montage.forEach(function (part, index) {
+      const label = "Scene " + sceneNumber + " montage place " + (index + 1);
+      if (!part || typeof part !== "object" || typeof part.location !== "string" || !part.location.trim()) {
+        errors.push(label + " needs a location.");
+        return;
+      }
+      if (part.location.trim().length > 60) {
+        errors.push(label + " location is longer than 60 characters.");
+      }
+      if (part.searchKeywords !== undefined && (typeof part.searchKeywords !== "string" || part.searchKeywords.trim().length > 80)) {
+        errors.push(label + " searchKeywords must be text of at most 80 characters.");
+      }
+    });
+  }
+
   function validateSceneString_(
     scene,
     propertyName,
@@ -984,6 +1022,18 @@ const ScriptValidator = (() => {
     }
     if (typeof scene.searchKeywords === "string" && scene.searchKeywords.trim()) {
       normalised.searchKeywords = scene.searchKeywords.trim();
+    }
+    // The optional recap montage: its places, in order, with trimmed text. Only well-formed parts are copied.
+    if (Array.isArray(scene.montage)) {
+      normalised.montage = scene.montage
+        .filter(function (part) { return part && typeof part === "object"; })
+        .map(function (part) {
+          const place = { location: typeof part.location === "string" ? part.location.trim() : "" };
+          if (typeof part.searchKeywords === "string" && part.searchKeywords.trim()) {
+            place.searchKeywords = part.searchKeywords.trim();
+          }
+          return place;
+        });
     }
     return normalised;
   }

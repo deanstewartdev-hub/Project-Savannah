@@ -360,31 +360,74 @@ export function montagePartBeat(part) {
   };
 }
 
+// A montage takes exactly one clip per part, and each clip is at least that part's share long. One clip per part
+// keeps the assembler's equal split exact: every segment gets the same length, so no destination takes longer.
+export function isMontage(beat) {
+  return Array.isArray(beat.montage) && beat.montage.length > 0;
+}
+
+export const MONTAGE_MIN_PARTS = 2;
+export const MONTAGE_MAX_PARTS = 3;
+
+// The montage rules, shared by the worker's request check. Returns an error message, or null when the montage is valid
+// (or absent). Apps Script enforces the same rules when a script is validated and when its render is submitted.
+export function montageError(montage) {
+  if (montage === undefined || montage === null) return null;
+  if (!Array.isArray(montage)) return "montage must be a list of places";
+  if (montage.length < MONTAGE_MIN_PARTS || montage.length > MONTAGE_MAX_PARTS) {
+    return `montage needs ${MONTAGE_MIN_PARTS} to ${MONTAGE_MAX_PARTS} places`;
+  }
+  for (const [index, part] of montage.entries()) {
+    if (!part || typeof part !== "object" || typeof part.location !== "string" || !part.location.trim()) {
+      return `montage place ${index + 1} needs a location`;
+    }
+    if (part.location.trim().length > 60) return `montage place ${index + 1} location is longer than 60 characters`;
+    if (part.searchKeywords !== undefined && (typeof part.searchKeywords !== "string" || part.searchKeywords.length > 80)) {
+      return `montage place ${index + 1} searchKeywords must be text of at most 80 characters`;
+    }
+  }
+  return null;
+}
+
+// The first relevant, unused clip for a part, long enough for its share. Clips are checked in query order.
+async function pickOneClip(partBeat, queries, share, ctx) {
+  const { usedIds, candidates, avoid, avoidWords, tried, allowLandscape } = ctx;
+  for (const query of queries) {
+    tried.push(query);
+    const chosen = selectClip(await candidates(query, allowLandscape), partBeat, usedIds, share, avoid, avoidWords, allowLandscape);
+    if (chosen) {
+      chosen.query = query;
+      usedIds.add(chosen.pexelsId);
+      return chosen;
+    }
+  }
+  return null;
+}
+
 async function collectMontage(beat, ctx) {
   const { usedIds, candidates, avoid, avoidWords, tried, landscapeFallback } = ctx;
   const parts = beat.montage;
   const share = (beat.coverSeconds || 0) / parts.length;
   const segments = [];
-  for (const part of parts) {
+  for (const [index, part] of parts.entries()) {
     const partBeat = montagePartBeat(part);
     const queries = buildSearchQueries(partBeat);
-    const partUsedBefore = new Set(usedIds);
-    const pass = (allowLandscape) => collectFootage(partBeat, queries, share, {
-      usedIds, usedBefore: partUsedBefore, candidates, avoid, avoidWords, allowLandscape, tried
-    });
-    let found = await pass(false);
-    if (!footageCovers(found, share) && landscapeFallback) {
-      releaseSegments(found.segments, usedIds);
-      found = await pass(true);
+    let chosen = await pickOneClip(partBeat, queries, share, { usedIds, candidates, avoid, avoidWords, tried, allowLandscape: false });
+    if (!chosen && landscapeFallback) {
+      chosen = await pickOneClip(partBeat, queries, share, { usedIds, candidates, avoid, avoidWords, tried, allowLandscape: true });
     }
-    if (!footageCovers(found, share)) {
-      releaseSegments(found.segments, usedIds);
+    if (!chosen) {
       releaseSegments(segments, usedIds);
-      return { segments: [], covered: 0, ok: false };
+      return { segments: [], covered: 0, ok: false, missingPart: index };
     }
-    segments.push(...found.segments);
+    segments.push(chosen);
   }
-  return { segments, covered: segments.reduce((sum, s) => sum + s.sourceDurationSeconds, 0), ok: true };
+  return {
+    segments,
+    covered: segments.reduce((sum, s) => sum + s.sourceDurationSeconds, 0),
+    ok: true,
+    missingPart: null
+  };
 }
 
 function footageCovers(found, needed) {
@@ -434,8 +477,16 @@ export async function planBeatVisuals(beats, search, options = {}) {
     });
 
     let found;
-    if (Array.isArray(beat.montage) && beat.montage.length > 0) {
+    if (isMontage(beat)) {
       found = await collectMontage(beat, { usedIds, candidates, avoid, avoidWords, tried, landscapeFallback });
+      // Fail closed: a montage with a missing place is never turned into a still, whatever allowAiStills says.
+      if (!found.ok) {
+        const place = beat.montage[found.missingPart].location;
+        throw new VisualCoverageError(
+          `Montage beat ${index + 1}: no distinct relevant clip for place ${found.missingPart + 1} (${place}). A montage is never turned into a still; nothing was generated.`,
+          index
+        );
+      }
     } else {
       found = await pass(false);
       if (!footageCovers(found, needed) && landscapeFallback) {
@@ -490,16 +541,19 @@ export async function coverageCandidates(beats, search, options = {}) {
   const coverage = [];
   for (let index = 0; index < beats.length; index += 1) {
     const beat = beats[index];
-    if (Array.isArray(beat.montage) && beat.montage.length > 0) {
-      // A montage needs a clip for every part. Missing one part makes the whole beat unsupported.
+    if (isMontage(beat)) {
+      // A montage needs one distinct clip per part, so each part keeps its own candidate set. The preflight matches
+      // those sets separately. candidateIds is empty when any part is missing, so the beat counts as unsupported.
       const subs = await coverageCandidates(beat.montage.map(montagePartBeat), search, options);
+      const complete = subs.every((sub) => sub.candidateIds.size > 0);
       const union = new Set();
       for (const sub of subs) for (const id of sub.candidateIds) union.add(id);
-      const complete = subs.every((sub) => sub.candidateIds.size > 0);
       coverage.push({
         beatIndex: index,
         queriesTried: subs.flatMap((sub) => sub.queriesTried),
-        candidateIds: complete ? union : new Set()
+        candidateIds: complete ? union : new Set(),
+        montage: true,
+        parts: subs.map((sub) => sub.candidateIds)
       });
       continue;
     }
@@ -535,7 +589,9 @@ export async function unsupportedBeats(beats, search, options = {}) {
 // Largest number of beats that can each be given a different clip (bipartite matching, augmenting paths).
 // Each beat with footage needs at least one clip and no clip is shared, so (beats − this) is a lower bound on
 // the stills the planner must generate, whatever the narration timing.
-export function maxDistinctAssignment(candidateSets) {
+// Which units can each be given a different clip, in priority order: a unit listed earlier keeps its clip (Kuhn's
+// augmenting paths never unmatch a unit once matched). Returns one boolean per unit.
+export function matchedFlags(candidateSets) {
   const beatOfClip = new Map();
   const tryBeat = (beat, visited) => {
     for (const clip of candidateSets[beat]) {
@@ -548,11 +604,11 @@ export function maxDistinctAssignment(candidateSets) {
     }
     return false;
   };
-  let matched = 0;
-  for (let beat = 0; beat < candidateSets.length; beat += 1) {
-    if (tryBeat(beat, new Set())) matched += 1;
-  }
-  return matched;
+  return candidateSets.map((_, beat) => tryBeat(beat, new Set()));
+}
+
+export function maxDistinctAssignment(candidateSets) {
+  return matchedFlags(candidateSets).filter(Boolean).length;
 }
 
 // One Pexels search per (query, orientation) for the whole job: the unpaid preflight and the planner share the
