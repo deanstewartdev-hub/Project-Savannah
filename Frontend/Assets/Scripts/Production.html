@@ -242,8 +242,12 @@
     try { window.localStorage.setItem(pendingKey, requestId); } catch (ignored) {}
     submitDirect("productionRenderNewVersion",
       { scriptId: scriptId, clientRequestId: requestId, confirmedMaxCostGbp: NEW_VERSION_COST_GBP },
-      button, "Submitting...", "Render New Version", function () {
+      button, "Submitting...", "Render New Version", function (response) {
         try { window.localStorage.removeItem(pendingKey); } catch (ignored) {}
+        // The server answers a repeated request with the earlier outcome: say so, so nobody assumes a second render started.
+        if (response && response.data && response.data.duplicate) {
+          window.alert("No new render was started. This request was already submitted. The Versions list shows the existing render.");
+        }
       });
   }
 

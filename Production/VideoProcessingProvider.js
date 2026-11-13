@@ -210,6 +210,17 @@ const CloudRunFFmpegProvider = (() => {
       callbackUrl: callbackUrl,
       callbackSecret: callbackSecret_()
     }, idempotency));
+    // A replay of an earlier submission (same submitIntentId) is answered with the ORIGINAL job's ID. The worker started
+    // or refused that job before this request, so nothing new was started here. The caller reconciles the duplicate.
+    if (response && response.duplicate === true) {
+      const originalJobId = String(response.jobId || "");
+      if (!RESERVED_ID_SHAPE.test(originalJobId)) {
+        const unclearDuplicate = error_("The media worker reported a duplicate without a valid render ID.");
+        unclearDuplicate.outcomeUnknown = true;
+        throw unclearDuplicate;
+      }
+      return { duplicate: true, originalJobId: originalJobId, state: String(response.state || ""), render: null, payload: null };
+    }
     if (!response || response.jobId !== jobId) {
       const unclear = error_("Media worker did not accept the render job.");
       unclear.outcomeUnknown = true;

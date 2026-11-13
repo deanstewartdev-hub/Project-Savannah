@@ -27,6 +27,10 @@ const cases = [
     assert.ok(script.includes('localStorage.setItem(pendingKey, requestId)'), 'stored before the call');
     assert.ok(script.includes('localStorage.removeItem(pendingKey)'), 'cleared only on success');
   }],
+  ['a repeated request is reported as not started, so nobody assumes a second render', () => {
+    assert.ok(script.includes('response.data.duplicate'), 'reads the server duplicate flag');
+    assert.ok(script.includes('No new render was started.'), 'says that nothing new started');
+  }],
   ['the button is disabled while a request is in flight (submitDirect)', () => {
     assert.ok(/function submitDirect[\s\S]*?button\.disabled = true/.test(script));
   }],

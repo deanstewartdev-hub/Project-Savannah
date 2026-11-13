@@ -89,7 +89,8 @@ const ProductionController = (() => {
       if (!existingJobs.some(function (job) { return job.status === "SUCCEEDED" && job.videoUrl; })) {
         throw error_("A new version needs a completed render first. Use Create Short for the first render.");
       }
-      return { job: startRender_(script, seoPack, existingJobs, { clientRequestId: clientRequestId }).job, duplicate: false };
+      const started = startRender_(script, seoPack, existingJobs, { clientRequestId: clientRequestId });
+      return { job: started.job, duplicate: started.duplicate === true };
     });
   }
 
@@ -142,8 +143,24 @@ const ProductionController = (() => {
       if (completed && !(request && request.forceRerender === true)) {
         throw error_("This script already has a completed render. Use Render New Version to add another version.");
       }
-      return { job: startRender_(script, seoPack, existingJobs, { version: request && request.version }).job };
+      const started = startRender_(script, seoPack, existingJobs, { version: request && request.version });
+      return { job: started.job, duplicate: started.duplicate === true };
     });
+  }
+
+  // The worker already holds this submission under originalJobId (a replay of an earlier intent). Nothing new starts here.
+  // - The row already carries that ID: keep it for reconciliation.
+  // - A row for that ID exists: this row is unused, so it is marked FAILED with no ID (it must not share the ID).
+  // - No row for it: adopt the ID and keep this row active, so status checks reconcile it and no second render can start.
+  function settleDuplicate_(job, originalJobId) {
+    const note = "The media worker already holds this submission as render " + originalJobId + ". Savannah did not start a second render.";
+    if (job.renderId === originalJobId) {
+      return { job: RenderJobRepository.update(RenderJobModel.update(job, { errorMessage: "The media worker already holds this render. Savannah is reconciling it. Do not re-render." })), duplicate: true };
+    }
+    if (RenderJobRepository.getByRenderId(originalJobId)) {
+      return { job: RenderJobRepository.update(RenderJobModel.update(job, { status: "FAILED", renderId: "", errorMessage: note })), duplicate: true };
+    }
+    return { job: RenderJobRepository.update(RenderJobModel.update(job, { renderId: originalJobId, status: "QUEUED", errorMessage: note + " Do not re-render; Savannah will reconcile it." })), duplicate: true };
   }
 
   // The one place a render row is created and submitted to the worker. Callers hold the script lock.
@@ -168,7 +185,12 @@ const ProductionController = (() => {
     }));
     {
       try {
-        const result = provider.submitRender(script, seoPack, { renderId: reservedRenderId });
+        const result = provider.submitRender(script, seoPack, {
+          renderId: reservedRenderId,
+          submitIntentId: meta.clientRequestId,
+          renderVersion: meta.version
+        });
+        if (result.duplicate === true) return settleDuplicate_(job, result.originalJobId);
         const render = result.render;
         job = RenderJobRepository.update(RenderJobModel.update(job, {
           renderId: render.id,
