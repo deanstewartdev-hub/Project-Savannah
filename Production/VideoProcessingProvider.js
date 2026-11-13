@@ -196,14 +196,20 @@ const CloudRunFFmpegProvider = (() => {
     // The callback secret travels in the job body, never in callbackUrl: a URL is written to
     // Google's and the worker's logs. The worker forwards it back as a JSON field.
     assertMusicProtocol_();
-    const response = request_("post", "/jobs", {
+    // Cross-submission idempotency fields: one owner action (submitIntentId), the script and the render version. Sent
+    // only when the caller supplies them; the worker refuses a second paid submission for the same script and version.
+    const idempotency = {};
+    if (options && options.submitIntentId) idempotency.submitIntentId = String(options.submitIntentId);
+    if (script && script.id) idempotency.scriptId = String(script.id);
+    if (options && Number.isInteger(options.renderVersion)) idempotency.renderVersion = options.renderVersion;
+    const response = request_("post", "/jobs", Object.assign({
       jobId: jobId,
       beats: beats,
       musicTrackId: MUSIC_TRACK_ID,
       allowAiStills: ALLOW_AI_STILLS,
       callbackUrl: callbackUrl,
       callbackSecret: callbackSecret_()
-    });
+    }, idempotency));
     if (!response || response.jobId !== jobId) {
       const unclear = error_("Media worker did not accept the render job.");
       unclear.outcomeUnknown = true;

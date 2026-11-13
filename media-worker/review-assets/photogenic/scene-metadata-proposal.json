@@ -28,8 +28,8 @@
     },
     {
       "scene": 3,
-      "add": { "location": "Burano", "searchKeywords": "burano colourful houses", "approvedClips": [29918560] },
-      "note": "Reviewed: the canal of coloured houses in Burano."
+      "add": { "location": "Burano", "searchKeywords": "burano colourful houses", "approvedClips": [29918560, 29918559] },
+      "note": "Reviewed: the canal of coloured houses in Burano. Two clips (11 s and 16 s) so that slow narration (2.0 words per second) is still covered; the planner uses both only when one is too short."
     },
     {
       "scene": 4,
@@ -69,7 +69,7 @@
     "plan": [
       { "scene": 1, "type": "labelled AI still", "seconds": 7.39 },
       { "scene": 2, "type": "labelled AI still", "seconds": 9.57 },
-      { "scene": 3, "type": "footage", "pexelsId": 29918560, "sourceSeconds": 11, "neededSeconds": 10.87, "framing": "portrait" },
+      { "scene": 3, "type": "footage", "pexelsIds": [29918560], "sourceSeconds": 11, "neededSeconds": 10.87, "framing": "portrait", "slowSpeechFallback": [29918560, 29918559] },
       { "scene": 4, "type": "footage", "pexelsId": 38087413, "sourceSeconds": 14, "neededSeconds": 10, "framing": "portrait" },
       { "scene": 5, "part": "Antelope Canyon", "type": "footage", "pexelsId": 29510336, "sourceSeconds": 7, "neededSeconds": 2.17, "framing": "landscape-crop", "cropUpscale": 0.89 },
       { "scene": 5, "part": "Burano", "type": "footage", "pexelsId": 29918561, "sourceSeconds": 12, "neededSeconds": 2.17, "framing": "portrait" },
@@ -80,6 +80,13 @@
       "Burano": "25 titled clips; 29918560 and 29918561 are two clips of the same street of houses",
       "Santorini": "31 titled clips; reviewed 38087413 and 32500600"
     }
+  },
+  "renderRequest": {
+    "submitIntentId": "one per owner action (a double click, a lost reply or a retry reuses it)",
+    "scriptId": "SCR-6928b7a7-8575-42e1-925d-5d2bc8a8d6ef",
+    "renderVersion": 2,
+    "allowAiStills": true,
+    "note": "The worker refuses a second paid submission for the same script and render version, whatever its earlier state, and replays the same intent without starting a render. Requires the Apps Script change and a deployment (not yet authorised)."
   },
   "licensing": {
     "footage": "Pexels License: free to use, including commercially, no attribution required. Do not resell the clips unedited or use them as the main product. Credit the uploader is optional; uploader names are recorded for each chosen clip.",

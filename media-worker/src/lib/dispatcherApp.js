@@ -5,7 +5,8 @@ import { validateBeats } from "./validateBeats.js";
 import { validateMusicRequest, musicSummary } from "./musicLicence.js";
 import { MUSIC_PROTOCOL, assertRenderJobAcceptsMusic } from "./renderJobGuard.js";
 import { buildStatusResponse as defaultBuildStatusResponse } from "./jobStatus.js";
-import { reserveJob, failBeforeStart, markUncertain, recoverJob, recoveryConfirmation, JOB_STATES } from "./jobState.js";
+import { reserveJob, failBeforeStart, markUncertain, recoverJob, recoveryConfirmation, statePath, JOB_STATES } from "./jobState.js";
+import { claimSubmission, validateIntentFields } from "./submitIntent.js";
 import { callbackAllowed } from "./environment.js";
 
 // The dispatcher's HTTP surface, separated from its Cloud Run, Cloud Storage and job-state clients so the same
@@ -76,8 +77,14 @@ export function createDispatcherApp({
     if (typeof jobId !== "string" || !/^[A-Za-z0-9-]{8,80}$/.test(jobId)) {
       return { status: 400, error: "jobId must be 8 to 80 letters, digits or hyphens." };
     }
+    // Cross-submission idempotency fields. Required once the deployment has them enabled (requireSubmitIntent).
+    const intentError = validateIntentFields(body, { requireIntent: config.requireSubmitIntent === true });
+    if (intentError) return { status: 400, error: intentError };
     // Optional and off by default. A scene with no acceptable footage becomes a labelled AI still only when set.
-    return { fields: { jobId, beats, callbackUrl, callbackSecret, dryRun: dryRun === true, allowAiStills: body.allowAiStills === true, music: music } };
+    return { fields: {
+      jobId, beats, callbackUrl, callbackSecret, dryRun: dryRun === true, allowAiStills: body.allowAiStills === true, music: music,
+      submitIntentId: body.submitIntentId, scriptId: body.scriptId, renderVersion: body.renderVersion
+    } };
   }
 
   // Refuses any job whose video was already delivered, and any jobId with a request still waiting. These checks
@@ -88,6 +95,17 @@ export function createDispatcherApp({
       storage.objectExists(`renders/${jobId}/final.mp4`)
     ]);
     return requestWaiting || videoDelivered;
+  }
+
+  // The recorded state of a job, for replies about an earlier submission. Never throws: an unreadable state is "unknown".
+  async function readJobState(jobId) {
+    if (!jobId) return "unknown";
+    try {
+      const entry = await jobStore.read(statePath(jobId));
+      return entry && entry.value ? entry.value.status : "unknown";
+    } catch (error) {
+      return "unknown";
+    }
   }
 
   async function checkRenderImage(res) {
@@ -172,6 +190,32 @@ export function createDispatcherApp({
     }
     const fields = checked.fields;
     if (!(await checkRenderImage(res))) return;
+    // Cross-submission claims come before any jobId work. A replay of the same intent returns the job it created;
+    // any other submission for the same script and render version is refused. A storage error refuses (fail closed).
+    let claim;
+    try {
+      claim = await claimSubmission(jobStore, {
+        submitIntentId: fields.submitIntentId, scriptId: fields.scriptId, renderVersion: fields.renderVersion,
+        jobId: fields.jobId, now: now()
+      });
+    } catch (error) {
+      log.error("Submission could not be claimed; no render was started:", error);
+      res.status(503).json({ error: "Could not record this submission; no render was started." });
+      return;
+    }
+    if (claim.status === "duplicate") {
+      const state = await readJobState(claim.existingJobId);
+      if (claim.sameIntent && claim.existingJobId) {
+        // The same submission again (a double click or a lost reply): report the job it made. Nothing starts.
+        res.status(200).json({ jobId: claim.existingJobId, status: "already-submitted", duplicate: true, state: state });
+      } else {
+        res.status(409).json({
+          error: claim.reason + " No render was started. A new render version is needed for another paid render.",
+          jobId: claim.existingJobId, state: state
+        });
+      }
+      return;
+    }
     try {
       if (await legacyDuplicate(fields.jobId)) {
         res.status(409).json({ error: "This jobId was already submitted. No render was started." });

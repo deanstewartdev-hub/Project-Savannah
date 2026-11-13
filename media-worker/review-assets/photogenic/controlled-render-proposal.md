@@ -6,9 +6,9 @@ Planned maximum: £5 for one test render. This is a planning figure, not a provi
 ## 1. Checks (GitHub, branch `fix/photogenic-scene-metadata`, PR #32 draft on top of PR #31 draft)
 
 - Code head checked: `706f6aa` (the commit that added this document changes review files only; the PR shows the final head).
-- Validate Savannah: `app-checks` (Apps Script offline suite) and `media-worker` (360 of 360 worker tests) pass on the `pull_request` run.
-- Local: worker 368 of 368; Apps Script montage 8 of 8; full Apps Script offline suite exits 0.
-- CI fixes made on the branch: FFmpeg install (ChatGPT, unchanged), media-worker dependencies for the Apps Script runner, and curl portability in the chain test.
+- Validate Savannah: `app-checks` and `media-worker` must both pass on the head of the PR (CI is re-run for each push; see the PR for the final head).
+- Local at the time of writing: worker 385 of 385 (including new submission-idempotency, AI-still disclosure, motion and aligned-timing rehearsal tests); Apps Script montage 8 of 8; full Apps Script offline suite exits 0.
+- CI fixes made on the branch: FFmpeg and DejaVu fonts installed in both jobs, media-worker dependencies for the Apps Script runner, and curl portability in the chain test. One Apps Script staging-safety test was updated for the new call shape of the render submission; its guard still sits directly before the call.
 
 ## 2. Exact script and scene metadata for the test
 
@@ -18,7 +18,7 @@ Script: `The Most Photogenic Places on Earth`, `SCR-6928b7a7-8575-42e1-925d-5d2b
 |---|---|---|
 | 1 Antelope Canyon, establishing | Labelled AI still (no verified footage) | — |
 | 2 Antelope Canyon, sandstone close-ups | Labelled AI still (no verified footage) | — |
-| 3 Burano, colourful houses | Pexels 29918560 (portrait) | contact sheet |
+| 3 Burano, colourful houses | Pexels 29918560 and 29918559 (portrait, 11 s and 16 s; the second covers slow speech) | contact sheets |
 | 4 Santorini, aerial terraces | Pexels 38087413 (portrait) | contact sheet |
 | 5 recap: Antelope → Burano → Santorini | Pexels 29510336 (4K landscape, 0.89x crop) / 29918561 / 32500600 | contact sheets |
 
@@ -32,11 +32,16 @@ Measured with the worker's planner and preflight, free Pexels metadata only (18 
 
 - Preflight lower bound: 2 stills. Planner: 2 stills. Limit: 2.
 - Every footage segment covers its share: scene 3 (11 s for 10.87 s), scene 4 (14 s for 10 s), and each montage part (at least 7 s for 2.17 s).
-- Caveat: these numbers use the saved `estimatedSeconds`. The render uses aligned beat timings, which change both the shares and the coverage. The check must be rerun on the aligned timings before rendering; the worker stops (does not loop footage) if coverage is short.
+- Timing rehearsal (offline, `test/alignedTimingRehearsal.test.js`): the same plan was timed with synthetic word timings at 2.0, 2.3 and 2.6 words per second, using the saved estimates. At every rate: exactly two stills, scene 3 covered (both Burano clips at the slowest rate), scene 4 covered, the recap split evenly in the order Antelope, Burano, Santorini, no clip reused, and no rejected clip chosen. If scene 3 were pinned to its 11 s clip alone, the slowest rate needs a third still, which the still limit refuses before any image request.
+- Caveat: the rehearsal uses synthetic words, because the approved narration text for every scene is not available in this session. The real alignment must be rechecked (the worker stops rather than looping footage if coverage is short).
 
 ## 4. AI stills
 
-Two, both labelled "AI-generated illustration, not authentic footage", at OpenAI medium quality, 1024×1536. The two-still maximum is enforced before any image request. Image requests have automatic retries off.
+Two, at OpenAI medium quality, 1024×1536. The two-still maximum is enforced before any image request. Image requests have automatic retries off.
+
+Disclosure on the picture (implemented and tested with real FFmpeg): every AI still carries a dark box with white text, "AI-GENERATED ILLUSTRATION", in the bottom third for its whole length. The font must exist on the render host (the CI installs DejaVu); without it the still is not rendered. Metadata alone is not treated as disclosure.
+
+Motion: the Ken Burns zoom now reaches its end exactly at the end of the beat. The old rate stopped after about 4 seconds, which left a 9-second still frozen for its last 5 seconds. A test checks the picture still changes between 5 s and 8.5 s of a 9 s still.
 
 ## 5. Itemised estimate (USD; GBP at a planning rate of 0.79, to be confirmed)
 
@@ -61,12 +66,19 @@ What exists now:
 - Cloud Run job retries are 0. OpenAI image requests use `maxRetries: 0`. The two-still limit is checked before any image request.
 - Narration and alignment run before footage planning. The planner's refusals (missing montage place, still limit) happen after those charges. The unpaid preflight can refuse most bad scripts before ElevenLabs and Whisper, but it cannot prove the timed plan will pass.
 
-What is not guaranteed (and failed on 10 November):
-- Two separate clicks create two different `cr-` IDs, and the dispatcher only refuses the same `jobId`. The two accepted submissions 15 minutes apart were not blocked.
+Implemented on the worker (dispatcher, `src/lib/submitIntent.js`, tested in `test/submitIdempotency.test.js`, 10 tests):
+- A submit intent (`submitIntentId`) is claimed with a create-only write. A replay of the same intent (double click, lost reply, refresh) returns the job it created and starts nothing.
+- A script and render version (`scriptId` + `renderVersion`) is claimed once. A fresh tab, second session or new intent for that version is refused (409), whatever the earlier job's state. A failed or uncertain job does not permit another paid run.
+- Two simultaneous requests with the same intent start exactly one execution.
+- A storage error on either claim refuses the submission (fail closed). A malformed field is refused before any claim.
+- With `requireSubmitIntent` on, submissions without the fields are refused. It is off by default so the current Apps Script keeps working until its change is deployed.
 
-Required before the paid render (separate development and deployment approval):
-1. The Apps Script sends one stable idempotency key per submit intent, stored in the Render Jobs row, and the dispatcher refuses any second submission for the same script and key, and any submission while a render for that script is QUEUED or RENDERING.
-2. The single-render procedure below is followed exactly.
+Not yet in place (needs an Apps Script change and a deployment, not authorised):
+- The Apps Script provider now sends `scriptId`, `submitIntentId` and `renderVersion` when its caller supplies them. The caller (the Production page) must generate one intent per owner action and keep it across retries, and must pass the render version. Until then the render-version claim does not apply.
+- Turn on `requireSubmitIntent` only after that change is live.
+- Limitation: a claim is never released automatically. A version that was claimed but never started needs an operator release (no tool exists yet). This is the intended fail-closed behaviour.
+
+What failed on 10 November (before these changes): two separate clicks created two `cr-` IDs and only the same `jobId` was refused. The two submissions 15 minutes apart were not blocked. The render-version claim would refuse the second, once the fields are sent.
 
 ## 7. Deployment and rollback (not authorised; needs separate approval)
 
@@ -93,17 +105,18 @@ The £5 figure is therefore a planning ceiling: the planned cost is about £0.15
 
 1. Confirm the commit, CI and deployment state; confirm no render row for the script is QUEUED, PLANNED, SUBMITTING or RENDERING.
 2. Confirm the scene metadata in the saved script matches the approved proposal, and the narration matches the saved text.
-3. Generate one request ID (UUID v4) for this attempt and record it in the approval note before submitting.
-4. Submit once from the production page, with AI stills allowed and automation paused. Do not click again.
+3. Record the approval against one script, one render version (for example 2) and one submit intent (a UUID v4 generated for this owner action). Write all three in the approval note before submitting.
+4. Submit once from the production page, with AI stills allowed and automation paused. Do not click again. A repeated request with the same intent returns the job it created; a request for the same version under a new intent is refused.
 5. Monitor the single execution. If it fails, stop: do not resubmit. Record the render ID, the execution ID and the error.
 6. Review the finished video (narration, coverage, labels, music credit) before any upload. Upload is a separate approval.
 
 ## 10. Remaining risks
 
-- Antelope Canyon coverage is weak (one verified clip); scenes 1 and 2 are AI stills and labelled as such.
-- Estimated versus aligned timing; the recap shares are about 2.2 s and need a pacing check.
-- Visual quality: the 4K Antelope clip crop keeps about 30% of the width.
-- Duplicate-submission protection is not yet in place (section 6).
+- Antelope Canyon coverage is weak: one verified interior clip (29510336, title-based identity, human check of the frames done) for the recap; scenes 1 and 2 are labelled AI stills.
+- Estimated versus aligned timing: the rehearsal passes at 2.0–2.6 words per second, but the real alignment is still unmeasured. The recap shares are about 2.2 s and need a pacing check.
+- Visual quality: the 4K Antelope clip crop keeps about 30% of the width; scene 3 and the Burano recap part are different clips of the same street.
+- Long stills: the motion now lasts the whole beat, but the two AI stills are still illustrations, not footage. Their look needs owner approval.
+- Duplicate-submission protection is implemented on the worker but not yet live: the Apps Script must send the fields and be deployed (section 6).
 - Provider charges are estimates from public list prices; they are not measured from invoices.
 - The sheet's error text for `RND-B375A60D` disagrees with its backend job, so sheet error columns should not be used to judge a render.
 - The Request JSON client-request-ID and version values for the two earlier failed renders are still not read.
