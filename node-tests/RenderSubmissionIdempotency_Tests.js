@@ -174,7 +174,7 @@ function controllerFixture(options = {}) {
     vm.runInContext(read(file), context, { filename: file });
   }
   return {
-    submit: () => vm.runInContext('ProductionController.submit({scriptId:"SCR-1"})', context),
+    submit: (requestId = 'rq-test-0001') => vm.runInContext('ProductionController.submit({scriptId:"SCR-1",clientRequestId:"' + requestId + '"})', context),
     reserved, saves, updates, stored: () => stored, submitOptions: () => submitOptions,
     renderNewVersion: request => vm.runInContext('ProductionController.renderNewVersion(' + JSON.stringify(request) + ')', context)
   };
@@ -205,7 +205,7 @@ test('While a submission is unconfirmed, the script cannot be rendered a second 
   const unknown = Object.assign(new Error('Timeout'), { outcomeUnknown: true });
   const f = controllerFixture({ fail: unknown });
   f.submit();
-  const second = f.submit();
+  const second = f.submit('rq-test-0002');
   assert.equal(second.success, false);
   assert.match(second.error.message, /already has an active render/);
   assert.equal(f.saves.length, 1, 'no second render row may be created');
@@ -252,7 +252,7 @@ test('A duplicate whose original row is missing: this row adopts the ID and stay
   assert.equal(f.stored().status, 'QUEUED');
   assert.equal(f.stored().renderId, originalId);
   assert.match(f.stored().errorMessage, /Do not re-render/);
-  const second = f.submit();
+  const second = f.submit('rq-test-0002');
   assert.equal(second.success, false);
   assert.match(second.error.message, /already has an active render/);
 });

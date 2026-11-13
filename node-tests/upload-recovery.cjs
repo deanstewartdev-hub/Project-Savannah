@@ -232,7 +232,7 @@ test('Rerender is blocked when an older upload requires reconciliation', () => {
     history: [historicalJob('PUB-OLDER', 'RECONCILE', now)],
     initialJob: historicalJob('PUB-NEWER', 'FAILED', now)
   });
-  const response = f.call('ProductionController.retry({jobId:"RND-TEST"})');
+  const response = f.call('ProductionController.retry({jobId:"RND-TEST",clientRequestId:"rq-test-0001"})');
   assert.equal(response.success, false);
   assert.equal(f.inserts(), 0);
 });
@@ -242,7 +242,7 @@ for (const evidence of [{ youtubeVideoId: 'VIDEO-REMOTE' }, { youtubeUrl: 'https
       new Date().toISOString(), evidence) });
     assert.equal(f.call(publish).success, false);
     assert.equal(f.inserts(), 0);
-    const retryResult = f.call('ProductionController.retry({jobId:"RND-TEST"})');
+    const retryResult = f.call('ProductionController.retry({jobId:"RND-TEST",clientRequestId:"rq-test-0001"})');
     assert.equal(retryResult.success, false);
     assert.match(retryResult.error.message, /Resolve the existing YouTube upload/);
   });
@@ -379,7 +379,7 @@ test('Retrying an unpublished render is blocked when another render of the scrip
   const f = fixture({ renderJobs: [failedOlder].concat(bothRenders()),
     history: [historicalJob('PUB-OTHER', 'PUBLISHED', new Date().toISOString(),
       { renderJobId: 'RND-OTHER', youtubeVideoId: 'LIVE', youtubeUrl: 'https://youtu.be/LIVE' })] });
-  const result = f.call('ProductionController.retry({jobId:"RND-OLDER"})');
+  const result = f.call('ProductionController.retry({jobId:"RND-OLDER",clientRequestId:"rq-test-0002"})');
   assert.equal(result.success, false);
   assert.match(result.error.message, /cannot be re-rendered/);
   assert.equal(f.providerCalls(), 0, 'No paid render may be started');
@@ -387,7 +387,7 @@ test('Retrying an unpublished render is blocked when another render of the scrip
 for (const state of ['PUBLISHED', 'UPLOADING', 'RECONCILE']) {
   test('Direct re-render submission is blocked when the script has a ' + state + ' upload', () => {
     const f = fixture({ history: [historicalJob('PUB-OLD', state, new Date().toISOString())] });
-    const result = f.call('ProductionController.submit({scriptId:"SCR-TEST",forceRerender:true})');
+    const result = f.call('ProductionController.submit({scriptId:"SCR-TEST",forceRerender:true,clientRequestId:"rq-test-0003"})');
     assert.equal(result.success, false);
     assert.match(result.error.message, /already has a YouTube upload/);
     assert.equal(f.providerCalls(), 0, 'No paid render may be started');

@@ -198,10 +198,27 @@
   // (whose createRender() generates voiceover + visuals synchronously in one call and
   // genuinely needs that chunking). productionSubmit/productionRetry already exist
   // server-side and already dispatch through the same provider-agnostic submitCore_.
-  function submitDirect(rpcName, request, button, busyLabel, idleLabel, onSuccess) {
+  // One request ID per owner action, kept in localStorage so a refresh or a second tab sends the same ID. It is cleared
+  // once the server has answered, unless the answer is an unknown outcome: then the same ID is sent again, so the server
+  // replays the request instead of starting a second render.
+  function pendingRequestId(key) {
+    let id = "";
+    try { id = window.localStorage.getItem(key) || ""; } catch (ignored) { id = ""; }
+    if (!id) id = "rq-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+    try { window.localStorage.setItem(key, id); } catch (ignored) {}
+    return id;
+  }
+  function settlePendingRequest(key, response) {
+    if (response && response.outcomeUnknown === true) return;
+    try { window.localStorage.removeItem(key); } catch (ignored) {}
+  }
+
+  // pendingKey (optional) is settled when the server answers. A network failure keeps the ID, for the same reason.
+  function submitDirect(rpcName, request, button, busyLabel, idleLabel, onSuccess, pendingKey) {
     button.disabled = true;
     button.textContent = busyLabel;
     google.script.run.withSuccessHandler(function (response) {
+      if (pendingKey) settlePendingRequest(pendingKey, response);
       if (!response || !response.success) {
         button.disabled = false;
         button.textContent = idleLabel;
@@ -232,23 +249,18 @@
   function startNewVersion(button) {
     const scriptId = button.dataset.scriptId;
     const pendingKey = "savannah.newVersion." + scriptId;
-    let requestId = "";
-    try { requestId = window.localStorage.getItem(pendingKey) || ""; } catch (ignored) { requestId = ""; }
-    if (!requestId) requestId = "nv-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
     const confirmed = window.confirm(
       "Render a new version of this Short? The original video is kept and this cannot be undone. " +
       "Maximum additional cost: £" + NEW_VERSION_COST_GBP.toFixed(2) + ". Continue?");
     if (!confirmed) return;
-    try { window.localStorage.setItem(pendingKey, requestId); } catch (ignored) {}
     submitDirect("productionRenderNewVersion",
-      { scriptId: scriptId, clientRequestId: requestId, confirmedMaxCostGbp: NEW_VERSION_COST_GBP },
+      { scriptId: scriptId, clientRequestId: pendingRequestId(pendingKey), confirmedMaxCostGbp: NEW_VERSION_COST_GBP },
       button, "Submitting...", "Render New Version", function (response) {
-        try { window.localStorage.removeItem(pendingKey); } catch (ignored) {}
         // The server answers a repeated request with the earlier outcome: say so, so nobody assumes a second render started.
         if (response && response.data && response.data.duplicate) {
           window.alert("No new render was started. This request was already submitted. The Versions list shows the existing render.");
         }
-      });
+      }, pendingKey);
   }
 
   function versionOf(job) {
@@ -763,8 +775,9 @@
     const submit = event.target.closest(".production-submit");
     if (submit) {
       if (currentProvider === "cloud-run") {
-        submitDirect("productionSubmit", { scriptId: submit.dataset.scriptId },
-          submit, "Submitting...", "Create Short");
+        const submitKey = "savannah.submit." + submit.dataset.scriptId;
+        submitDirect("productionSubmit", { scriptId: submit.dataset.scriptId, clientRequestId: pendingRequestId(submitKey) },
+          submit, "Submitting...", "Create Short", null, submitKey);
       } else {
         runPreparation({ scriptId: submit.dataset.scriptId }, submit, "Create Short");
       }
@@ -776,8 +789,9 @@
     const readyRetry = event.target.closest(".production-ready-retry");
     if (readyRetry) {
       if (currentProvider === "cloud-run") {
-        submitDirect("productionRetry", { jobId: readyRetry.dataset.jobId },
-          readyRetry, "Submitting...", "Re-render safely");
+        const retryKey = "savannah.retry." + readyRetry.dataset.jobId;
+        submitDirect("productionRetry", { jobId: readyRetry.dataset.jobId, clientRequestId: pendingRequestId(retryKey) },
+          readyRetry, "Submitting...", "Re-render safely", null, retryKey);
       } else {
         runPreparation({ jobId: readyRetry.dataset.jobId }, readyRetry, "Re-render safely");
       }
@@ -872,8 +886,9 @@
     const retry = event.target.closest(".production-retry");
     if (retry) {
       if (currentProvider === "cloud-run") {
-        submitDirect("productionRetry", { jobId: retry.dataset.jobId },
-          retry, "Submitting...", "Re-render safely");
+        const retryKey = "savannah.retry." + retry.dataset.jobId;
+        submitDirect("productionRetry", { jobId: retry.dataset.jobId, clientRequestId: pendingRequestId(retryKey) },
+          retry, "Submitting...", "Re-render safely", null, retryKey);
       } else {
         runPreparation({ jobId: retry.dataset.jobId }, retry, "Re-render safely");
       }
