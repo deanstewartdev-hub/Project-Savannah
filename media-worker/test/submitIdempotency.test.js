@@ -217,6 +217,99 @@ test("a deployment that requires intents refuses a submission without them", asy
   assert.equal(jobsClient.runs.length, 0);
 });
 
+// A store whose render-version write fails while `failing.version` is true: the intent is written, the version is not.
+function storeFailingVersionWrite() {
+  const store = createMemoryJobStore();
+  const original = store.createIfAbsent;
+  const failing = { version: true };
+  store.createIfAbsent = async (path, value) => {
+    if (failing.version && path.startsWith("renders-by-version/")) throw storageError(503);
+    return original(path, value);
+  };
+  return { store, failing };
+}
+
+test("non-atomic claims: a storage failure between the intent and the version refuses, then the same intent resumes with one execution", async (t) => {
+  const { store, failing } = storeFailingVersionWrite();
+  const { server, base, jobsClient, jobStore } = await setup({ jobStore: store });
+  t.after(() => close(server));
+  const first = submission();
+  const a = await post(base, first);
+  assert.equal(a.status, 503, "the claim cannot be confirmed, so nothing starts");
+  assert.equal(jobsClient.runs.length, 0);
+  assert.ok(jobStore.objects.has(intentPath(INTENT_1)), "the intent record was written first");
+  failing.version = false; // storage recovers
+  const retry = await post(base, submission({ jobId: newJobId() })); // the same owner action, retried
+  assert.equal(retry.status, 202, "the replay completes the claim and starts the render");
+  assert.equal((await retry.json()).jobId, first.jobId, "under the original jobId, not a new one");
+  assert.equal(jobsClient.runs.length, 1, "exactly one execution after the resume");
+  assert.ok(jobStore.objects.has(renderVersionPath(SCRIPT, 2)), "the version claim now exists");
+});
+
+test("non-atomic claims: an interrupted intent (intent written, process stopped) is completed by a replay, not stranded", async (t) => {
+  const jobStore = createMemoryJobStore();
+  // Simulate a crash after the intent was written and before the version or the job existed.
+  await jobStore.createIfAbsent(intentPath(INTENT_1), { submitIntentId: INTENT_1, scriptId: SCRIPT, renderVersion: 2, jobId: "cr-99999999-0000-4000-8000-000000000000", claimedAt: "t" });
+  const { server, base, jobsClient } = await setup({ jobStore });
+  t.after(() => close(server));
+  const response = await post(base, submission({ jobId: newJobId() }));
+  assert.equal(response.status, 202);
+  assert.equal((await response.json()).jobId, "cr-99999999-0000-4000-8000-000000000000", "the interrupted attempt's jobId is used");
+  assert.equal(jobsClient.runs.length, 1);
+});
+
+test("an intent reused for a different script or render version is refused, and nothing starts", async (t) => {
+  const { server, base, jobsClient } = await setup();
+  t.after(() => close(server));
+  assert.equal((await post(base, submission())).status, 202);
+  const otherVersion = await post(base, submission({ renderVersion: 3 })); // same intent, version 3
+  assert.equal(otherVersion.status, 409);
+  assert.match((await otherVersion.json()).error, /different script or render version/);
+  assert.equal(jobsClient.runs.length, 1);
+});
+
+test("a version held by another intent refuses that intent on every replay (the refusal is consistent)", async (t) => {
+  const { server, base, jobsClient } = await setup();
+  t.after(() => close(server));
+  assert.equal((await post(base, submission({ submitIntentId: INTENT_1 }))).status, 202);
+  const other = submission({ submitIntentId: INTENT_2 });
+  assert.equal((await post(base, other)).status, 409);
+  assert.equal((await post(base, other)).status, 409, "the second attempt of the other intent is refused too");
+  assert.equal(jobsClient.runs.length, 1);
+});
+
+test("a replay reports the recorded state of the original job and does not start it again (failed, running)", async (t) => {
+  const jobsClient = fakeJobsClient();
+  const { server, base, jobStore } = await setup({ jobsClient });
+  t.after(() => close(server));
+  const first = submission();
+  jobsClient.runError = Object.assign(new Error("invalid argument"), { code: 400 });
+  assert.equal((await post(base, first)).status, 502); // FAILED
+  jobsClient.runError = null;
+  const replay = await post(base, { ...first, jobId: newJobId() });
+  assert.equal(replay.status, 200);
+  const body = await replay.json();
+  assert.equal(body.jobId, first.jobId);
+  assert.equal(body.state, JOB_STATES.FAILED, "the replay reports the failed state");
+  assert.equal(jobsClient.runs.length, 0, "a replay of a failed job starts nothing");
+  assert.equal(jobStore.objects.get(statePath(first.jobId)).value.status, JOB_STATES.FAILED);
+});
+
+test("racing replays with different jobIds start exactly one execution and report the original jobId", async (t) => {
+  const { server, base, jobsClient } = await setup();
+  t.after(() => close(server));
+  const body = submission();
+  const results = await Promise.all([1, 2, 3, 4].map(() => post(base, { ...body, jobId: newJobId() })));
+  const statuses = results.map((r) => r.status).sort();
+  assert.deepEqual(statuses, [200, 200, 200, 202]);
+  const payloads = await Promise.all(results.map((r) => r.json()));
+  // The request that won the intent named its own jobId; every other response must name that same job.
+  const winner = results.findIndex((r) => r.status === 202);
+  assert.ok(winner !== -1, "one request started the render");
+  assert.ok(payloads.every((p) => p.jobId === payloads[winner].jobId), "every response names the one original jobId");
+  assert.equal(jobsClient.runs.length, 1, "exactly one execution across four racing requests");
+});
+
 test("unit: paths and field rules are stable", () => {
   assert.equal(renderVersionPath(SCRIPT, 2), `renders-by-version/${SCRIPT}/v2.json`);
   assert.equal(intentPath(INTENT_1), `submit-intents/${INTENT_1}.json`);

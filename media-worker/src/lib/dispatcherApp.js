@@ -6,7 +6,7 @@ import { validateMusicRequest, musicSummary } from "./musicLicence.js";
 import { MUSIC_PROTOCOL, assertRenderJobAcceptsMusic } from "./renderJobGuard.js";
 import { buildStatusResponse as defaultBuildStatusResponse } from "./jobStatus.js";
 import { reserveJob, failBeforeStart, markUncertain, recoverJob, recoveryConfirmation, statePath, JOB_STATES } from "./jobState.js";
-import { claimSubmission, validateIntentFields } from "./submitIntent.js";
+import { prepareSubmission, validateIntentFields } from "./submitIntent.js";
 import { callbackAllowed } from "./environment.js";
 
 // The dispatcher's HTTP surface, separated from its Cloud Run, Cloud Storage and job-state clients so the same
@@ -190,34 +190,41 @@ export function createDispatcherApp({
     }
     const fields = checked.fields;
     if (!(await checkRenderImage(res))) return;
-    // Cross-submission claims come before any jobId work. A replay of the same intent returns the job it created;
-    // any other submission for the same script and render version is refused. A storage error refuses (fail closed).
-    let claim;
+    // Cross-submission preparation comes before any jobId work. A replay of the same intent adopts the job that intent
+    // first named and reports that job's state; it does not start a render unless no state was ever recorded for it.
+    // A different submission for the same script and render version is refused. A storage error refuses (fail closed).
+    let prepared;
     try {
-      claim = await claimSubmission(jobStore, {
+      prepared = await prepareSubmission(jobStore, {
         submitIntentId: fields.submitIntentId, scriptId: fields.scriptId, renderVersion: fields.renderVersion,
         jobId: fields.jobId, now: now()
       });
     } catch (error) {
-      log.error("Submission could not be claimed; no render was started:", error);
+      log.error("Submission could not be recorded; no render was started:", error);
       res.status(503).json({ error: "Could not record this submission; no render was started." });
       return;
     }
-    if (claim.status === "duplicate") {
-      const state = await readJobState(claim.existingJobId);
-      if (claim.sameIntent && claim.existingJobId) {
-        // The same submission again (a double click or a lost reply): report the job it made. Nothing starts.
-        res.status(200).json({ jobId: claim.existingJobId, status: "already-submitted", duplicate: true, state: state });
-      } else {
-        res.status(409).json({
-          error: claim.reason + " No render was started. A new render version is needed for another paid render.",
-          jobId: claim.existingJobId, state: state
-        });
-      }
+    if (prepared.status === "refused") {
+      const state = await readJobState(prepared.existingJobId);
+      res.status(409).json({
+        error: prepared.reason + " No render was started. A new render version is needed for another paid render.",
+        jobId: prepared.existingJobId, state: state
+      });
+      return;
+    }
+    fields.jobId = prepared.jobId;
+    // The replay report: the original job, its recorded state, and no new start. Success status, original jobId.
+    const replayReport = async () => ({ jobId: prepared.jobId, status: "already-submitted", duplicate: true, state: await readJobState(prepared.jobId) });
+    if (prepared.replay && (await readJobState(prepared.jobId)) !== "unknown") {
+      res.status(200).json(await replayReport());
       return;
     }
     try {
       if (await legacyDuplicate(fields.jobId)) {
+        if (prepared.replay) {
+          res.status(200).json(await replayReport());
+          return;
+        }
         res.status(409).json({ error: "This jobId was already submitted. No render was started." });
         return;
       }
@@ -236,6 +243,11 @@ export function createDispatcherApp({
       return;
     }
     if (!reservation.reserved) {
+      if (prepared.replay) {
+        // Another request with the same intent reserved this job first (a race): report it, start nothing.
+        res.status(200).json(await replayReport());
+        return;
+      }
       const state = reservation.existing ? reservation.existing.status : "unknown";
       res.status(409).json({
         error: "This jobId has already been submitted. No render was started. A failed or uncertain job needs the explicit recovery operation.",
