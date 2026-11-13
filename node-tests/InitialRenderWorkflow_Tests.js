@@ -271,6 +271,47 @@ const cases = [
     assert.match(again.error.message, /already has an active render/);
     assert.equal(executions(world), 1, 'still exactly one execution');
   }],
+  ['the Photogenic first render, with two earlier failed records for the same script, starts as version 2 and no older record blocks it', () => {
+    // The two 10 November renders were recorded without a version, failed, and had no intent. Rows without a stored
+    // version count as version 1, so the next render is version 2, and nothing claims version 2 yet.
+    const world = newWorld('photogenic');
+    const sheet = newSheet();
+    sheet.rows.push(
+      { id: 'JOB-OLD-A', scriptId: 'SCR-1', renderId: 'cr-9b3bed34-8889-4fbe-82db-c0055881e083', status: 'FAILED',
+        errorMessage: 'earlier attempt', requestPayload: { preparationStatus: 'assets-ready' } },
+      { id: 'JOB-OLD-B', scriptId: 'SCR-1', renderId: 'cr-8556be9c-679e-4161-9328-c5e9e85a808b', status: 'FAILED',
+        errorMessage: 'earlier attempt', requestPayload: { preparationStatus: 'assets-ready' } });
+    const result = openPage(world, sheet).submit('rq-photogenic-0001');
+    assert.equal(result.success, true, result.error && result.error.message);
+    assert.equal(sheet.rows[sheet.rows.length - 1].requestPayload.version, 2);
+    assert.equal(executions(world), 1);
+  }],
+  ['the worker still accepts a request without the intent fields while requireSubmitIntent is off (rollout order: worker first)', () => {
+    const world = newWorld('rollout-old-client');
+    const answer = workerAnswer(world, {
+      method: 'POST', path: '/jobs', headers: { Authorization: 'Bearer ' + SECRET },
+      body: JSON.stringify({ jobId: 'cr-' + randomUUID(), beats: [{ text: 'Blue walls.', visualQuery: 'blue' }],
+        musicTrackId: TRACK_ID, callbackUrl: CALLBACK + '?route=media-worker-callback' })
+    });
+    assert.equal(answer.status, 202, 'the currently deployed Apps Script keeps working: ' + answer.body);
+    assert.equal(executions(world), 1);
+  }],
+  ['rollback rehearsal: turning requireSubmitIntent back off accepts the older client again, and a new request still starts once', () => {
+    const world = newWorld('rollback');
+    world.config.requireSubmitIntent = true;
+    const bare = () => workerAnswer(world, {
+      method: 'POST', path: '/jobs', headers: { Authorization: 'Bearer ' + SECRET },
+      body: JSON.stringify({ jobId: 'cr-' + randomUUID(), beats: [{ text: 'Blue walls.', visualQuery: 'blue' }],
+        musicTrackId: TRACK_ID, callbackUrl: CALLBACK + '?route=media-worker-callback' })
+    });
+    assert.equal(bare().status, 400, 'with the flag on, the older client is refused');
+    world.config.requireSubmitIntent = false;
+    assert.equal(bare().status, 202, 'with the flag back off, the older client is accepted');
+    const sheet = newSheet();
+    const result = openPage(world, sheet).submit('rq-rollback-0001');
+    assert.equal(result.success, true, 'the new client still renders after rollback');
+    assert.equal(executions(world), 2, 'exactly one execution per accepted request');
+  }],
   ['a retry without a request ID is refused before anything is read or started', () => {
     const world = newWorld('retry'), sheet = newSheet();
     const result = openPage(world, sheet).retry({ jobId: 'JOB-NONE' });
