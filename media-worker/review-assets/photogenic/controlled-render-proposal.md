@@ -73,9 +73,12 @@ Implemented on the worker (dispatcher, `src/lib/submitIntent.js`, tested in `tes
 - A storage error on either claim refuses the submission (fail closed). A malformed field is refused before any claim.
 - With `requireSubmitIntent` on, submissions without the fields are refused. It is off by default so the current Apps Script keeps working until its change is deployed.
 
-Not yet in place (needs an Apps Script change and a deployment, not authorised):
-- The Apps Script provider now sends `scriptId`, `submitIntentId` and `renderVersion` when its caller supplies them. The caller (the Production page) must generate one intent per owner action and keep it across retries, and must pass the render version. Until then the render-version claim does not apply.
-- Turn on `requireSubmitIntent` only after that change is live.
+Done in the code on `fix/photogenic-scene-metadata` (not deployed; this needs an Apps Script deployment, not authorised):
+- Every render start sends `scriptId`, `submitIntentId` and `renderVersion`. The start paths are Create Short, a retry, a prepared task (the queue) and Render New Version. Each one refuses to run without a request ID, so no path can reach the worker without an intent.
+- The Production page keeps one request ID per owner action (per script for Create Short and new versions, per job for retries) in the browser until the server answers without an unknown outcome. Two tabs and a refresh send the same ID.
+- A retry takes the next version number, so the worker's version claim for a failed attempt is never reused. Before this change, a retry used the failed attempt's number.
+- Tested with a real worker: `node-tests/InitialRenderWorkflow_Tests.js` (10 scenarios through the controller, the real provider and the dispatcher's HTTP app, with state on disk) and `media-worker/test/submitConcurrentProcesses.test.js` (simultaneous submissions in separate processes; a negative control with a non-atomic create fails all three).
+- Turn on `requireSubmitIntent` only after the Apps Script change is live. With it on, a first render with its fields starts, and a request without them is refused (tested).
 - Limitation: a claim is never released automatically. A version that was claimed but never started needs an operator release (no tool exists yet). This is the intended fail-closed behaviour.
 
 What failed on 10 November (before these changes): two separate clicks created two `cr-` IDs and only the same `jobId` was refused. The two submissions 15 minutes apart were not blocked. The render-version claim would refuse the second, once the fields are sent.
