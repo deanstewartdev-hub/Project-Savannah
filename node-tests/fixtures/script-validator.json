@@ -1,0 +1,3452 @@
+{
+ "accepted: five scenes, 110 words": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "accepted: four scenes": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23. s1w24. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23. s4w24.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23. s1w24.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23. s4w24.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 10.87
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 43.48,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 100,
+    "withinPreferredWordRange": true,
+    "sceneCount": 4,
+    "sceneDurationSeconds": 43.48,
+    "estimatedDurationSeconds": 43.48,
+    "durationDifferenceSeconds": 0,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "accepted: six scenes": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19. s6w0 s6w1 s6w2 s6w3 s6w4 s6w5 s6w6 s6w7. s6w8 s6w9 s6w10 s6w11 s6w12 s6w13 s6w14 s6w15. s6w16 s6w17 s6w18 s6w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 6.52
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 6.52
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 6,
+      "narration": "s6w0 s6w1 s6w2 s6w3 s6w4 s6w5 s6w6 s6w7. s6w8 s6w9 s6w10 s6w11 s6w12 s6w13 s6w14 s6w15. s6w16 s6w17 s6w18 s6w19.",
+      "onScreenText": "Fact 6",
+      "visualDirection": "Concrete visual detail for scene 6",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 6,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "rejected: null": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script must be a valid object."
+  }
+ },
+ "rejected: a string": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script must be a valid object."
+  }
+ },
+ "rejected: a number": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script must be a valid object."
+  }
+ },
+ "rejected: an empty object": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Title is required.\n- Hook is required.\n- Voiceover script is required.\n- Call to action is required.\n- Generation notes must be a string, even when empty.\n- Voiceover contains 0 words; minimum is 90.\n- Scenes must be an array.\n- Estimated duration must be a valid number."
+  }
+ },
+ "rejected: an array": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Title is required.\n- Hook is required.\n- Voiceover script is required.\n- Call to action is required.\n- Generation notes must be a string, even when empty.\n- Voiceover contains 0 words; minimum is 90.\n- Scenes must be an array.\n- Estimated duration must be a valid number."
+  }
+ },
+ "title: missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Title is required."
+  }
+ },
+ "title: blank": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Title is required."
+  }
+ },
+ "title: not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Title is required."
+  }
+ },
+ "hook: missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Hook is required."
+  }
+ },
+ "hook: blank": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Hook is required."
+  }
+ },
+ "hook: not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Hook is required."
+  }
+ },
+ "voiceoverScript: missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover script is required."
+  }
+ },
+ "voiceoverScript: blank": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover script is required."
+  }
+ },
+ "voiceoverScript: not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover script is required."
+  }
+ },
+ "callToAction: missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Call to action is required."
+  }
+ },
+ "callToAction: blank": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Call to action is required."
+  }
+ },
+ "callToAction: not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Call to action is required."
+  }
+ },
+ "generationNotes: missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generation notes must be a string, even when empty."
+  }
+ },
+ "generationNotes: null": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generation notes must be a string, even when empty."
+  }
+ },
+ "generationNotes: padded text is trimmed": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": "a note"
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "title and call to action are trimmed": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "Padded Title",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow now.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "words: 89": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 89 words; minimum is 90."
+  }
+ },
+ "words: 90": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 6.52
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 6.52
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 39.13,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 90,
+    "withinPreferredWordRange": false,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 39.14,
+    "estimatedDurationSeconds": 39.13,
+    "durationDifferenceSeconds": 0.00999999999999801,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "words: 99": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.26
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 43.04,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 99,
+    "withinPreferredWordRange": false,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 43.06,
+    "estimatedDurationSeconds": 43.04,
+    "durationDifferenceSeconds": 0.020000000000003126,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "words: 100": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 43.48,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 100,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 43.5,
+    "estimatedDurationSeconds": 43.48,
+    "durationDifferenceSeconds": 0.020000000000003126,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "words: 120": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19 s5w20 s5w21 s5w22 s5w23.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 10.43
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.43
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.43
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 10.43
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19 s5w20 s5w21 s5w22 s5w23.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 10.43
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 52.17,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 120,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 52.15,
+    "estimatedDurationSeconds": 52.17,
+    "durationDifferenceSeconds": 0.020000000000003126,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "words: 121": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23. s1w24. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19 s5w20 s5w21 s5w22 s5w23.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23. s1w24.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.43
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.43
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 10.43
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19 s5w20 s5w21 s5w22 s5w23.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 10.43
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 52.61,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 121,
+    "withinPreferredWordRange": false,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 52.59,
+    "estimatedDurationSeconds": 52.61,
+    "durationDifferenceSeconds": 0.01999999999999602,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "words: 130": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23. s1w24 s1w25. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24 s2w25. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24 s3w25. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23. s4w24 s4w25. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19 s5w20 s5w21 s5w22 s5w23. s5w24 s5w25.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19 s1w20 s1w21 s1w22 s1w23. s1w24 s1w25.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 11.3
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24 s2w25.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 11.3
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24 s3w25.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 11.3
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19 s4w20 s4w21 s4w22 s4w23. s4w24 s4w25.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 11.3
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19 s5w20 s5w21 s5w22 s5w23. s5w24 s5w25.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 11.3
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 56.52,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 130,
+    "withinPreferredWordRange": false,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 56.5,
+    "estimatedDurationSeconds": 56.52,
+    "durationDifferenceSeconds": 0.020000000000003126,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "words: 131": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 131 words; maximum is 130."
+  }
+ },
+ "words: custom minimum 120": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 110 words; minimum is 120."
+  }
+ },
+ "words: custom maximum 100": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 110 words; maximum is 100."
+  }
+ },
+ "cadence: one 23-word sentence": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. long0 long1 long2 long3 long4 long5 long6 long7 long8 long9 long10 long11 long12 long13 long14 long15 long16 long17 long18 long19 long20 long21 long22. tail0 tail1. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "long0 long1 long2 long3 long4 long5 long6 long7 long8 long9 long10 long11 long12 long13 long14 long15 long16 long17 long18 long19 long20 long21 long22. tail0 tail1.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 1
+   }
+  }
+ },
+ "cadence: many long sentences": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 5 overlong sentences; shorten them for natural narration and faster captions.\n- The script hook does not appear near the beginning of the voiceover."
+  }
+ },
+ "cadence: custom sentence limit": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 12 overlong sentences; shorten them for natural narration and faster captions."
+  }
+ },
+ "cadence: custom long-sentence share": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The script hook does not appear near the beginning of the voiceover."
+  }
+ },
+ "markdown: bold in narration": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. This is **bold** text. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "This is **bold** text. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 114,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "markdown: heading in narration": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. # A heading here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "# A heading here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 114,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "markdown: list in narration": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. - a list item here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "- a list item here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 115,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "markdown: code in narration": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. Some `code` here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "Some `code` here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 113,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "markdown: link in narration": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. See [this link](https://example.com) now. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "See [this link](https://example.com) now. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 114,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "markdown: underscore emphasis in narration": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. This is _emphasis_ here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "This is _emphasis_ here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 114,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "markdown: numbered list in narration": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. 1. first item here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "1. first item here. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 114,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "markdown: code fence in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover must not contain code fences."
+  }
+ },
+ "markdown: heading at the very start of the narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover must not contain markdown headings."
+  }
+ },
+ "markdown: heading on a new line inside a scene": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover must not contain markdown headings."
+  }
+ },
+ "placeholder: \"TBD\" in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bTBD\\b/i"
+  }
+ },
+ "placeholder: \"todo\" in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bTODO\\b/i"
+  }
+ },
+ "placeholder: \"insert fact\" in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\binsert fact\\b/i"
+  }
+ },
+ "placeholder: \"Insert Statistic\" in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\binsert statistic\\b/i"
+  }
+ },
+ "placeholder: \"placeholder\" in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bplaceholder\\b/i"
+  }
+ },
+ "placeholder: \"example text\" in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bexample text\\b/i"
+  }
+ },
+ "placeholder: \"Lorem ipsum\" in narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\blorem ipsum\\b/i"
+  }
+ },
+ "placeholder: in the title": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bTBD\\b/i"
+  }
+ },
+ "placeholder: in the hook": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bplaceholder\\b/i\n- The script hook does not appear near the beginning of the voiceover."
+  }
+ },
+ "placeholder: in the call to action": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bTODO\\b/i"
+  }
+ },
+ "placeholder: in on-screen text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\bTBD\\b/i"
+  }
+ },
+ "placeholder: in a visual direction": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Generated script contains placeholder content matching: /\\blorem ipsum\\b/i"
+  }
+ },
+ "placeholder: word inside another word is fine": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "Mastodon habits",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scenes: missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 0 words; minimum is 90.\n- Scenes must be an array.\n- The script hook does not appear near the beginning of the voiceover."
+  }
+ },
+ "scenes: not a list": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 0 words; minimum is 90.\n- Scenes must be an array.\n- The script hook does not appear near the beginning of the voiceover."
+  }
+ },
+ "scenes: empty list": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 0 words; minimum is 90.\n- Script contains 0 scenes; minimum is 4.\n- The script hook does not appear near the beginning of the voiceover."
+  }
+ },
+ "scenes: three": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Script contains 3 scenes; minimum is 4.\n- Scene 1 lasts 15.22 seconds; maximum visual hold is 15 seconds.\n- Scene 2 lasts 15.22 seconds; maximum visual hold is 15 seconds."
+  }
+ },
+ "scenes: seven": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Script contains 7 scenes; maximum is 6."
+  }
+ },
+ "scenes: custom range allows three": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 1 lasts 15.22 seconds; maximum visual hold is 15 seconds.\n- Scene 2 lasts 15.22 seconds; maximum visual hold is 15 seconds."
+  }
+ },
+ "scene: null entry": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 85 words; minimum is 90.\n- Scene 3 must be a valid object.\n- Combined scene duration differs from the declared duration by 10.86 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "scene: a string entry": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 85 words; minimum is 90.\n- Scene 3 must be a valid object.\n- Combined scene duration differs from the declared duration by 10.86 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "scene: wrong number": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 has an invalid scene number."
+  }
+ },
+ "scene: number as text": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: number missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 4 has an invalid scene number."
+  }
+ },
+ "scene: narration missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 85 words; minimum is 90.\n- Narration is required for scene 2."
+  }
+ },
+ "scene: narration blank": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 85 words; minimum is 90.\n- Narration is required for scene 2."
+  }
+ },
+ "scene: narration not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Voiceover contains 85 words; minimum is 90.\n- Narration is required for scene 2."
+  }
+ },
+ "scene: onScreenText missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- On-screen text is required for scene 2."
+  }
+ },
+ "scene: onScreenText blank": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- On-screen text is required for scene 2."
+  }
+ },
+ "scene: onScreenText not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- On-screen text is required for scene 2."
+  }
+ },
+ "scene: visualDirection missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Visual direction is required for scene 2."
+  }
+ },
+ "scene: visualDirection blank": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Visual direction is required for scene 2.\n- Visual direction for scene 2 must name enough concrete detail for an original scene."
+  }
+ },
+ "scene: visualDirection not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Visual direction is required for scene 2."
+  }
+ },
+ "scene: on-screen text five words": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "One two three four five",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: on-screen text six words": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- On-screen text for scene 1 must contain no more than 5 words."
+  }
+ },
+ "scene: visual direction three words": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Visual direction for scene 1 must name enough concrete detail for an original scene."
+  }
+ },
+ "scene: visual direction four words": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Blue door close up",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: two identical visual directions": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Every scene must use a distinct visual direction to create visible pattern interrupts."
+  }
+ },
+ "scene: visual directions differ only by case and spacing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Every scene must use a distinct visual direction to create visible pattern interrupts."
+  }
+ },
+ "scene: estimated seconds zero": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 3 must have a positive estimated duration.\n- Combined scene duration differs from the declared duration by 10.86 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "scene: estimated seconds negative": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 3 must have a positive estimated duration.\n- Combined scene duration differs from the declared duration by 10.86 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "scene: estimated seconds text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 3 must have a positive estimated duration.\n- Combined scene duration differs from the declared duration by 10.86 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "scene: estimated seconds missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 3 must have a positive estimated duration.\n- Combined scene duration differs from the declared duration by 10.86 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "scene: estimated seconds numeric text": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 9.5
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 46.47,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 1.3599999999999994,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: estimated seconds fifteen": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 15
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 51.97,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 4.140000000000001,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: estimated seconds over fifteen": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 3 lasts 15.01 seconds; maximum visual hold is 15 seconds."
+  }
+ },
+ "scene: estimated seconds null": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 3 must have a positive estimated duration.\n- Combined scene duration differs from the declared duration by 10.86 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "scene: custom maximum hold": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 lasts 10.87 seconds; maximum visual hold is 9 seconds.\n- Scene 3 lasts 10.87 seconds; maximum visual hold is 9 seconds."
+  }
+ },
+ "montage: two places": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "montage": [
+       {
+        "location": "Santorini"
+       },
+       {
+        "location": "Burano",
+        "searchKeywords": "colourful houses"
+       }
+      ]
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "montage: three places with approved clips": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "montage": [
+       {
+        "location": "A",
+        "approvedClips": [
+         1,
+         2
+        ]
+       },
+       {
+        "location": "B"
+       },
+       {
+        "location": "C",
+        "approvedClips": []
+       }
+      ]
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "montage: one place": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage needs 2 to 3 places."
+  }
+ },
+ "montage: four places": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage needs 2 to 3 places."
+  }
+ },
+ "montage: not a list": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage must be a list of places."
+  }
+ },
+ "montage: null": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage must be a list of places."
+  }
+ },
+ "montage: place without a location": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 2 needs a location."
+  }
+ },
+ "montage: blank location": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 2 needs a location."
+  }
+ },
+ "montage: place is a string": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 needs a location.\n- Scene 2 montage place 2 needs a location."
+  }
+ },
+ "montage: location of 60 characters": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "montage": [
+       {
+        "location": "A"
+       },
+       {
+        "location": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+       }
+      ]
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "montage: location of 61 characters": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 2 location is longer than 60 characters."
+  }
+ },
+ "montage: keywords of 80 characters": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "montage": [
+       {
+        "location": "A"
+       },
+       {
+        "location": "B",
+        "searchKeywords": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+       }
+      ]
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "montage: keywords of 81 characters": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 2 searchKeywords must be text of at most 80 characters."
+  }
+ },
+ "montage: keywords not text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 2 searchKeywords must be text of at most 80 characters."
+  }
+ },
+ "montage: approved clips six ids": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips six ids": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "montage: approved clips a zero": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips a zero": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "montage: approved clips a negative": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips a negative": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "montage: approved clips a fraction": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips a fraction": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "montage: approved clips text ids": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips text ids": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "montage: approved clips not a list": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips not a list": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "montage: approved clips null": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage place 1 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips null": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 approvedClips must be a list of at most 5 positive whole Pexels clip IDs."
+  }
+ },
+ "scene: approved clips five ids": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "approvedClips": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ]
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: labelled still true": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "labelledStill": true
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: labelled still false": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "labelledStill": false
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: labelled still as text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 labelledStill must be true or false."
+  }
+ },
+ "scene: labelled still with approved clips": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 is a labelled still, so it cannot also name approved clips."
+  }
+ },
+ "scene: labelled still with empty approved clips": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87,
+      "approvedClips": [],
+      "labelledStill": true
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "scene: labelled still with a montage": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Scene 2 montage cannot be a labelled still."
+  }
+ },
+ "scene: location and search keywords pass through": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7,
+      "location": "Chefchaouen",
+      "searchKeywords": "blue street"
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "duration: estimated missing": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Estimated duration must be a valid number."
+  }
+ },
+ "duration: estimated text": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Estimated duration must be a valid number."
+  }
+ },
+ "duration: estimated numeric text": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "duration: estimated null": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Estimated duration must be between 30 and 60 seconds."
+  }
+ },
+ "duration: estimated zero": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Estimated duration must be between 30 and 60 seconds."
+  }
+ },
+ "duration: estimated 29": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Estimated duration must be between 30 and 60 seconds.\n- Combined scene duration differs from the declared duration by 18.84 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "duration: estimated 30": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Combined scene duration differs from the declared duration by 17.84 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "duration: estimated 60": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Combined scene duration differs from the declared duration by 12.16 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "duration: estimated 61": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Estimated duration must be between 30 and 60 seconds.\n- Combined scene duration differs from the declared duration by 13.16 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "duration: five seconds above the scene total": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 52.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 52.83,
+    "durationDifferenceSeconds": 4.989999999999995,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "duration: just over five seconds above the scene total": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Combined scene duration differs from the declared duration by 5.01 seconds; maximum tolerance is 5 seconds."
+  }
+ },
+ "duration: custom tolerance of zero": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Combined scene duration differs from the declared duration by 0.99 seconds; maximum tolerance is 0 seconds."
+  }
+ },
+ "duration: custom range 40 to 45": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Estimated duration must be between 40 and 45 seconds."
+  }
+ },
+ "hook: not the opening of the narration": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The script hook does not appear near the beginning of the voiceover."
+  }
+ },
+ "hook: differs only by case and punctuation": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "S1W0 S1W1 S1W2 S1W3 S1W4 S1W5 S1W6!!!",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "hook: five words": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook contains 5 words; minimum is 6."
+  }
+ },
+ "hook: six words": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "hook: eighteen words": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7 s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15 s1w16 s1w17",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "hook: nineteen words": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook contains 19 words; maximum is 18."
+  }
+ },
+ "hook: weak opener \"Did you know\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*did you know\\b/i"
+  }
+ },
+ "hook: weak opener \"Here are\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*here (?:are|is)\\b/i"
+  }
+ },
+ "hook: weak opener \"Here is\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*here (?:are|is)\\b/i"
+  }
+ },
+ "hook: weak opener \"Welcome\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*welcome\\b/i"
+  }
+ },
+ "hook: weak opener \"Today\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*today\\b/i"
+  }
+ },
+ "hook: weak opener \"In this video\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*in (?:this|today'?s) video\\b/i"
+  }
+ },
+ "hook: weak opener \"In today's video\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*in (?:this|today'?s) video\\b/i"
+  }
+ },
+ "hook: weak opener \"In todays video\"": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook uses a weak opening pattern: /^\\s*in (?:this|today'?s) video\\b/i"
+  }
+ },
+ "call to action: twelve words": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "cta0 cta1 cta2 cta3 cta4 cta5 cta6 cta7 cta8 cta9 cta10 cta11.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "call to action: thirteen words": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Call to action contains 13 words; maximum is 12."
+  }
+ },
+ "custom hook and call-to-action limits": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- The hook contains 7 words; minimum is 8.\n- Call to action contains 4 words; maximum is 2."
+  }
+ },
+ "options: null": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "options: numeric text": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "options: blank and null fall back to defaults": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "options: text": {
+  "threw": {
+   "name": "Error",
+   "message": "Script validation options must contain valid numbers."
+  }
+ },
+ "options: negative": {
+  "threw": {
+   "name": "Error",
+   "message": "Maximum scene count cannot be lower than minimum scene count."
+  }
+ },
+ "options: zero": {
+  "returned": {
+   "valid": true,
+   "script": {
+    "title": "A Test Script",
+    "hook": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6",
+    "voiceoverScript": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19. s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24. s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24. s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19. s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+    "scenes": [
+     {
+      "sceneNumber": 1,
+      "narration": "s1w0 s1w1 s1w2 s1w3 s1w4 s1w5 s1w6 s1w7. s1w8 s1w9 s1w10 s1w11 s1w12 s1w13 s1w14 s1w15. s1w16 s1w17 s1w18 s1w19.",
+      "onScreenText": "Fact 1",
+      "visualDirection": "Concrete visual detail for scene 1",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 2,
+      "narration": "s2w0 s2w1 s2w2 s2w3 s2w4 s2w5 s2w6 s2w7. s2w8 s2w9 s2w10 s2w11 s2w12 s2w13 s2w14 s2w15. s2w16 s2w17 s2w18 s2w19 s2w20 s2w21 s2w22 s2w23. s2w24.",
+      "onScreenText": "Fact 2",
+      "visualDirection": "Concrete visual detail for scene 2",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 3,
+      "narration": "s3w0 s3w1 s3w2 s3w3 s3w4 s3w5 s3w6 s3w7. s3w8 s3w9 s3w10 s3w11 s3w12 s3w13 s3w14 s3w15. s3w16 s3w17 s3w18 s3w19 s3w20 s3w21 s3w22 s3w23. s3w24.",
+      "onScreenText": "Fact 3",
+      "visualDirection": "Concrete visual detail for scene 3",
+      "estimatedSeconds": 10.87
+     },
+     {
+      "sceneNumber": 4,
+      "narration": "s4w0 s4w1 s4w2 s4w3 s4w4 s4w5 s4w6 s4w7. s4w8 s4w9 s4w10 s4w11 s4w12 s4w13 s4w14 s4w15. s4w16 s4w17 s4w18 s4w19.",
+      "onScreenText": "Fact 4",
+      "visualDirection": "Concrete visual detail for scene 4",
+      "estimatedSeconds": 8.7
+     },
+     {
+      "sceneNumber": 5,
+      "narration": "s5w0 s5w1 s5w2 s5w3 s5w4 s5w5 s5w6 s5w7. s5w8 s5w9 s5w10 s5w11 s5w12 s5w13 s5w14 s5w15. s5w16 s5w17 s5w18 s5w19.",
+      "onScreenText": "Fact 5",
+      "visualDirection": "Concrete visual detail for scene 5",
+      "estimatedSeconds": 8.7
+     }
+    ],
+    "callToAction": "Follow for more facts.",
+    "estimatedDurationSeconds": 47.83,
+    "generationNotes": ""
+   },
+   "metadata": {
+    "wordCount": 110,
+    "withinPreferredWordRange": true,
+    "sceneCount": 5,
+    "sceneDurationSeconds": 47.84,
+    "estimatedDurationSeconds": 47.83,
+    "durationDifferenceSeconds": 0.010000000000005116,
+    "longSentenceCount": 0
+   }
+  }
+ },
+ "options: an object": {
+  "threw": {
+   "name": "Error",
+   "message": "Script validation options must contain valid numbers."
+  }
+ },
+ "options: several problems at once are all reported": {
+  "threw": {
+   "name": "ScriptValidationError",
+   "message": "Generated script failed validation:\n- Title is required.\n- On-screen text for scene 1 must contain no more than 5 words.\n- Estimated duration must be between 30 and 60 seconds.\n- Combined scene duration differs from the declared duration by 42.16 seconds; maximum tolerance is 5 seconds.\n- Call to action contains 20 words; maximum is 12."
+  }
+ },
+ "members": {
+  "returned": [
+   "validate",
+   "countWords",
+   "getDefaultRules"
+  ]
+ },
+ "default rules": {
+  "returned": {
+   "minimumWordCount": 90,
+   "maximumWordCount": 130,
+   "minimumSceneCount": 4,
+   "maximumSceneCount": 6,
+   "minimumDurationSeconds": 30,
+   "maximumDurationSeconds": 60,
+   "durationToleranceSeconds": 5,
+   "minimumHookWordCount": 6,
+   "maximumHookWordCount": 18,
+   "maximumCallToActionWordCount": 12,
+   "maximumOnScreenTextWordCount": 5
+  }
+ },
+ "default rules: returned copy is independent": {
+  "returned": 90
+ },
+ "countWords: plain": {
+  "returned": 3
+ },
+ "countWords: padded and multiline": {
+  "returned": 3
+ },
+ "countWords: empty": {
+  "returned": 0
+ },
+ "countWords: null": {
+  "returned": 0
+ },
+ "countWords: number": {
+  "returned": 0
+ },
+ "countWords: punctuation": {
+  "returned": 4
+ }
+}
