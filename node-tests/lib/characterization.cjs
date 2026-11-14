@@ -12,6 +12,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { createHash } = require('node:crypto');
 
 const root = path.resolve(__dirname, '..', '..');
 
@@ -70,6 +71,22 @@ function createSandbox(stubs) {
   };
 }
 
+// Replaces very long strings (whole prompts) with their length, SHA-256 and opening text, so a
+// fixture stays reviewable while any change to the string is still detected.
+function compactLongStrings(value, limit) {
+  if (typeof value === 'string') {
+    if (value.length <= limit) return value;
+    return { longString: true, length: value.length, sha256: createHash('sha256').update(value).digest('hex'), opening: value.slice(0, 160) };
+  }
+  if (Array.isArray(value)) return value.map(item => compactLongStrings(item, limit));
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const key of Object.keys(value)) out[key] = compactLongStrings(value[key], limit);
+    return out;
+  }
+  return value;
+}
+
 // Compares `record` with the fixture, or writes the fixture when run with --update.
 // Returns the process exit code.
 function settle(suiteName, fixtureFile, record) {
@@ -96,4 +113,4 @@ function settle(suiteName, fixtureFile, record) {
   return failed ? 1 : 0;
 }
 
-module.exports = { root, createSandbox, settle };
+module.exports = { root, createSandbox, settle, compactLongStrings };
