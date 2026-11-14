@@ -156,6 +156,7 @@ function controllerFixture(options = {}) {
   if (reserved) provider.reserveRenderId = () => reserved;
   const context = vm.createContext({
     Utilities: { getUuid: randomUUID }, Logger: { log() {} },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     ScriptsRepository: { getScriptById: id => ({ id, status: 'APPROVED' }) },
     SeoRepository: { getByScriptId: () => ({ id: 'SEO-1' }) },

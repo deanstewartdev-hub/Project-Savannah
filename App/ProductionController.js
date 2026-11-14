@@ -65,6 +65,7 @@ const ProductionController = (() => {
   }
 
   function renderNewVersion_(request) {
+    assertSubmissionsOpen_();
     const clientRequestId = String(request.clientRequestId || "").trim();
     if (!/^[A-Za-z0-9-]{8,80}$/.test(clientRequestId)) throw error_("A request ID is required.");
     if (Number(request.confirmedMaxCostGbp) !== NEW_VERSION_MAX_COST_GBP) {
@@ -133,7 +134,20 @@ const ProductionController = (() => {
     return CLIENT_REQUEST_ID_PATTERN.test(id) ? id : "";
   }
 
+  // Maintenance gate: the script property SUBMISSIONS_PAUSED set to "yes" refuses every render start before anything is read or
+  // written. A missing property means open. If the property cannot be read, submissions are refused (fail closed).
+  function assertSubmissionsOpen_() {
+    let paused;
+    try {
+      paused = PropertiesService.getScriptProperties().getProperty("SUBMISSIONS_PAUSED") === "yes";
+    } catch (ignored) {
+      paused = true;
+    }
+    if (paused) throw error_("Submissions are paused for maintenance. Nothing was started; try again later.");
+  }
+
   function submitCore_(request) {
+    assertSubmissionsOpen_();
     const clientRequestId = validRequestId_(request);
     if (!clientRequestId) throw error_("A request ID is required. Reload the page and try again.");
     return withScriptLock_(function () {
@@ -346,6 +360,8 @@ const ProductionController = (() => {
 
   function submitPrepared(request) {
     return run_("Prepared Short submitted for rendering.", function () {
+      // Checked before the task is claimed, so a paused queue leaves the task READY instead of failing it.
+      assertSubmissionsOpen_();
       const taskId = String(request && request.taskId || "").trim();
       // Claim the task under the script lock: re-read it and move READY -> SUBMITTING in one
       // step, so two overlapping callers (queue tick and a click, or two ticks) cannot both

@@ -69,13 +69,17 @@ function executions(world) {
 function newSheet(tasks = []) { return { rows: [], tasks }; }
 
 // One page: a fresh vm context with the real controller and provider, on the shared sheet and world.
-function openPage(world, sheet) {
+function openPage(world, sheet, props = {}) {
   const context = vm.createContext({
     Utilities: { getUuid: randomUUID },
     Logger: { log() {} },
     LoggingService: { started() {}, success() {}, failure() {} },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
-    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
+    // props: the script properties this page sees. props === null simulates a property store that cannot be read.
+    PropertiesService: { getScriptProperties: () => {
+      if (props === null) throw new Error('Script properties are unavailable');
+      return { getProperty: (name) => (Object.prototype.hasOwnProperty.call(props, name) ? props[name] : null) };
+    } },
     Secrets: {
       getMediaWorkerUrl: () => 'https://worker.example',
       getMediaWorkerJobSubmitSecret: () => SECRET,
@@ -311,6 +315,44 @@ const cases = [
     const result = openPage(world, sheet).submit('rq-rollback-0001');
     assert.equal(result.success, true, 'the new client still renders after rollback');
     assert.equal(executions(world), 2, 'exactly one execution per accepted request');
+  }],
+  ['maintenance gate: while submissions are paused, Create Short is refused with no worker call and no row', () => {
+    const world = newWorld('gate-paused'), sheet = newSheet();
+    const result = openPage(world, sheet, { SUBMISSIONS_PAUSED: 'yes' }).submit('rq-gate-0001');
+    assert.equal(result.success, false);
+    assert.match(result.error.message, /paused for maintenance/);
+    assert.equal(result.error.retryable, true, 'the page can offer a retry later');
+    assert.equal(sheet.rows.length, 0, 'no render row was written');
+    assert.equal(world.calls, 0, 'the worker was never called');
+    assert.equal(executions(world), 0);
+  }],
+  ['maintenance gate: a paused queue leaves a prepared task READY, and nothing is claimed or started', () => {
+    const world = newWorld('gate-prepared');
+    const now = new Date().toISOString();
+    const sheet = newSheet([{ id: 'PRD-GATE0001', scriptId: 'SCR-1', status: 'READY', preparedScenes: [1, 2, 3, 4],
+      sourceRenderJobId: '', createdAt: now, updatedAt: now }]);
+    const result = openPage(world, sheet, { SUBMISSIONS_PAUSED: 'yes' }).submitPrepared('PRD-GATE0001');
+    assert.equal(result.success, false);
+    assert.equal(result.error.retryable, true, 'retryable, so the queue does not fail the task');
+    assert.equal(sheet.tasks[0].status, 'READY', 'the task was not claimed');
+    assert.equal(world.calls, 0);
+    assert.equal(executions(world), 0);
+  }],
+  ['maintenance gate: a retry is refused while paused, and works again once the property is cleared', () => {
+    const world = newWorld('gate-resume'), sheet = newSheet();
+    const paused = openPage(world, sheet, { SUBMISSIONS_PAUSED: 'yes' });
+    assert.equal(paused.submit('rq-resume-0001').success, false);
+    const resumed = openPage(world, sheet, {});
+    const result = resumed.submit('rq-resume-0001');
+    assert.equal(result.success, true, result.error && result.error.message);
+    assert.equal(executions(world), 1, 'exactly one execution, after the pause was lifted');
+  }],
+  ['maintenance gate: a property store that cannot be read fails closed (submissions refused)', () => {
+    const world = newWorld('gate-unreadable'), sheet = newSheet();
+    const result = openPage(world, sheet, null).submit('rq-unreadable-0001');
+    assert.equal(result.success, false);
+    assert.match(result.error.message, /paused for maintenance/);
+    assert.equal(world.calls, 0);
   }],
   ['a retry without a request ID is refused before anything is read or started', () => {
     const world = newWorld('retry'), sheet = newSheet();

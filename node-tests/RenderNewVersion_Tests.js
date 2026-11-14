@@ -29,6 +29,7 @@ function fixture(options = {}) {
   };
   const context = vm.createContext({
     Utilities: { getUuid: randomUUID }, Logger: { log() {} },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({
       tryLock: () => { if (lockHeld) return false; lockHeld = true; return true; },
       releaseLock: () => { lockHeld = false; }
