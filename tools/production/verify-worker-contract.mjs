@@ -13,6 +13,11 @@
 //   PRODUCTION_SUBMIT_SECRET    the current submit secret (used only on requests that must still be refused)
 //   EXPECT_SUBMISSIONS_PAUSED   "yes" or "no": the maintenance switch the deployment must report
 //   EXPECT_REQUIRE_SUBMIT_INTENT  "yes" or "no": the intent switch the deployment must report
+//   PRODUCTION_LEGACY_SECRET    optional: the value an older caller holds. When set, both routes must refuse it with 401,
+//                               which proves the secret closes submissions with no new code. Never the current value.
+//
+// A legacy revision reports no switches. For it, the switch checks are reported as not reported, and the secret checks
+// are the proof that submissions are closed.
 //
 // Exit code 0 only when every check passes. The secret is never printed.
 
@@ -34,6 +39,9 @@ export function identityProblems(env) {
     problems.push("The dispatcher URL names staging. This check is for production only.");
   }
   if (!env.PRODUCTION_SUBMIT_SECRET) problems.push("PRODUCTION_SUBMIT_SECRET is required.");
+  if (env.PRODUCTION_LEGACY_SECRET && env.PRODUCTION_LEGACY_SECRET === env.PRODUCTION_SUBMIT_SECRET) {
+    problems.push("PRODUCTION_LEGACY_SECRET must differ from PRODUCTION_SUBMIT_SECRET, or the check would prove nothing.");
+  }
   for (const name of ["EXPECT_SUBMISSIONS_PAUSED", "EXPECT_REQUIRE_SUBMIT_INTENT"]) {
     if (env[name] !== "yes" && env[name] !== "no") problems.push(name + " must be \"yes\" or \"no\".");
   }
@@ -70,12 +78,16 @@ export async function runContractCheck(env, { log = console.log } = {}) {
       health.project === env.PRODUCTION_PROJECT_ID && health.service === env.PRODUCTION_SERVICE_NAME,
       "project " + health.project + ", service " + health.service);
     check("it speaks the verified music protocol", health.musicProtocol === MUSIC_PROTOCOL, "protocol " + health.musicProtocol);
-    check("the maintenance switch is as expected",
-      health.submissionsPaused === (env.EXPECT_SUBMISSIONS_PAUSED === "yes"),
-      "submissionsPaused " + health.submissionsPaused);
-    check("the intent switch is as expected",
-      health.requireSubmitIntent === (env.EXPECT_REQUIRE_SUBMIT_INTENT === "yes"),
-      "requireSubmitIntent " + health.requireSubmitIntent);
+    if (health.submissionsPaused === undefined && health.requireSubmitIntent === undefined) {
+      check("this revision reports no switches (a legacy revision: only the secret can close it)", true, "not reported");
+    } else {
+      check("the maintenance switch is as expected",
+        health.submissionsPaused === (env.EXPECT_SUBMISSIONS_PAUSED === "yes"),
+        "submissionsPaused " + health.submissionsPaused);
+      check("the intent switch is as expected",
+        health.requireSubmitIntent === (env.EXPECT_REQUIRE_SUBMIT_INTENT === "yes"),
+        "requireSubmitIntent " + health.requireSubmitIntent);
+    }
   }
 
   // 2. Submission routes refuse without a valid secret, and refuse invalid bodies with a valid one. None starts a render.
@@ -94,6 +106,14 @@ export async function runContractCheck(env, { log = console.log } = {}) {
     assertRefusedByConstruction({ beats: [] }), [400, 503]);
   await refused("recovery with a valid secret and no job is refused before any job starts", "/jobs/recover", secret,
     assertRefusedByConstruction({ beats: [] }), [400, 503]);
+
+  if (env.PRODUCTION_LEGACY_SECRET) {
+    const legacy = { Authorization: "Bearer " + env.PRODUCTION_LEGACY_SECRET };
+    await refused("the legacy secret is refused on a submission (closed by the secret)", "/jobs", legacy,
+      assertRefusedByConstruction({ beats: [] }), [401]);
+    await refused("the legacy secret is refused on recovery", "/jobs/recover", legacy,
+      assertRefusedByConstruction({ beats: [] }), [401]);
+  }
 
   const passed = results.filter((entry) => entry.ok).length;
   log("");

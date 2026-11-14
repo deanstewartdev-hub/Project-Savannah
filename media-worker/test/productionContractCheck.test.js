@@ -117,3 +117,54 @@ test("every POST body in the check is invalid by construction: a body that could
   assert.throws(() => assertRefusedByConstruction({ beats: [{ text: "x", visualQuery: "y" }] }), /Not sent/);
   assert.equal(typeof randomUUID(), "string");
 });
+
+// A stand-in for a legacy revision: it reports no switches. The first variant refuses the legacy value on both routes
+// (the independent block works); the second accepts it, so the check must fail.
+async function withStubRevision(acceptLegacy, run) {
+  const { createServer } = await import("node:http");
+  const server = createServer((req, res) => {
+    req.resume();
+    req.on("end", () => {
+      if (req.url === "/health") {
+        res.writeHead(200, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ status: "ok", environment: "production", project: PROJECT, service: SERVICE, musicProtocol: "verified-v1" }));
+      }
+      const auth = req.headers.authorization || "";
+      const legacy = auth === "Bearer legacy-value-for-tests";
+      const current = auth === "Bearer " + SECRET;
+      // Like the real dispatcher: an unknown or missing secret is 401; the current secret gets past auth to validation (400).
+      const status = legacy ? (acceptLegacy ? 400 : 401) : current ? 400 : 401;
+      res.writeHead(status, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "stub" }));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    return await run("http://127.0.0.1:" + server.address().port);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test("a legacy revision (no switch fields) passes when the legacy secret is refused on both routes", async () => {
+  await withStubRevision(false, async (url) => {
+    const result = await runScript(env(url, { PRODUCTION_LEGACY_SECRET: "legacy-value-for-tests" }));
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.output, /not reported/);
+    assert.match(result.output, /the legacy secret is refused on a submission/);
+  });
+});
+
+test("a revision that still accepts the legacy secret fails the check: submissions are not closed by the secret", async () => {
+  await withStubRevision(true, async (url) => {
+    const result = await runScript(env(url, { PRODUCTION_LEGACY_SECRET: "legacy-value-for-tests" }));
+    assert.equal(result.code, 1);
+    assert.match(result.output, /FAIL the legacy secret is refused on a submission/);
+  });
+});
+
+test("the check refuses to run when the legacy value equals the current one", () => {
+  assert.ok(identityProblems({ PRODUCTION_DISPATCHER_URL: "https://x.test", PRODUCTION_PROJECT_ID: PROJECT,
+    PRODUCTION_SERVICE_NAME: SERVICE, PRODUCTION_SUBMIT_SECRET: SECRET, PRODUCTION_LEGACY_SECRET: SECRET,
+    EXPECT_SUBMISSIONS_PAUSED: "no", EXPECT_REQUIRE_SUBMIT_INTENT: "yes" }).some((p) => /must differ/.test(p)));
+});
