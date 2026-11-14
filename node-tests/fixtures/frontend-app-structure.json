@@ -1,0 +1,473 @@
+{
+ "listeners": [
+  "DOMContentLoaded"
+ ],
+ "app": {
+  "initialise": {
+   "function": "190bae0a27a9b34acc26334f",
+   "parameters": 0,
+   "lines": 30
+  },
+  "dom": {
+   "getById": {
+    "function": "512162d0229f6209d7291d7f",
+    "parameters": 1,
+    "lines": 5
+   },
+   "setText": {
+    "function": "26ba7fb5cc0abc22f605c44b",
+    "parameters": 2,
+    "lines": 19
+   },
+   "animateCount": {
+    "function": "dc740550bec48d19ef514c34",
+    "parameters": 3,
+    "lines": 72
+   },
+   "show": {
+    "function": "06c5c1567e7cdb43763b5f78",
+    "parameters": 1,
+    "lines": 10
+   },
+   "hide": {
+    "function": "e15e7a662bd5ef608f9a8b0a",
+    "parameters": 1,
+    "lines": 10
+   },
+   "clear": {
+    "function": "00792169b47701f6c4881a4f",
+    "parameters": 1,
+    "lines": 10
+   },
+   "setDisabled": {
+    "function": "8b1702f6a80ad9ecc35f40ed",
+    "parameters": 2,
+    "lines": 14
+   }
+  },
+  "modal": {
+   "_registry": {},
+   "_activeModalId": null,
+   "_keydownInstalled": false,
+   "_backdropInstalled": {},
+   "open": {
+    "function": "275a8b3715a2dd2df601a635",
+    "parameters": 2,
+    "lines": 77
+   },
+   "close": {
+    "function": "5ee9b8c5638567752a145e20",
+    "parameters": 1,
+    "lines": 48
+   },
+   "_getFocusable": {
+    "function": "96999d70dcc54a185970f9af",
+    "parameters": 1,
+    "lines": 15
+   },
+   "_handleKeydown": {
+    "function": "b1fc5a68bdf9bb9be6fa3dc9",
+    "parameters": 1,
+    "lines": 49
+   }
+  },
+  "navigation": {
+   "initialise": {
+    "function": "2b484d42ff72f2708687cd5f",
+    "parameters": 0,
+    "lines": 46
+   }
+  },
+  "format": {
+   "dateTime": {
+    "function": "f9c2140f01fd77e7ef91a40c",
+    "parameters": 1,
+    "lines": 13
+   },
+   "shortDate": {
+    "function": "4c27c7ae294831749ec39576",
+    "parameters": 1,
+    "lines": 20
+   },
+   "duration": {
+    "function": "477f30875f42eeae33a0785b",
+    "parameters": 1,
+    "lines": 13
+   },
+   "cost": {
+    "function": "ef4258ded9f21e1d3ed3ca6e",
+    "parameters": 1,
+    "lines": 13
+   }
+  },
+  "dashboard": {
+   "load": {
+    "function": "2e3e6e9b042674faa725381c",
+    "parameters": 0,
+    "lines": 20
+   },
+   "handleSuccess": {
+    "function": "414536cdb724b261aa2f14e5",
+    "parameters": 1,
+    "lines": 29
+   },
+   "handleFailure": {
+    "function": "84a32865f8f513a1de17473a",
+    "parameters": 1,
+    "lines": 13
+   },
+   "showError": {
+    "function": "f70c4993884111d6c77977c2",
+    "parameters": 1,
+    "lines": 17
+   },
+   "render": {
+    "function": "0315aee0e0c8e9b8cd644e40",
+    "parameters": 1,
+    "lines": 26
+   },
+   "renderSystemStatus": {
+    "function": "b5de467f0cfc2f5d8629ce5b",
+    "parameters": 1,
+    "lines": 31
+   },
+   "renderKpis": {
+    "function": "04ba49b9aff384e02f006d08",
+    "parameters": 1,
+    "lines": 62
+   },
+   "renderTotals": {
+    "function": "98b5f674a43edb9bd3774367",
+    "parameters": 1,
+    "lines": 23
+   },
+   "renderPipeline": {
+    "function": "b081b035952c2301952ceb25",
+    "parameters": 1,
+    "lines": 99
+   },
+   "pipelineIcon_": {
+    "function": "ea677d94728fb40116246fa9",
+    "parameters": 1,
+    "lines": 21
+   },
+   "renderActivity": {
+    "function": "59028514eede8bdecd67d491",
+    "parameters": 1,
+    "lines": 114
+   }
+  },
+  "ideas": {
+   "state": {
+    "ideas": [],
+    "activeFilter": "all",
+    "searchTerm": "",
+    "activeView": "board",
+    "isGenerating": false,
+    "isLoading": false
+   },
+   "initialise": {
+    "function": "d5445650d6f1619c53828f3a",
+    "parameters": 0,
+    "lines": 111
+   },
+   "load": {
+    "function": "03281122d7750390e223d92a",
+    "parameters": 0,
+    "lines": 31
+   },
+   "handleWorkspaceSuccess": {
+    "function": "6d7694877892ee5410f92cae",
+    "parameters": 1,
+    "lines": 35
+   },
+   "generate": {
+    "function": "4cd299253f7a3b393324f99b",
+    "parameters": 0,
+    "lines": 25
+   },
+   "handleGenerationSuccess": {
+    "function": "de92dba2c862991e94d710e9",
+    "parameters": 1,
+    "lines": 27
+   },
+   "handleGenerationFailure": {
+    "function": "56fbd1a7703034216b16ce5e",
+    "parameters": 1,
+    "lines": 12
+   },
+   "handleServerFailure": {
+    "function": "4087ab1725c456cc17dfa23c",
+    "parameters": 1,
+    "lines": 15
+   },
+   "renderMetrics": {
+    "function": "b3540e0588de3118c2660c1c",
+    "parameters": 1,
+    "lines": 50
+   },
+   "renderWorkspace": {
+    "function": "5ed013f1afa7793f1c061f81",
+    "parameters": 0,
+    "lines": 106
+   },
+   "getFilteredIdeas": {
+    "function": "9deabff79c3c3bbdb2258620",
+    "parameters": 0,
+    "lines": 72
+   },
+   "renderColumn": {
+    "function": "bd7cd843a59722f5275780cd",
+    "parameters": 3,
+    "lines": 40
+   },
+   "createIdeaCard": {
+    "function": "112d165fc317fc25a66d7481",
+    "parameters": 2,
+    "lines": 191
+   },
+   "createViewScriptButton": {
+    "function": "0d57b880a0b3372a2904e700",
+    "parameters": 1,
+    "lines": 79
+   },
+   "createStatusButton": {
+    "function": "0da7727c292d495b9b5f849f",
+    "parameters": 4,
+    "lines": 37
+   },
+   "createScriptButton": {
+    "function": "978e028d51b8782aa16276a6",
+    "parameters": 1,
+    "lines": 74
+   },
+   "updateStatus": {
+    "function": "732ce0364a84225a7bc1478f",
+    "parameters": 3,
+    "lines": 94
+   },
+   "replaceIdea": {
+    "function": "bb25053319ed0d0703c9c991",
+    "parameters": 1,
+    "lines": 26
+   },
+   "setFilter": {
+    "function": "98796dacc32c7b6b8a7871c8",
+    "parameters": 1,
+    "lines": 35
+   },
+   "setView": {
+    "function": "4d7e8a02e71855d2248aa94c",
+    "parameters": 1,
+    "lines": 46
+   },
+   "showColumnLoading": {
+    "function": "394991979c662c5b81f10e33",
+    "parameters": 0,
+    "lines": 33
+   },
+   "createColumnEmptyState": {
+    "function": "9d22cb07b89a201ee94dfff8",
+    "parameters": 1,
+    "lines": 53
+   },
+   "setGeneratingState": {
+    "function": "9cf417943a5c951d515ad4ed",
+    "parameters": 1,
+    "lines": 44
+   },
+   "showSuccess": {
+    "function": "df595137187a51de001a1fc1",
+    "parameters": 1,
+    "lines": 34
+   },
+   "showError": {
+    "function": "d46a9663e9d8b6284989336c",
+    "parameters": 1,
+    "lines": 16
+   },
+   "clearMessages": {
+    "function": "d9f00b4a8051b57058c7a71c",
+    "parameters": 0,
+    "lines": 14
+   },
+   "resolveResponseError": {
+    "function": "793c8d7c69b6f88915f93d4d",
+    "parameters": 2,
+    "lines": 21
+   },
+   "normaliseStatus": {
+    "function": "d5ecf01e0365dc44bcdad6e2",
+    "parameters": 1,
+    "lines": 7
+   }
+  },
+  "scripts": {
+   "state": {
+    "scripts": [],
+    "isGenerating": false,
+    "isSubmittingReview": false
+   },
+   "initialise": {
+    "function": "9f252490665109dbbd3dc8aa",
+    "parameters": 0,
+    "lines": 68
+   },
+   "populateFromQuery": {
+    "function": "868797f5734abbb642dfaa33",
+    "parameters": 0,
+    "lines": 72
+   },
+   "hasScriptPrefillData": {
+    "function": "d7d1d9ae75da820e72394491",
+    "parameters": 1,
+    "lines": 28
+   },
+   "applyScriptPrefill": {
+    "function": "baa5195c9dac342febf16a88",
+    "parameters": 1,
+    "lines": 80
+   },
+   "openLatestScriptFromRequest": {
+    "function": "5c550cc7defaf90874e6a591",
+    "parameters": 0,
+    "lines": 86
+   },
+   "loadLatestScriptForIdea": {
+    "function": "c0efb2991c8e651e7c728949",
+    "parameters": 1,
+    "lines": 41
+   },
+   "handleLatestScriptSuccess": {
+    "function": "e800c19a8bc2ab4a3fd34053",
+    "parameters": 1,
+    "lines": 28
+   },
+   "load": {
+    "function": "01a65bf47e6e8a78e677ab1c",
+    "parameters": 0,
+    "lines": 14
+   },
+   "loadMetrics": {
+    "function": "d12c090ec73230aeecac9012",
+    "parameters": 0,
+    "lines": 12
+   },
+   "loadList": {
+    "function": "b4084603e3283edeb371a3bf",
+    "parameters": 0,
+    "lines": 24
+   },
+   "handleMetricsSuccess": {
+    "function": "51f9bb4cd709b481ef2e9204",
+    "parameters": 1,
+    "lines": 47
+   },
+   "handleListSuccess": {
+    "function": "067a9b2597fcc7e09d42a803",
+    "parameters": 1,
+    "lines": 36
+   },
+   "generate": {
+    "function": "29a39b90b6729698a4638659",
+    "parameters": 0,
+    "lines": 94
+   },
+   "handleGenerationSuccess": {
+    "function": "c3014e5d66241b3658846540",
+    "parameters": 1,
+    "lines": 40
+   },
+   "handleGenerationFailure": {
+    "function": "f6c3032b05d1eeb80a9bfd48",
+    "parameters": 1,
+    "lines": 13
+   },
+   "handleServerFailure": {
+    "function": "039b57b3f85acd4fb76b773a",
+    "parameters": 1,
+    "lines": 14
+   },
+   "renderTable": {
+    "function": "558f0e5c7871ff1229ac610c",
+    "parameters": 1,
+    "lines": 179
+   },
+   "renderGeneratedResult": {
+    "function": "f3f5a14df64e60593d14e9ef",
+    "parameters": 1,
+    "lines": 67
+   },
+   "openDetail": {
+    "function": "bb1c95cddbf6551e4cebb83a",
+    "parameters": 2,
+    "lines": 22
+   },
+   "handleDetailSuccess": {
+    "function": "5210355a348c31477b25cf63",
+    "parameters": 2,
+    "lines": 28
+   },
+   "renderDetail": {
+    "function": "cb8564f316e9519c704380cc",
+    "parameters": 2,
+    "lines": 192
+   },
+   "sendForReview": {
+    "function": "af6cd1169a8f1e3f5e5a6be5",
+    "parameters": 2,
+    "lines": 114
+   },
+   "createDetailSection": {
+    "function": "5d6aa40814ee3ffffaaafa21",
+    "parameters": 2,
+    "lines": 34
+   },
+   "renderScenes": {
+    "function": "fdaadfcdb86a4b648a64107b",
+    "parameters": 2,
+    "lines": 115
+   },
+   "closeDetail": {
+    "function": "c1ceeddbedb9ae196ee4e29c",
+    "parameters": 0,
+    "lines": 5
+   },
+   "setGeneratingState": {
+    "function": "f52eb7ea58e034c6a4c4111b",
+    "parameters": 1,
+    "lines": 34
+   },
+   "readInputValue": {
+    "function": "512773536c87123bb2eedb7f",
+    "parameters": 1,
+    "lines": 14
+   },
+   "showSuccess": {
+    "function": "6c8fe3eed3c7132db438427e",
+    "parameters": 1,
+    "lines": 17
+   },
+   "showError": {
+    "function": "060f5f0d1886b2f2928d5529",
+    "parameters": 1,
+    "lines": 20
+   },
+   "clearMessages": {
+    "function": "999b6fc63d97de0a2b641242",
+    "parameters": 0,
+    "lines": 9
+   },
+   "resolveResponseError": {
+    "function": "793c8d7c69b6f88915f93d4d",
+    "parameters": 2,
+    "lines": 21
+   },
+   "getStatusBadgeClass": {
+    "function": "69c2bc119aedaeea0b5c26e6",
+    "parameters": 1,
+    "lines": 19
+   }
+  }
+ }
+}
