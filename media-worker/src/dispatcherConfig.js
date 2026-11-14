@@ -40,5 +40,11 @@ export const dispatcherConfig = {
   allowedRenderImages: parseAllowedImages(process.env.RENDER_JOB_ALLOWED_IMAGES),
   // Callback endpoints this environment may post to. Empty in production (no restriction, as before);
   // required in staging.
-  callbackUrlAllowlist: environment.callbackAllowlist
+  callbackUrlAllowlist: environment.callbackAllowlist,
+  // Maintenance gate. "yes" refuses every paid start (POST /jobs and POST /jobs/recover) with HTTP 503, before any state
+  // is touched. Only the exact value "yes" pauses; anything else leaves submissions open, as before.
+  submissionsPaused: process.env.SUBMISSIONS_PAUSED === "yes",
+  // Intent switch. "yes" refuses a submission that lacks submitIntentId, scriptId and renderVersion. Turn it on only
+  // after every caller sends them (see the rollout order in release-readiness.md).
+  requireSubmitIntent: process.env.REQUIRE_SUBMIT_INTENT === "yes"
 };

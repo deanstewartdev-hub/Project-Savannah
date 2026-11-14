@@ -47,13 +47,25 @@ export function createDispatcherApp({
   // /health reports the contract (musicProtocol) and the identity of this deployment. The staging verifier requires
   // environment, project and service to match what it was told to expect, so a staging check cannot run against
   // a production deployment that merely has "staging" in its hostname.
+  // Reports the maintenance and intent switches too, so a non-executing check can confirm what a deployment is doing.
+  // Neither value is secret.
   const health = (req, res) => res.status(200).json({
     status: "ok",
     musicProtocol: MUSIC_PROTOCOL,
     environment: config.environment || "production",
     project: config.project,
-    service: config.serviceName || ""
+    service: config.serviceName || "",
+    submissionsPaused: config.submissionsPaused === true,
+    requireSubmitIntent: config.requireSubmitIntent === true
   });
+
+  // While submissions are paused, no route may read the job state for a start, reserve a job, recover one or start an
+  // execution. The check comes before any of that, so a paused worker writes nothing.
+  function refusedWhilePaused(res) {
+    if (config.submissionsPaused !== true) return false;
+    res.status(503).json({ error: "Submissions are paused for maintenance. No render was started.", paused: true });
+    return true;
+  }
   app.get("/healthz", health);
   app.get("/health", health);
 
@@ -183,6 +195,7 @@ export function createDispatcherApp({
   }
 
   app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
+    if (refusedWhilePaused(res)) return;
     const checked = validateSubmission(req.body);
     if (checked.error) {
       res.status(checked.status).json({ error: checked.error });
@@ -261,6 +274,7 @@ export function createDispatcherApp({
   // Explicit recovery: the only way to start a job again with the same ID. It needs the exact confirmation phrase
   // (it states that no execution is running), a job that is not succeeded, and no delivered video.
   app.post("/jobs/recover", requireAuth(acceptedSubmitSecrets), async (req, res) => {
+    if (refusedWhilePaused(res)) return;
     const jobId = req.body && req.body.jobId;
     const checked = validateSubmission(req.body);
     if (checked.error) {
