@@ -67,7 +67,7 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 - [ ] Hot set (`App/ProductionController.js`, `Production/VideoProcessingProvider.js`,
       `Scripts/Script_Validator.js`, `Models/Script.js`, `media-worker/src/pipeline/visualSelection.js`,
       `Frontend/Assets/Scripts/Production.html`) — after #31/#32 stop moving, or exception
-- [ ] Frontend scripts (`Frontend/Assets/Scripts/Scripts.html`)
+- [x] Frontend application script — `Scripts.html` 4,215 → 547 lines (shared helpers and start-up); the dashboard, ideas and scripts sections now in `Dashboard.html`, `Ideas.html`, `ScriptWorkspace.html`, loaded by `Index.html` straight after it. All 87 functions identical by hash; the three pages checked before and after in a real browser
 
 ### Phase 4–6
 - [ ] Full suites green locally after the last module

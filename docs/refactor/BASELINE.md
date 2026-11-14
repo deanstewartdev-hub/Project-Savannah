@@ -33,3 +33,4 @@ The fixture is the "before" picture. It is regenerated only on purpose
 | 2026-11-14 | Script_Engine split | 683 PASS / 0 FAIL (599 + 84 characterisation scenarios) | not re-run (no worker file changed) | 1,081 removed lines all present in the new modules |
 | 2026-11-14 | AIService split | 783 PASS / 0 FAIL (683 + 100 characterisation scenarios) | not re-run (no worker file changed) | 622 removed lines all present in the new modules |
 | 2026-11-14 | ScriptsRepository split | 853 PASS / 0 FAIL (783 + 70 characterisation scenarios) | not re-run (no worker file changed) | 282 removed lines all present in the new module |
+| 2026-11-14 | Frontend script split | 856 PASS / 0 FAIL (853 + 3 structure checks) | not re-run (no worker file changed) | Dashboard, Ideas and Scripts pages loaded in a browser before and after: no errors, same server calls, same rendered text |
