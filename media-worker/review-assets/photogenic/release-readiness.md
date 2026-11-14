@@ -108,9 +108,11 @@ Not yet approved (each is a separate gate):
 - [ ] The visual appearance of the generated images.
 - [ ] Final footage choice and the 9:16 crop, including Antelope Canyon clip 29510336 (place identified by title and frames only).
 - [ ] Disclosure position: current bottom-third (A) or raised (B).
-- [ ] Deploying the worker or the Apps Script (section 3 of `deployment-safety.md`, steps 1–5).
-- [ ] Setting `SUBMISSIONS_PAUSED` and `REQUIRE_SUBMIT_INTENT` in production.
-- [ ] Turning on `REQUIRE_SUBMIT_INTENT` (rollout step 7).
+- [ ] Rotating the worker's JOB_SUBMIT_SECRET in production, without setting JOB_SUBMIT_SECRET_PREVIOUS, to close every legacy caller (`deployment-safety.md`, section 2).
+- [ ] The contract check showing 401 for the legacy value on both routes, on production (section 6 of `deployment-safety.md`).
+- [ ] Deploying the gated worker revision and the new Apps Script version, in the order of `deployment-safety.md` section 3, steps 2–4.
+- [ ] Enabling `REQUIRE_SUBMIT_INTENT=yes` on the worker, while still closed (section 3, step 5).
+- [ ] Opening submissions: clearing the Apps Script pause property and then the worker's pause (section 3, step 7). Only after the intent switch is verified.
 - [ ] The production script metadata change (after a dry run that confirms the narration matches byte for byte).
 - [ ] Confirming the next render version from production records (`next-version-check.md`) and recording the approval note.
 - [ ] One paid render (planned £5 ceiling, not technically enforced; an OpenAI project limit is the strongest practical cap).
@@ -120,7 +122,20 @@ Not yet approved (each is a separate gate):
 Engineering blockers that remain (none is a reason to run anything):
 - Real narration alignment is unmeasured (needs a paid run).
 - London Cloud Run rate and the ElevenLabs and OpenAI official prices are unconfirmed.
-- The apps-script trigger code versions are unverified (rollback depends on it).
+- **Deployment blocker:** the independent block (rotating the worker's secret) is not yet shown on production. Until it is, nothing shows that legacy callers are closed. It needs owner approval and the contract check on production.
+- **Deployment blocker:** the currently deployed Apps Script and worker revision do not read the pause switches, so those switches cannot be the first closure. The secret must be.
+- The Apps Script trigger code versions are unverified (rollback depends on it).
+- Old revisions can carry a secret reference that resolves to the legacy value. Each one must be checked before any traffic move (`deployment-safety.md`, R2).
 - No operator tool releases a stranded version claim.
 - The prepared-task path needs exactly four scenes; Photogenic has five and goes through Create Short.
 - The two 10 November Request JSON values are unread.
+
+## 11. Correction (15 November): closed first, the independent block, rollback that never reopens unprotected
+
+Two blocking review findings are addressed in `deployment-safety.md`:
+
+- **Order.** Submissions no longer reopen before REQUIRE_SUBMIT_INTENT=yes is enabled and verified. The open step is last (`tools/production/rollout-guard.mjs`, `CONTROLLED_PLAN`), and it is refused unless the intent guard is on in both ends.
+- **The deployed code.** The currently deployed worker and Apps Script do not read the pause switches, so they cannot be the first closure. The first closure is the worker's secret: rotating JOB_SUBMIT_SECRET to a value only the owner holds makes every legacy caller fail with 401, with no new code. The refusal runs before any handler, so no state is written and no execution starts (`secretBlock.test.js`). This is a production change that needs approval. It has not been made.
+- **Rollback.** A rollback never moves worker traffic to a revision that accepts the legacy value or lacks the intent guard while submissions could open. Script properties belong to the project, so an Apps Script rollback does not change them. Reopening always repeats the forward sequence.
+
+Tests added: `rolloutGuard.test.js` (15, the state machine: every rule above), `secretBlock.test.js` (4, the independent block on the real dispatcher), `productionContractCheck.test.js` (9, now including the legacy-value 401 check and a legacy revision that reports no switches), and `submissionGate.test.js` (5). The rollout tests run offline; they touch no deployment.

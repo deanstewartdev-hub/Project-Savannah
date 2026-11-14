@@ -1,76 +1,72 @@
-# Deployment safety: submission gate, contract check, rollout and rollback
+# Deployment safety: corrected sequence, independent block, rollback rules
 
-Status: development evidence and a procedure. Nothing here has been run against production. Every step that changes a live deployment, a live spreadsheet or a Script property needs the owner's approval (see the checklist in `release-readiness.md`).
+Status: development procedure. Nothing here has been run against production. Each step that changes a live deployment, a Secret Manager version, a Script property or a switch is a separate owner approval.
 
-## 1. Why a gate is needed
+## 1. Corrections to the previous version
 
-Two paths can start a paid render: the Apps Script (Create Short, retry, prepared tasks, Render New Version) and the dispatcher's `POST /jobs` and `POST /jobs/recover`. While the worker and the Apps Script are moved between versions, an older caller can still reach the dispatcher without the cross-submission guard. The gate closes both paths for the whole window.
+- The previous sequence reopened submissions before REQUIRE_SUBMIT_INTENT=yes was active. Removed. Submissions reopen only at the last step, after intents are required and verified.
+- The previous version assumed the pause switches could close submissions before any deployment. The currently deployed worker and Apps Script read neither SUBMISSIONS_PAUSED nor the pause property, so they cannot be the first closure.
+- The previous rollback could move worker traffic to an older revision that still accepted the legacy secret. That reopens submissions with no intent guard. Forbidden now (section 5).
+- Script properties belong to the Apps Script project, not to a deployment version. Rolling a version back does not change them.
 
-## 2. The gate (built and tested, not deployed)
+## 2. The independent block: the worker's secret (needs no new code)
 
-| Layer | Switch | Set to | Effect |
-|---|---|---|---|
-| Worker (environment `SUBMISSIONS_PAUSED`) | exact value `yes` | paused | `POST /jobs` and `POST /jobs/recover` answer HTTP 503 before any job state is read or written, and before any execution starts. |
-| Apps Script (Script property `SUBMISSIONS_PAUSED`) | exact value `yes` | paused | Create Short, retry, Render New Version and prepared tasks refuse before any row is written or any worker call is made. A prepared task stays READY (it is not claimed), and the refusal is marked retryable, so the queue does not fail it. |
+The worker accepts only the value of JOB_SUBMIT_SECRET it is configured with. Rotating that secret to a new value that only the owner holds closes every caller holding the old value, whatever code the caller runs.
 
-Both switches fail closed: an Apps Script property store that cannot be read counts as paused. Any value other than the exact word `yes` leaves the worker open, which is the current behaviour.
+- The check runs before any handler (`media-worker/src/lib/auth.js`). A refused request writes no job state and starts no execution. Tested with the real dispatcher app: `media-worker/test/secretBlock.test.js`, 4 tests.
+- A refusal is HTTP 401. The Apps Script treats a 401 as a definite refusal, so rows are marked FAILED with no render ID. It is not an unknown outcome, so nothing is left active.
+- Use the existing rotation procedure in `RELEASE_READINESS.md` section 11.3, with Secret Manager versions. Do **not** set JOB_SUBMIT_SECRET_PREVIOUS. Setting it keeps the old value accepted, which the test shows.
+- The Apps Script keeps the old value in its Script property MEDIA_WORKER_JOB_SUBMIT_SECRET until the new Apps Script version is deployed with the new value. Legacy callers therefore fail from the moment the worker rotates.
+- Verify with the non-executing contract check (section 6) and `PRODUCTION_LEGACY_SECRET` set to the old value: both routes must answer 401.
 
-Other worker switches, for the same rollout:
-- `REQUIRE_SUBMIT_INTENT=yes` refuses a submission that lacks `submitIntentId`, `scriptId` and `renderVersion`. It is read from the environment now (before this change it was never wired, so it could not be turned on).
-- `/health` reports `submissionsPaused` and `requireSubmitIntent`, so a check can confirm both.
+Weaker alternative, only if the secret cannot be rotated: move Cloud Run traffic to zero. It also blocks callers, but the answers are server-side failures, which the Apps Script treats as unknown outcomes, so rows stay active and need reconciling. It also blocks /health.
 
-Evidence: `media-worker/test/submissionGate.test.js` (5/5: refusal with no state and no execution on both routes; health reports; unpaused still accepts; each environment value maps exactly, and only `yes` pauses). `node-tests/InitialRenderWorkflow_Tests.js` (17/17, including the Apps Script gate: paused Create Short and retry refused with no worker call, a paused prepared task left READY, resume after the property is cleared, and an unreadable property failing closed).
+**Status: a deployment blocker.** The rotation is a production change and has not been made. Until the owner approves it and the contract check confirms the 401s on production, nothing here shows that legacy callers are blocked.
 
-## 3. Rollout sequence with the gate
+## 3. Corrected rollout order
 
-Each step is a separate owner approval. Nothing starts until the previous step is confirmed.
+Submissions stay closed from step 1 until step 7. Each step is one approval.
 
-1. **Close the gate.** Set `SUBMISSIONS_PAUSED=yes` on the worker (a new revision with no traffic change needed for the setting itself) and set the Apps Script property `SUBMISSIONS_PAUSED` to `yes`. Confirm `/health` reports `submissionsPaused: true`, and run the contract check (section 4) with `EXPECT_SUBMISSIONS_PAUSED=yes`.
-2. **Confirm nothing is running.** In the render rows, no row for the script is QUEUED, PLANNED, SUBMITTING or RENDERING, and no upload is in progress. Confirm no Apps Script trigger will start a render while paused (the gate refuses, but confirm the triggers too).
-3. **Deploy the worker revision** (code with the gate). Keep the gate closed. Confirm `/health` on the new revision reports `submissionsPaused: true` and `requireSubmitIntent: false`.
-4. **Deploy the Apps Script version** that sends request IDs and checks the gate. Record the previous version number first. Keep the property `yes`.
-5. **Confirm the contract** (section 4) with `EXPECT_SUBMISSIONS_PAUSED=yes`, and confirm the Apps Script property is still `yes`.
-6. **Open the gate** (clear the Apps Script property first, then the worker's `SUBMISSIONS_PAUSED`). Requests are accepted again, with the flag still off.
-7. **Enable the intent switch** (`REQUIRE_SUBMIT_INTENT=yes`) only after a separate approval. Re-run the contract check with `EXPECT_REQUIRE_SUBMIT_INTENT=yes`.
-8. Any later rollout that changes these settings repeats steps 1 and 5 first.
+1. **Rotate the worker's secret** (section 2). Verify the legacy value gets 401 on both routes.
+2. **Deploy the gated worker revision** holding the new secret, with SUBMISSIONS_PAUSED=yes and REQUIRE_SUBMIT_INTENT unset. Verify /health reports submissionsPaused true and requireSubmitIntent false. Verify the legacy value still gets 401.
+3. **Set the Apps Script project's properties**: MEDIA_WORKER_JOB_SUBMIT_SECRET to the new value, and SUBMISSIONS_PAUSED to yes. The worker is paused, so the still-legacy Apps Script stays closed.
+4. **Deploy the new Apps Script version** (reads the pause property, sends intents). The owner confirms in the editor which code each trigger runs; they must run the new version.
+5. **Enable REQUIRE_SUBMIT_INTENT=yes** on the worker, still paused. Contract check with EXPECT_REQUIRE_SUBMIT_INTENT=yes and EXPECT_SUBMISSIONS_PAUSED=yes.
+6. **Confirm the intent path offline** (the Apps Script and browser tests). Do not test it by clicking Create Short on a live page.
+7. **Open**: clear the Apps Script SUBMISSIONS_PAUSED property, then the worker's SUBMISSIONS_PAUSED. Contract check with EXPECT_SUBMISSIONS_PAUSED=no. Only now are submissions open, and every submission carries an intent.
 
-Do not flip `REQUIRE_SUBMIT_INTENT` off in production as an ad-hoc recovery. Use section 5 instead, with the gate closed.
+The order is encoded in `tools/production/rollout-guard.mjs` (`CONTROLLED_PLAN`). `runPlan` returns ok only if every state between the first step and the open step is closed.
 
-## 4. The non-executing contract check
+## 4. What the rollout rules guarantee (tested: `media-worker/test/rolloutGuard.test.js`, 15 tests)
 
-`tools/production/verify-worker-contract.mjs` checks what a deployment is and what it is doing. It sends only requests that the dispatcher must refuse:
+- Opening is refused until REQUIRE_SUBMIT_INTENT is yes and both ends are the new versions.
+- Worker deploys, Apps Script deploys, rollbacks and the intent switch are all refused while submissions are open.
+- A legacy Apps Script version cannot be given the accepted secret while the worker has no pause gate.
+- An old worker revision without the intent guard can be rolled back to while closed, but can never be reopened.
 
-- `GET /health`: 200, environment production, the expected project and service, the verified music protocol, and the two switches as expected.
-- `POST /jobs` without a secret, and with a wrong secret: 401.
-- `POST /jobs` with the correct secret and an empty beat list: 400 or 503.
-- `POST /jobs/recover` with the correct secret and the same empty body: 400 or 503.
+## 5. Rollback rules: never reopen through an unprotected older worker
 
-Before each POST, the script checks that its body is invalid by construction, so a later edit cannot make it send a body that could start a render. It refuses to run if the expected identity or URL names staging, and it never prints the secret.
+- **R1. Close first.** Pause the worker and set the Apps Script pause property, or rotate the secret. Rollbacks are refused while submissions are open.
+- **R2. Never move worker traffic to a revision that accepts the legacy value, or that lacks the intent guard, while submissions could open.** An older revision may be rolled back to only while closed, and it can never be reopened. Each Cloud Run revision also references a secret version. Before any traffic move, check that the target revision's JOB_SUBMIT_SECRET reference is the current version. A revision that resolves to the legacy value would accept legacy callers.
+- **R3. Rolling the Apps Script back to legacy code does not change the project's properties.** A legacy version holding the current secret is safe only while the worker is paused, because the pause gate applies to every caller. Never clear the worker's pause while a legacy Apps Script version holds the current secret.
+- **R4. Reopening after any rollback repeats section 3 from step 1.** A rollback does not shortcut the sequence.
 
-Run it (owner-approved, against the production URL, with the production secret held only in the shell environment):
+Rollback procedure, with each step approved:
 
-    PRODUCTION_DISPATCHER_URL=... PRODUCTION_PROJECT_ID=... PRODUCTION_SERVICE_NAME=... \
-    PRODUCTION_SUBMIT_SECRET=... EXPECT_SUBMISSIONS_PAUSED=yes EXPECT_REQUIRE_SUBMIT_INTENT=no \
-    node tools/production/verify-worker-contract.mjs
+1. Close: pause the live worker revision (SUBMISSIONS_PAUSED=yes) and set the Apps Script pause property to yes. Confirm the legacy value still gets 401 if the secret was rotated.
+2. Confirm no active render rows for the script (the procedure in `next-version-check.md`, step 4).
+3. If the Apps Script must go back, roll it back to the recorded version. Keep the worker paused.
+4. If the worker must go back, roll back only to a revision whose secret reference is the current version and which is itself paused or closed by its own gate. Otherwise keep the live revision.
+5. Run the contract check with the expectations that match the closed state.
+6. Reopen only by section 3, from step 1.
 
-Evidence: `media-worker/test/productionContractCheck.test.js` (6/6). It runs the script against the real dispatcher app, with a fake Cloud Run client: the expected state passes, a paused worker passes when paused is expected, a mismatched switch fails, a staging identity is refused before any request, and no execution or job state is created in any case.
+## 6. The non-executing contract check (`tools/production/verify-worker-contract.mjs`)
 
-Limit: the check proves the refusals and the reported state. It does not prove that the deployed Apps Script or its triggers are the reviewed version. That is checked by the owner in the Apps Script editor (step 2 of section 3).
+It sends only requests the dispatcher must refuse. It checks identity, the two switches (or reports that a legacy revision does not report them), and, when `PRODUCTION_LEGACY_SECRET` is set, that the legacy value gets 401 on both routes. A body that could start a render is checked to be invalid before it is sent. It refuses staging identities and never prints a secret. Tests: `media-worker/test/productionContractCheck.test.js`, 9 tests, including a stub legacy revision that passes and one that accepts the legacy value and fails.
 
-## 5. Rollback sequence (gate closed throughout)
+## 7. What this does not establish
 
-Rollback never reopens submissions until the gate has been closed and the contract has been checked.
-
-1. Close the gate: set the Apps Script property `SUBMISSIONS_PAUSED=yes`, then the worker's `SUBMISSIONS_PAUSED=yes`. Confirm no active renders (section 3, step 2).
-2. If the Apps Script must go back: redeploy the recorded previous Apps Script version. Confirm the active version in the editor.
-3. If the worker must go back: move traffic to the previous revision. The previous revision has no gate, so it must not receive traffic while the Apps Script property is `yes`, or the worker must be paused by the traffic move itself. Confirm the revision serving traffic before going on.
-4. Run the contract check with the expectations that match the rolled-back state (`EXPECT_SUBMISSIONS_PAUSED=yes` until step 5).
-5. Reopen only after steps 1–4 are confirmed and an owner has approved reopening: clear the Apps Script property, then the worker's `SUBMISSIONS_PAUSED`.
-
-Known gap: an old Apps Script version and a time-driven trigger may run different code. Before any rollback, the owner lists the project's triggers in the editor and confirms which code each runs. This is an engineering blocker, not solved by this document.
-
-## 6. What this does not cover
-
-- The contract check does not start a render, so it cannot prove a render will succeed.
-- The gate does not release a stranded version claim. Claims are never released automatically, and no operator tool exists yet.
-- The live spreadsheet, the Apps Script and Cloud Run are untested together. The browser and workflow tests use a mocked server and a fake job client.
+- The production rotation has not been made, so the block is not shown on production.
+- Which code each Apps Script trigger runs is not verified offline. Rollback depends on it.
+- Stranded version claims and the live sheet are untested together with Cloud Run.
+- The browser and workflow tests use a mocked server and a fake job client.
