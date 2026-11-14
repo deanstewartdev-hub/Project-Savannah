@@ -28,3 +28,4 @@ The fixture is the "before" picture. It is regenerated only on purpose
 | Date | Commit | App runner | Worker | Note |
 |---|---|---|---|---|
 | 2026-11-14 | `4e4967c` | 498 PASS / 0 FAIL | 431 / 431 | baseline |
+| 2026-11-14 | self-test relocation | 505 PASS / 0 FAIL (498 + 7 contract checks) | not re-run (no worker file changed) | 8 production files now hold production code only |

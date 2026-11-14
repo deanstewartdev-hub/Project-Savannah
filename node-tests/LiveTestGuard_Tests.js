@@ -10,10 +10,10 @@ let passed = 0;
 function test(name, run) { run(); passed++; console.log('PASS ' + name); }
 
 const GUARDED = {
-  'AI/AI_AIService.js': 'testAIServiceLiveConnection',
+  'Tests/AIService_SelfTests.js': 'testAIServiceLiveConnection',
   'Ideas/Idea_Engine.js': 'testIdeaGenerationWithTracking',
-  'Scripts/Script_Engine.js': 'testScriptEngineLiveWorkflow',
-  'Scripts/Scripts_Repository.js': 'testScriptsRepositoryUpdate',
+  'Tests/ScriptEngine_SelfTests.js': 'testScriptEngineLiveWorkflow',
+  'Tests/ScriptsRepository_SelfTests.js': 'testScriptsRepositoryUpdate',
   'Services/Services_Logging.js': 'testLoggingService'
 };
 

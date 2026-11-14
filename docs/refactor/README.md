@@ -56,7 +56,7 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 - [x] Architecture map and target structure (ARCHITECTURE_MAP.md)
 
 ### Phase 3 — module work (updated as each lands)
-- [ ] Separate embedded self-test functions from production files (6 files)
+- [x] Separate embedded self-test functions from production files (8 files, 2,393 lines moved verbatim to `Tests/*_SelfTests.js`)
 - [ ] `App/ScriptsController.js` — request parsing and response shaping extracted
 - [ ] `Scripts/Script_Engine.js` — split by responsibility
 - [ ] `Models/Approval.js`
