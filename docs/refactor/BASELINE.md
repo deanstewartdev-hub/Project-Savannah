@@ -31,3 +31,4 @@ The fixture is the "before" picture. It is regenerated only on purpose
 | 2026-11-14 | self-test relocation | 505 PASS / 0 FAIL (498 + 7 contract checks) | not re-run (no worker file changed) | 8 production files now hold production code only |
 | 2026-11-14 | ScriptsController split | 599 PASS / 0 FAIL (505 + 94 characterisation scenarios) | not re-run (no worker file changed) | 747 removed lines all present in the new modules |
 | 2026-11-14 | Script_Engine split | 683 PASS / 0 FAIL (599 + 84 characterisation scenarios) | not re-run (no worker file changed) | 1,081 removed lines all present in the new modules |
+| 2026-11-14 | AIService split | 783 PASS / 0 FAIL (683 + 100 characterisation scenarios) | not re-run (no worker file changed) | 622 removed lines all present in the new modules |

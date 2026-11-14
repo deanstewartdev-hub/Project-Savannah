@@ -61,7 +61,7 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 - [x] `Scripts/Script_Engine.js` — 2,114 → 703 lines; idea and option resolution, prompt building, repair-loop support and result assembly now in `Script_Engine_Inputs.js`, `_Prompt.js`, `_Repair.js`, `_Results.js` (84-scenario characterisation suite added first)
 - [ ] `Models/Approval.js`
 - [ ] `Scripts/Scripts_Repository.js`
-- [ ] `AI/AI_AIService.js`
+- [x] `AI/AI_AIService.js` — 1,229 → 322 lines; request validation, response normalisation and shared values now in `AI_AIService_Requests.js`, `_Responses.js`, `_Values.js`. The retry loop and provider routing stay in the service, untouched (100-scenario characterisation suite added first)
 - [ ] `Ideas/Ideas_Repository.js`, `App/IdeasController.js`
 - [ ] `App/App.js` (shell and routing)
 - [ ] Hot set (`App/ProductionController.js`, `Production/VideoProcessingProvider.js`,
