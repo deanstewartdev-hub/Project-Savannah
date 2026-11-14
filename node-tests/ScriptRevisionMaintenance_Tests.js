@@ -47,7 +47,7 @@ function harness(existing) {
     Logger: { log: () => {} }
   };
   vm.createContext(sandbox);
-  for (const file of ['Scripts/Script_Validator.js', 'Scripts/Script_Formatter.js', 'Models/Script.js', 'Scripts/Script_Revision_Maintenance.js']) {
+  for (const file of ['Scripts/Script_Validator.js', 'Scripts/Script_Validator_Text.js', 'Scripts/Script_Validator_Scenes.js', 'Scripts/Script_Formatter.js', 'Models/Script.js', 'Scripts/Script_Revision_Maintenance.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), sandbox, { filename: file });
   }
   return { maintenance: vm.runInContext('ScriptRevisionMaintenance', sandbox), writes, backups };

@@ -55,7 +55,7 @@ function loadApps(files) {
 }
 
 function runPipeline(source) {
-  const sandbox = loadApps(['Scripts/Script_Validator.js', 'Scripts/Script_Formatter.js', 'Models/Script.js']);
+  const sandbox = loadApps(['Scripts/Script_Validator.js', 'Scripts/Script_Validator_Text.js', 'Scripts/Script_Validator_Scenes.js', 'Scripts/Script_Formatter.js', 'Models/Script.js']);
   let validated;
   try {
     validated = vm.runInContext('ScriptValidator', sandbox).validate(source);

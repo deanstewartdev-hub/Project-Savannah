@@ -62,6 +62,8 @@ const dependencies = [
   'Services/Services_Notifications.js',
   'Production/VideoProcessingProvider.js',
   'Scripts/Script_Validator.js',
+  'Scripts/Script_Validator_Text.js',
+  'Scripts/Script_Validator_Scenes.js',
   'Scripts/Script_Engine.js',
   'Scripts/Script_Engine_Inputs.js',
   'Scripts/Script_Engine_Prompt.js',

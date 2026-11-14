@@ -108,7 +108,7 @@ function build() {
 
   sandbox.load([
     'Config.js', 'Models/Script.js', 'AI/AI_Schemas.js', 'AI/ProptLibrary/Script_PromptLibrary.js',
-    'Scripts/Script_Validator.js', 'Scripts/Script_Formatter.js', 'Tests/ScriptValidator_SelfTests.js'
+    'Scripts/Script_Validator.js', 'Scripts/Script_Validator_Text.js', 'Scripts/Script_Validator_Scenes.js', 'Scripts/Script_Formatter.js', 'Tests/ScriptValidator_SelfTests.js'
   ].concat(engineFiles));
   sandbox.journal.length = 0;
 
