@@ -73,3 +73,20 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 - [ ] Full suites green locally after the last module
 - [ ] GitHub Actions green on the branch
 - [ ] Completion report
+
+## Resume here (checkpoint, 14 November 2026)
+
+Done and pushed: groundwork, self-test relocation, `ScriptsController` split.
+
+Next step is `Scripts/Script_Engine.js`. A characterisation suite for it was drafted but **not
+committed**, because its "valid script" fixture is rejected by the engine's default rules
+(57 words; the engine needs 99-125 and a 30-60 second estimate), so the success paths were not
+yet being exercised. To finish it: build the valid generated script the way
+`Tests/ScriptDurationValidation_Tests.js` does (`scriptWithSceneWordCounts`), give the test idea a
+hook and niche (the prompt library requires both), confirm the success scenarios return a saved
+script, then capture the fixture and only then split the engine (options, prompt, repair loop,
+result building, logging). Keep one `function resolveOptions_(` and one `function generatePreview(`
+in `Script_Engine.js`: `node-tests/ScriptEngineDuplicateDeclaration_Tests.js` counts them.
+
+Not yet done: worker suite re-run after the last commit (no worker file has changed), and a
+check of GitHub Actions on this branch.
