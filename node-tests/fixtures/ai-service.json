@@ -1,0 +1,2891 @@
+{
+ "generate: text, defaults": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "Write a hook.",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: wrapper callAIService": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "Write a hook.",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: all options": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI-reported",
+   "model": "gpt-reported",
+   "data": {
+    "a": 1
+   },
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "json",
+    "temperature": 0,
+    "maxTokens": 50,
+    "schemaName": "",
+    "metadata": {
+     "runId": "RUN-1"
+    }
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0,
+     "maxTokens": 50,
+     "responseFormat": "json",
+     "schema": null,
+     "systemMessage": "Be brief."
+    }
+   }
+  ]
+ },
+ "generate: usage in prompt/completion naming": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 7,
+    "outputTokens": 8,
+    "totalTokens": 15,
+    "raw": {
+     "prompt_tokens": 7.4,
+     "completion_tokens": "8",
+     "extra": "kept"
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: usage in camelCase naming": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 5,
+    "outputTokens": 6,
+    "totalTokens": 99,
+    "raw": {
+     "inputTokens": 5,
+     "outputTokens": 6,
+     "totalTokens": 99
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: usage missing": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "raw": {}
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: usage is an array": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "raw": {}
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: usage has negative and non-numeric counts": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "raw": {
+     "input_tokens": -5,
+     "output_tokens": "many",
+     "total_tokens": null
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: data is zero": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": 0,
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: data is an empty string": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "structured: valid schema": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": {
+    "title": "T"
+   },
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "json_schema",
+    "temperature": 0.2,
+    "maxTokens": 1000,
+    "schemaName": "script_schema",
+    "metadata": {
+     "action": "X"
+    }
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.2,
+     "maxTokens": 1000,
+     "responseFormat": "json_schema",
+     "schema": {
+      "type": "json_schema",
+      "name": "script_schema",
+      "schema": {
+       "type": "object",
+       "properties": {
+        "title": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "structured: no options": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": {
+    "title": "T"
+   },
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "json_schema",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "script_schema",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "json_schema",
+     "schema": {
+      "type": "json_schema",
+      "name": "script_schema",
+      "schema": {
+       "type": "object",
+       "properties": {
+        "title": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "structured: options ask for text, schema wins": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": {},
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "json_schema",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "script_schema",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "json_schema",
+     "schema": {
+      "type": "json_schema",
+      "name": "script_schema",
+      "schema": {
+       "type": "object",
+       "properties": {
+        "title": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: provider reports failure": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI provider did not report a successful response."
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: provider returns no data": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI provider returned no usable data."
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: provider returns null data": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI provider returned no usable data."
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: provider returns null": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: AI service error: AI provider returned an invalid response."
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "generate: provider returns a string": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: AI service error: AI provider returned an invalid response."
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"OpenAI API error 429: rate limit\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Rate Limit reached\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Request timeout\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"The request timed out\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Model temporarily unavailable\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Service Unavailable\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Internal Server Error\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Bad Gateway\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Gateway Timeout\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"API error 500\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"API error 502\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"API error 503\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"API error 504\" then success": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"OpenAI API error 400: bad request\" is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: OpenAI API error 400: bad request"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"OpenAI API error 401: invalid key\" is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: OpenAI API error 401: invalid key"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"API error 403\" is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: API error 403"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"API error 404\" is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: API error 404"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Insufficient quota\" is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: Insufficient quota"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"Content policy violation\" is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: Content policy violation"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: \"\" is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: Error"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: retryable three times, default limit reached": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: API error 503"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 1500
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: two failures then success, default backoff": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 3,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 1500
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: retryable then non-retryable": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: API error 401"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: provider throws a string": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: invalid provider response is not retried": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: AI service error: AI provider returned an invalid response."
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: one attempt only": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: OpenAI request failed: API error 503"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: five attempts, custom backoff": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 5,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 100
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 300
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 900
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 2700
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: fractional backoff rounds": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 4,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 333
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 500
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "retry: empty retry object uses defaults": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 2,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   },
+   {
+    "call": "sleep",
+    "milliseconds": 750
+   },
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "validate: prompt is empty": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI prompt must be a non-empty string."
+  }
+ },
+ "validate: prompt is blank": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI prompt must be a non-empty string."
+  }
+ },
+ "validate: prompt is null": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI prompt must be a non-empty string."
+  }
+ },
+ "validate: prompt is number": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI prompt must be a non-empty string."
+  }
+ },
+ "validate: prompt is object": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI prompt must be a non-empty string."
+  }
+ },
+ "validate: prompt is undefined": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI prompt must be a non-empty string."
+  }
+ },
+ "validate: options is a string": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI request options must be an object."
+  }
+ },
+ "validate: options is an array": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI request options must be an object."
+  }
+ },
+ "validate: options is null": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "validate: response format xml": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: Unsupported AI response format: xml."
+  }
+ },
+ "validate: response format TEXT": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: Unsupported AI response format: TEXT."
+  }
+ },
+ "validate: response format json_schema": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: A schema is required when responseFormat is json_schema."
+  }
+ },
+ "validate: temperature -0.1": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI temperature must be a number between 0 and 2."
+  }
+ },
+ "validate: temperature 2": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 2,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 2,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "validate: temperature 2.1": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI temperature must be a number between 0 and 2."
+  }
+ },
+ "validate: temperature 0.5": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI temperature must be a number between 0 and 2."
+  }
+ },
+ "validate: temperature NaN": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI temperature must be a number between 0 and 2."
+  }
+ },
+ "validate: temperature null": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "validate: maxTokens 0": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI maxTokens must be a positive number."
+  }
+ },
+ "validate: maxTokens -1": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI maxTokens must be a positive number."
+  }
+ },
+ "validate: maxTokens 1": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "validate: maxTokens 100": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI maxTokens must be a positive number."
+  }
+ },
+ "validate: maxTokens Infinity": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI maxTokens must be a positive number."
+  }
+ },
+ "validate: maxTokens null": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "validate: metadata is string": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI request metadata must be an object."
+  }
+ },
+ "validate: metadata is array": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI request metadata must be an object."
+  }
+ },
+ "validate: metadata is null": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI request metadata must be an object."
+  }
+ },
+ "validate: structured schema is null": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema must be a valid object."
+  }
+ },
+ "validate: structured schema is string": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema must be a valid object."
+  }
+ },
+ "validate: structured schema is array": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema must be a valid object."
+  }
+ },
+ "validate: structured schema is wrong type": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema type must be \"json_schema\"."
+  }
+ },
+ "validate: structured schema is no name": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema name is required."
+  }
+ },
+ "validate: structured schema is blank name": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema name is required."
+  }
+ },
+ "validate: structured schema is no schema": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema must contain a schema object."
+  }
+ },
+ "validate: structured schema is array schema": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema must contain a schema object."
+  }
+ },
+ "validate: bad schema passed through options": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI schema type must be \"json_schema\"."
+  }
+ },
+ "validate: retry is string": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry options must be an object."
+  }
+ },
+ "validate: retry is array": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry options must be an object."
+  }
+ },
+ "validate: retry is zero attempts": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry maxAttempts must be a positive integer."
+  }
+ },
+ "validate: retry is six attempts": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry maxAttempts cannot exceed 5."
+  }
+ },
+ "validate: retry is fractional attempts": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry maxAttempts must be a positive integer."
+  }
+ },
+ "validate: retry is negative delay": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry delay must be a non-negative number."
+  }
+ },
+ "validate: retry is text delay": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry delay must be a non-negative number."
+  }
+ },
+ "validate: retry is zero multiplier": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry backoffMultiplier must be a positive number."
+  }
+ },
+ "validate: retry is text multiplier": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: AI retry backoffMultiplier must be a positive number."
+  }
+ },
+ "settings: no provider configured": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: No AI provider is configured."
+  }
+ },
+ "settings: no model configured": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: No AI model is configured."
+  }
+ },
+ "settings: unsupported provider": {
+  "threw": {
+   "name": "AIServiceError",
+   "message": "AI service error: Anthropic request failed: AI service error: Unsupported AI provider: Anthropic."
+  }
+ },
+ "settings: padded provider and model": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-pad",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-pad",
+     "prompt": "P",
+     "temperature": 0.7,
+     "maxTokens": 1000,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "settings: temperature and maxTokens fall back to settings": {
+  "returned": {
+   "success": true,
+   "provider": "OpenAI",
+   "model": "gpt-test",
+   "data": "Generated text",
+   "usage": {
+    "inputTokens": 10,
+    "outputTokens": 20,
+    "totalTokens": 30,
+    "raw": {
+     "input_tokens": 10,
+     "output_tokens": 20,
+     "total_tokens": 30
+    }
+   },
+   "request": {
+    "responseFormat": "text",
+    "temperature": 1.1,
+    "maxTokens": 222,
+    "schemaName": "",
+    "metadata": {}
+   },
+   "execution": {
+    "attemptCount": 1,
+    "startedAt": "2026-11-14T12:00:00.000Z",
+    "completedAt": "2026-11-14T12:00:00.000Z",
+    "durationMilliseconds": 0
+   },
+   "serviceVersion": "ai-service-v1.0"
+  },
+  "calls": [
+   {
+    "call": "callOpenAI",
+    "request": {
+     "provider": "OpenAI",
+     "model": "gpt-test",
+     "prompt": "P",
+     "temperature": 1.1,
+     "maxTokens": 222,
+     "responseFormat": "text",
+     "schema": null,
+     "systemMessage": "You are Project Savannah, an AI content production assistant."
+    }
+   }
+  ]
+ },
+ "providers": {
+  "returned": {
+   "OPENAI": "OpenAI"
+  }
+ },
+ "response formats": {
+  "returned": {
+   "TEXT": "text",
+   "JSON": "json",
+   "JSON_SCHEMA": "json_schema"
+  }
+ },
+ "version": {
+  "returned": "ai-service-v1.0"
+ }
+}
