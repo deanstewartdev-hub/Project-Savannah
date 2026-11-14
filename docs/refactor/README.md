@@ -58,7 +58,7 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 ### Phase 3 — module work (updated as each lands)
 - [x] Separate embedded self-test functions from production files (8 files, 2,393 lines moved verbatim to `Tests/*_SelfTests.js`)
 - [x] `App/ScriptsController.js` — 2,192 → 1,189 lines; request parsing, response shaping and value helpers now in `ScriptsController_Requests.js`, `_Responses.js`, `_Values.js` (94-scenario characterisation suite added first)
-- [ ] `Scripts/Script_Engine.js` — split by responsibility
+- [x] `Scripts/Script_Engine.js` — 2,114 → 703 lines; idea and option resolution, prompt building, repair-loop support and result assembly now in `Script_Engine_Inputs.js`, `_Prompt.js`, `_Repair.js`, `_Results.js` (84-scenario characterisation suite added first)
 - [ ] `Models/Approval.js`
 - [ ] `Scripts/Scripts_Repository.js`
 - [ ] `AI/AI_AIService.js`
@@ -74,19 +74,15 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 - [ ] GitHub Actions green on the branch
 - [ ] Completion report
 
-## Resume here (checkpoint, 14 November 2026)
+## How each split is done (so the next one is done the same way)
 
-Done and pushed: groundwork, self-test relocation, `ScriptsController` split.
+1. Write a characterisation suite for the module if it has none (`node-tests/*Characterization_Tests.js`,
+   built on `node-tests/lib/characterization.cjs`), check that its success paths really succeed,
+   capture the fixture with `--update`, and commit it **before** moving code.
+2. Move the private functions verbatim into sibling files; leave one-line delegates behind.
+3. Prove it: characterisation suite unchanged, scope contract green, every removed line present
+   in the new files, full app runner green.
+4. Add the new files to any node test that loads the original file by explicit path.
 
-Next step is `Scripts/Script_Engine.js`. A characterisation suite for it was drafted but **not
-committed**, because its "valid script" fixture is rejected by the engine's default rules
-(57 words; the engine needs 99-125 and a 30-60 second estimate), so the success paths were not
-yet being exercised. To finish it: build the valid generated script the way
-`Tests/ScriptDurationValidation_Tests.js` does (`scriptWithSceneWordCounts`), give the test idea a
-hook and niche (the prompt library requires both), confirm the success scenarios return a saved
-script, then capture the fixture and only then split the engine (options, prompt, repair loop,
-result building, logging). Keep one `function resolveOptions_(` and one `function generatePreview(`
-in `Script_Engine.js`: `node-tests/ScriptEngineDuplicateDeclaration_Tests.js` counts them.
-
-Not yet done: worker suite re-run after the last commit (no worker file has changed), and a
-check of GitHub Actions on this branch.
+`node-tests/ScriptEngineDuplicateDeclaration_Tests.js` counts declarations in `Script_Engine.js`:
+keep exactly one `function resolveOptions_(` and one `function generatePreview(` there.
