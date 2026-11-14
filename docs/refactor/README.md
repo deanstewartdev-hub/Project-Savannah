@@ -57,7 +57,7 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 
 ### Phase 3 — module work (updated as each lands)
 - [x] Separate embedded self-test functions from production files (8 files, 2,393 lines moved verbatim to `Tests/*_SelfTests.js`)
-- [ ] `App/ScriptsController.js` — request parsing and response shaping extracted
+- [x] `App/ScriptsController.js` — 2,192 → 1,189 lines; request parsing, response shaping and value helpers now in `ScriptsController_Requests.js`, `_Responses.js`, `_Values.js` (94-scenario characterisation suite added first)
 - [ ] `Scripts/Script_Engine.js` — split by responsibility
 - [ ] `Models/Approval.js`
 - [ ] `Scripts/Scripts_Repository.js`
