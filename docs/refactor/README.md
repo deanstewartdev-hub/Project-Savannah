@@ -64,9 +64,7 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 - [x] `AI/AI_AIService.js` — 1,229 → 322 lines; request validation, response normalisation and shared values now in `AI_AIService_Requests.js`, `_Responses.js`, `_Values.js`. The retry loop and provider routing stay in the service, untouched (100-scenario characterisation suite added first)
 - [ ] `Ideas/Ideas_Repository.js`, `App/IdeasController.js`
 - [ ] `App/App.js` (shell and routing)
-- [ ] Hot set (`App/ProductionController.js`, `Production/VideoProcessingProvider.js`,
-      `Scripts/Script_Validator.js`, `Models/Script.js`, `media-worker/src/pipeline/visualSelection.js`,
-      `Frontend/Assets/Scripts/Production.html`) — after #31/#32 stop moving, or exception
+- [x] `media-worker/src/pipeline/visualSelection.js` — 696 → 308 lines; search queries, clip judging, montage rules and the unpaid preflight now in `visualQueries.js`, `clipSelection.js`, `montageRules.js`, `footagePreflight.js`. `visualSelection.js` stays the single import point and re-exports the same 31 names
 - [x] Frontend application script — `Scripts.html` 4,215 → 547 lines (shared helpers and start-up); the dashboard, ideas and scripts sections now in `Dashboard.html`, `Ideas.html`, `ScriptWorkspace.html`, loaded by `Index.html` straight after it. All 87 functions identical by hash; the three pages checked before and after in a real browser
 
 ### Phase 4–6
