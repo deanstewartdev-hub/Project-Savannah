@@ -7,6 +7,12 @@ const ProductionErrorService = (() => {
 
   const RULES = [
     {
+      code: "PRODUCTION_SUBMISSIONS_PAUSED", category: "maintenance", statusCode: 503,
+      retryable: true, retryAfterSeconds: 300,
+      pattern: /submissions are paused for maintenance/i,
+      recoveryAction: "Submissions are paused while Savannah is being updated. Nothing was started. Try again once the update is finished."
+    },
+    {
       code: "PRODUCTION_SCHEDULE_CONFLICT", category: "scheduling", statusCode: 409,
       retryable: false, retryAfterSeconds: 0,
       pattern: /scheduled publication conflicts|keep at least .* minutes between shorts/i,

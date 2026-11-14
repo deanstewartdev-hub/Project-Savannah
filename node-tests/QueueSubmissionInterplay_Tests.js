@@ -165,7 +165,7 @@ test('5. A direct submission cannot bypass the active-render guard', () => {
   const s = sandbox({ workerTimesOut: true });
   s.addTask(readyTask('PRD-5'));
   s.tick();
-  for (const request of ['{scriptId:"SCR-1"}', '{scriptId:"SCR-1",forceRerender:true}']) {
+  for (const request of ['{scriptId:"SCR-1",clientRequestId:"rq-direct-0001"}', '{scriptId:"SCR-1",forceRerender:true,clientRequestId:"rq-direct-0002"}']) {
     const direct = s.call('ProductionController.submit(' + request + ')');
     assert.equal(direct.success, false);
     assert.match(direct.error.message, /already has an active render/);
@@ -258,7 +258,7 @@ test('Overlap: a second queue tick and a direct submit during an in-flight submi
       // Two more executions start while this one is inside the worker request.
       inner = {
         tick: api.tick(),
-        direct: api.call('ProductionController.submit({scriptId:"SCR-1",forceRerender:true})'),
+        direct: api.call('ProductionController.submit({scriptId:"SCR-1",forceRerender:true,clientRequestId:"rq-direct-0003"})'),
         claim: api.call('ProductionController.submitPrepared({taskId:"PRD-OV2"})')
       };
     }

@@ -31,6 +31,7 @@ function fixture(options = {}) {
   };
   const context = vm.createContext({
     Utilities: { getUuid: () => 'race-test-id' }, Logger: { log() {} },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({
       tryLock: () => { locks++; return true; },
       releaseLock: () => { releases++; }

@@ -122,6 +122,20 @@ test('Configuration errors raised before any request are not outcome-unknown', (
   }
 });
 
+test('A duplicate reply names the ORIGINAL job, is not outcome-unknown, and needs no music summary', () => {
+  const original = 'cr-' + randomUUID();
+  const f = providerFixture({ reply: { status: 200, json: { duplicate: true, jobId: original, state: 'running' } } });
+  const result = f.submit();
+  assert.equal(result.duplicate, true);
+  assert.equal(result.originalJobId, original);
+  assert.equal(result.render, null);
+  assert.equal(f.posts.length, 1, 'one request only');
+});
+test('A duplicate reply without a valid render ID is outcome-unknown', () => {
+  const caught = providerFixture({ reply: { status: 200, json: { duplicate: true, jobId: 'cr-not-valid' } } }).failure();
+  assert.equal(caught.outcomeUnknown, true);
+});
+
 // --- Controller: submitCore_ ---
 function controllerFixture(options = {}) {
   const saves = [], updates = [];
@@ -132,12 +146,17 @@ function controllerFixture(options = {}) {
     submitRender(scriptArg, seoPack, opts) {
       submitOptions = opts;
       if (options.fail) throw options.fail;
+      if (options.duplicateOf) {
+        const originalJobId = options.duplicateOf === 'SELF' ? reserved : options.duplicateOf;
+        return { duplicate: true, originalJobId: originalJobId, state: 'running', render: null, payload: null };
+      }
       return { render: { id: (opts && opts.renderId) || 'creatomate-1', status: 'RENDERING', progress: 5 }, payload: { provider: 'test' } };
     }
   };
   if (reserved) provider.reserveRenderId = () => reserved;
   const context = vm.createContext({
     Utilities: { getUuid: randomUUID }, Logger: { log() {} },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     ScriptsRepository: { getScriptById: id => ({ id, status: 'APPROVED' }) },
     SeoRepository: { getByScriptId: () => ({ id: 'SEO-1' }) },
@@ -146,7 +165,8 @@ function controllerFixture(options = {}) {
     VideoProcessingProvider: { get: () => provider, forJob: () => provider },
     CreatomateProviderAdapter: {},
     RenderJobRepository: {
-      getAll: () => stored ? [stored] : [],
+      getAll: () => [...(options.existingRows || []), ...(stored ? [stored] : [])],
+      getByRenderId: id => (options.originalRow && options.originalRow.renderId === id) ? options.originalRow : (stored && stored.renderId === id ? stored : null),
       save(job) { saves.push(JSON.parse(JSON.stringify(job))); stored = job; return job; },
       update(job) { updates.push(JSON.parse(JSON.stringify(job))); stored = job; return job; }
     }
@@ -155,8 +175,9 @@ function controllerFixture(options = {}) {
     vm.runInContext(read(file), context, { filename: file });
   }
   return {
-    submit: () => vm.runInContext('ProductionController.submit({scriptId:"SCR-1"})', context),
-    reserved, saves, updates, stored: () => stored, submitOptions: () => submitOptions
+    submit: (requestId = 'rq-test-0001') => vm.runInContext('ProductionController.submit({scriptId:"SCR-1",clientRequestId:"' + requestId + '"})', context),
+    reserved, saves, updates, stored: () => stored, submitOptions: () => submitOptions,
+    renderNewVersion: request => vm.runInContext('ProductionController.renderNewVersion(' + JSON.stringify(request) + ')', context)
   };
 }
 
@@ -185,7 +206,7 @@ test('While a submission is unconfirmed, the script cannot be rendered a second 
   const unknown = Object.assign(new Error('Timeout'), { outcomeUnknown: true });
   const f = controllerFixture({ fail: unknown });
   f.submit();
-  const second = f.submit();
+  const second = f.submit('rq-test-0002');
   assert.equal(second.success, false);
   assert.match(second.error.message, /already has an active render/);
   assert.equal(f.saves.length, 1, 'no second render row may be created');
@@ -211,6 +232,49 @@ test('A provider without ID reservation (Creatomate) keeps the original behaviou
   const failed = controllerFixture({ reserve: false, fail: Object.assign(new Error('Timeout'), { outcomeUnknown: true }) });
   failed.submit();
   assert.equal(failed.stored().status, 'FAILED', 'without a reserved ID there is nothing to reconcile against');
+});
+
+test('A duplicate whose original row exists: this row is FAILED with no ID, and the response says nothing new started', () => {
+  const originalRow = { id: 'JOB-ORIG', scriptId: 'SCR-1', renderId: 'cr-' + randomUUID(), status: 'RENDERING' };
+  const f = controllerFixture({ duplicateOf: originalRow.renderId, originalRow: originalRow });
+  const result = f.submit();
+  assert.equal(result.success, true);
+  assert.equal(result.data.duplicate, true);
+  assert.equal(f.stored().status, 'FAILED');
+  assert.equal(f.stored().renderId, '', 'must not share the original ID');
+  assert.match(f.stored().errorMessage, /did not start a second render/);
+});
+test('A duplicate whose original row is missing: this row adopts the ID and stays active, so no second render can start', () => {
+  const originalId = 'cr-' + randomUUID();
+  const f = controllerFixture({ duplicateOf: originalId });
+  const result = f.submit();
+  assert.equal(result.success, true);
+  assert.equal(result.data.duplicate, true);
+  assert.equal(f.stored().status, 'QUEUED');
+  assert.equal(f.stored().renderId, originalId);
+  assert.match(f.stored().errorMessage, /Do not re-render/);
+  const second = f.submit('rq-test-0002');
+  assert.equal(second.success, false);
+  assert.match(second.error.message, /already has an active render/);
+});
+test('A duplicate that names this row\'s own ID keeps the row for reconciliation', () => {
+  const f = controllerFixture({ duplicateOf: 'SELF' });
+  const result = f.submit();
+  assert.equal(result.success, true);
+  assert.equal(f.stored().status, 'QUEUED');
+  assert.equal(f.stored().renderId, f.reserved);
+  assert.match(f.stored().errorMessage, /Do not re-render/);
+});
+test('Render New Version sends its request ID as the submit intent and the next version to the worker', () => {
+  const succeeded = { id: 'JOB-1', scriptId: 'SCR-1', renderId: 'cr-' + randomUUID(), status: 'SUCCEEDED',
+    videoUrl: 'https://video.example/one.mp4', requestPayload: {} };
+  const f = controllerFixture({ existingRows: [succeeded] });
+  const result = f.renderNewVersion({ scriptId: 'SCR-1', clientRequestId: 'nv-test-00001', confirmedMaxCostGbp: 1 });
+  assert.equal(result.success, true);
+  assert.equal(f.submitOptions().submitIntentId, 'nv-test-00001');
+  assert.equal(f.submitOptions().renderVersion, 2);
+  assert.equal(f.stored().requestPayload.version, 2);
+  assert.equal(f.stored().requestPayload.clientRequestId, 'nv-test-00001');
 });
 
 console.log(`Render submission idempotency: ${passed}/${passed} passed.`);

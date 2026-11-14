@@ -59,6 +59,7 @@ function sandbox(options) {
     console, Logger: { log() {} },
     Utilities: { getUuid: randomUUID },
     UrlFetchApp: { fetch() { throw new Error('Network access is forbidden in integration tests.'); } },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({
       tryLock: () => {
         if (opts.busy || lockHeld) return false;

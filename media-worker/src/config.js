@@ -1,4 +1,10 @@
+import { existsSync } from "node:fs";
 import { assertSecretFormat, requireSecretEnv } from "./lib/secretFormat.js";
+
+// The first of these files that exists on this host, or null. Used only to pick the disclosure font.
+function firstExistingFile(files) {
+  return files.find((file) => existsSync(file)) || null;
+}
 
 function required(name, fallback) {
   const value = process.env[name] ?? fallback;
@@ -50,6 +56,16 @@ export const config = {
     // A beat with no location cannot have its footage checked for the place, so the job is refused before any
     // paid step. FOOTAGE_REQUIRE_LOCATION=false lifts this (subject-only relevance is then used).
     requireLocation: process.env.FOOTAGE_REQUIRE_LOCATION !== "false"
+  },
+  // The on-screen disclosure drawn on every labelled AI still. The font must exist on the render host (the CI installs
+  // fonts-dejavu-core); without it no AI still is rendered.
+  aiStillLabel: {
+    fontFile: process.env.AI_STILL_LABEL_FONT || firstExistingFile([
+      "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+      "C:/Windows/Fonts/arialbd.ttf",
+      "C:/Windows/Fonts/arial.ttf"
+    ]) || "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    text: "AI-GENERATED ILLUSTRATION"
   },
   // Narration model and voice settings. The defaults are exactly what production has always sent, so an
   // unchanged environment behaves the same. Rolling back a voice or model is a configuration change.

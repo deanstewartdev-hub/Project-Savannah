@@ -43,7 +43,7 @@ const ProductionController = (() => {
   // "already completed" guard, so the old forceRerender flag is never read from a request.
   function submit(request) {
     return run_("Short submitted for rendering.", function () {
-      return submitCore_({ scriptId: request && request.scriptId });
+      return submitCore_({ scriptId: request && request.scriptId, clientRequestId: validRequestId_(request) });
     });
   }
 
@@ -65,6 +65,7 @@ const ProductionController = (() => {
   }
 
   function renderNewVersion_(request) {
+    assertSubmissionsOpen_();
     const clientRequestId = String(request.clientRequestId || "").trim();
     if (!/^[A-Za-z0-9-]{8,80}$/.test(clientRequestId)) throw error_("A request ID is required.");
     if (Number(request.confirmedMaxCostGbp) !== NEW_VERSION_MAX_COST_GBP) {
@@ -89,7 +90,8 @@ const ProductionController = (() => {
       if (!existingJobs.some(function (job) { return job.status === "SUCCEEDED" && job.videoUrl; })) {
         throw error_("A new version needs a completed render first. Use Create Short for the first render.");
       }
-      return { job: startRender_(script, seoPack, existingJobs, { clientRequestId: clientRequestId }).job, duplicate: false };
+      const started = startRender_(script, seoPack, existingJobs, { clientRequestId: clientRequestId });
+      return { job: started.job, duplicate: started.duplicate === true };
     });
   }
 
@@ -123,17 +125,50 @@ const ProductionController = (() => {
     }, 0) + 1 : 1;
   }
 
+  // Every render start (Create Short, a prepared task, a retry) comes through here with a request ID. A repeat of the
+  // same ID returns the row that request created. If that attempt failed without starting a render, the repeat is
+  // refused, so the page asks for a new request. No request ID means no render: nothing is started without one.
+  const CLIENT_REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,80}$/;
+  function validRequestId_(request) {
+    const id = String(request && request.clientRequestId || "").trim();
+    return CLIENT_REQUEST_ID_PATTERN.test(id) ? id : "";
+  }
+
+  // Maintenance gate: the script property SUBMISSIONS_PAUSED set to "yes" refuses every render start before anything is read or
+  // written. A missing property means open. If the property cannot be read, submissions are refused (fail closed).
+  function assertSubmissionsOpen_() {
+    let paused;
+    try {
+      paused = PropertiesService.getScriptProperties().getProperty("SUBMISSIONS_PAUSED") === "yes";
+    } catch (ignored) {
+      paused = true;
+    }
+    if (paused) throw error_("Submissions are paused for maintenance. Nothing was started; try again later.");
+  }
+
   function submitCore_(request) {
+    assertSubmissionsOpen_();
+    const clientRequestId = validRequestId_(request);
+    if (!clientRequestId) throw error_("A request ID is required. Reload the page and try again.");
     return withScriptLock_(function () {
       const scriptId = String(request && request.scriptId || "").trim();
       if (!scriptId) throw error_("Script ID is required.");
+      const existingJobs = RenderJobRepository.getAll().filter(function (job) {
+        return job.scriptId === scriptId;
+      });
+      const repeat = existingJobs.filter(function (job) {
+        return job.requestPayload && job.requestPayload.clientRequestId === clientRequestId;
+      })[0];
+      if (repeat) {
+        if (repeat.status === "FAILED") {
+          throw error_("This render request already failed, so nothing new was started. Start it again to render.");
+        }
+        return { job: repeat, duplicate: true };
+      }
       const script = ScriptsRepository.getScriptById(scriptId);
       if (!script || script.status !== "APPROVED") throw error_("Only an approved script can be rendered.");
       const seoPack = SeoRepository.getByScriptId(scriptId);
       if (!seoPack) throw error_("Generate an SEO pack before rendering.");
-      const existingJobs = RenderJobRepository.getAll().filter(function (job) {
-        return job.scriptId === scriptId;
-      });
       assertNoActiveRender_(existingJobs);
       assertNoProtectedUpload_(scriptId, existingJobs);
       const completed = existingJobs.filter(function (job) {
@@ -142,8 +177,24 @@ const ProductionController = (() => {
       if (completed && !(request && request.forceRerender === true)) {
         throw error_("This script already has a completed render. Use Render New Version to add another version.");
       }
-      return { job: startRender_(script, seoPack, existingJobs, { version: request && request.version }).job };
+      const started = startRender_(script, seoPack, existingJobs, { clientRequestId: clientRequestId });
+      return { job: started.job, duplicate: started.duplicate === true };
     });
+  }
+
+  // The worker already holds this submission under originalJobId (a replay of an earlier intent). Nothing new starts here.
+  // - The row already carries that ID: keep it for reconciliation.
+  // - A row for that ID exists: this row is unused, so it is marked FAILED with no ID (it must not share the ID).
+  // - No row for it: adopt the ID and keep this row active, so status checks reconcile it and no second render can start.
+  function settleDuplicate_(job, originalJobId) {
+    const note = "The media worker already holds this submission as render " + originalJobId + ". Savannah did not start a second render.";
+    if (job.renderId === originalJobId) {
+      return { job: RenderJobRepository.update(RenderJobModel.update(job, { errorMessage: "The media worker already holds this render. Savannah is reconciling it. Do not re-render." })), duplicate: true };
+    }
+    if (RenderJobRepository.getByRenderId(originalJobId)) {
+      return { job: RenderJobRepository.update(RenderJobModel.update(job, { status: "FAILED", renderId: "", errorMessage: note })), duplicate: true };
+    }
+    return { job: RenderJobRepository.update(RenderJobModel.update(job, { renderId: originalJobId, status: "QUEUED", errorMessage: note + " Do not re-render; Savannah will reconcile it." })), duplicate: true };
   }
 
   // The one place a render row is created and submitted to the worker. Callers hold the script lock.
@@ -168,7 +219,12 @@ const ProductionController = (() => {
     }));
     {
       try {
-        const result = provider.submitRender(script, seoPack, { renderId: reservedRenderId });
+        const result = provider.submitRender(script, seoPack, {
+          renderId: reservedRenderId,
+          submitIntentId: meta.clientRequestId,
+          renderVersion: meta.version
+        });
+        if (result.duplicate === true) return settleDuplicate_(job, result.originalJobId);
         const render = result.render;
         job = RenderJobRepository.update(RenderJobModel.update(job, {
           renderId: render.id,
@@ -188,7 +244,10 @@ const ProductionController = (() => {
           RenderJobRepository.update(RenderJobModel.update(job, {
             errorMessage: "The media worker did not confirm this render, so it may still be running. Savannah is keeping the job and will reconcile it. Do not re-render."
           }));
-          throw error_("The media worker did not confirm this render. It may still be running, so Savannah is keeping the job and will reconcile it. Do not re-render.");
+          // Flagged, so the page keeps the request ID: the same request is replayed, never started again.
+          const pending = error_("The media worker did not confirm this render. It may still be running, so Savannah is keeping the job and will reconcile it. Do not re-render.");
+          pending.outcomeUnknown = true;
+          throw pending;
         }
         // A definite failure means nothing started, so the reserved ID is unused: drop it, as a
         // failed submission has always had no render ID.
@@ -301,6 +360,8 @@ const ProductionController = (() => {
 
   function submitPrepared(request) {
     return run_("Prepared Short submitted for rendering.", function () {
+      // Checked before the task is claimed, so a paused queue leaves the task READY instead of failing it.
+      assertSubmissionsOpen_();
       const taskId = String(request && request.taskId || "").trim();
       // Claim the task under the script lock: re-read it and move READY -> SUBMITTING in one
       // step, so two overlapping callers (queue tick and a click, or two ticks) cannot both
@@ -318,7 +379,11 @@ const ProductionController = (() => {
         return ProductionTaskRepository.persist(ProductionTaskRepository.update(current, { status: "SUBMITTING" }));
       });
       try {
-        const result = submitCore_({ scriptId: task.scriptId, forceRerender: !!task.sourceRenderJobId });
+        const result = submitCore_({
+          scriptId: task.scriptId,
+          forceRerender: !!task.sourceRenderJobId,
+          clientRequestId: preparedRequestId_(task)
+        });
         task = ProductionTaskRepository.persist(ProductionTaskRepository.update(task, {
           status: "SUBMITTED", renderJobId: result.job.id, errorMessage: ""
         }));
@@ -335,6 +400,13 @@ const ProductionController = (() => {
         throw caught;
       }
     });
+  }
+
+  // A prepared task's request ID comes from its SUBMITTING claim (the task's updatedAt after that claim). A recovery that
+  // re-reads the same claim computes the same ID, so it replays the request; a later claim gets a new ID.
+  function preparedRequestId_(task) {
+    return "task-" + String(task.id || "").replace(/[^A-Za-z0-9-]/g, "") + "-" +
+      new Date(task.updatedAt).getTime().toString(36);
   }
 
   // The render row (not failed or cancelled) that a submission started at or after the task
@@ -465,6 +537,7 @@ const ProductionController = (() => {
   }
 
   function retry(request) {
+    if (!validRequestId_(request)) return failure_("A request ID is required. Reload the page and try again.");
     drainCallbacks_(false);
     const jobId = String(request && request.jobId || "").trim();
     const job = RenderJobRepository.getById(jobId);
@@ -490,12 +563,12 @@ const ProductionController = (() => {
     if (!retryable) {
       return failure_("Only failed, quality-blocked or unapproved completed renders can be retried.");
     }
-    // A failed attempt is retried under the same version number, so numbering stays sequential.
-    // A quality-blocked or unapproved completed render is replaced by a new version.
+    // A retry is a new request with its own ID and the next version number. The worker never lets a second request
+    // claim a version that an earlier request already claimed, so a failed attempt cannot be re-rendered under its number.
     return submitInternal_({
       scriptId: job.scriptId,
       forceRerender: true,
-      version: job.status === "FAILED" ? versionOf_(job) : undefined
+      clientRequestId: validRequestId_(request)
     });
   }
 
@@ -978,8 +1051,9 @@ const ProductionController = (() => {
       const safe = normalised.message;
       try { LoggingService.failure(requestId, "PRODUCTION", "Failed while running: " + message, caught); } catch (ignored) {}
       Logger.log(JSON.stringify({ requestId: requestId, controller: "ProductionController", error: safe }));
+      // outcomeUnknown tells the page to keep its request ID (the render may have started) rather than ask for a new one.
       return { success: false, statusCode: normalised.statusCode, requestId: requestId, message: "Production request failed.",
-        data: null, error: normalised,
+        data: null, error: normalised, outcomeUnknown: caught && caught.outcomeUnknown === true,
         controllerVersion: VERSION };
     }
   }

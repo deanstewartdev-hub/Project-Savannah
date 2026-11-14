@@ -18,14 +18,31 @@ const cases = [
   }],
   ['the version request calls the server action with a request ID and the cost confirmation', () => {
     assert.ok(script.includes('"productionRenderNewVersion"'), 'calls the server action');
-    assert.ok(script.includes('clientRequestId: requestId'), 'sends a request ID');
+    assert.ok(script.includes('clientRequestId: pendingRequestId(pendingKey)'), 'sends the request ID kept for this action');
     assert.ok(script.includes('confirmedMaxCostGbp: NEW_VERSION_COST_GBP'), 'sends the cost confirmation');
     assert.ok(script.includes('window.confirm('), 'asks the owner to confirm before paid work');
   }],
-  ['the request ID is kept per script until the server confirms it (refresh-safe)', () => {
+  ['the request ID is kept per action until the server answers without an unknown outcome (refresh-safe)', () => {
     assert.ok(script.includes('savannah.newVersion.'), 'pending key per script');
-    assert.ok(script.includes('localStorage.setItem(pendingKey, requestId)'), 'stored before the call');
-    assert.ok(script.includes('localStorage.removeItem(pendingKey)'), 'cleared only on success');
+    assert.ok(script.includes('localStorage.setItem(key, id)'), 'stored when the ID is created');
+    assert.ok(script.includes('if (response && response.outcomeUnknown === true) return;'), 'an unknown outcome keeps the ID');
+    assert.ok(script.includes('localStorage.removeItem(key)'), 'cleared once the server has answered');
+  }],
+  ['Create Short and both retry actions send a request ID kept until the server answers', () => {
+    assert.ok(script.includes('const submitKey = "savannah.submit." + submit.dataset.scriptId;'), 'Create Short key per script');
+    assert.ok(script.includes('clientRequestId: pendingRequestId(submitKey)'), 'Create Short sends its ID');
+    assert.equal(script.split('clientRequestId: pendingRequestId(retryKey)').length - 1, 2, 'both retry buttons send an ID');
+    assert.ok(script.includes('"savannah.retry." + readyRetry.dataset.jobId'), 'retry key per job (ready list)');
+    assert.ok(script.includes('"savannah.retry." + retry.dataset.jobId'), 'retry key per job (job card)');
+  }],
+  ['a refused request (no unknown outcome) clears its ID, so the next click is a new request', () => {
+    assert.ok(script.includes('function settlePendingRequest(key, response)'), 'one settle rule for every action');
+    assert.ok(script.includes('if (pendingKey) settlePendingRequest(pendingKey, response);'), 'settled on every server answer');
+    assert.equal(script.includes('clientRequestId: requestId'), false, 'no action reuses a stale local ID variable');
+  }],
+  ['a repeated request is reported as not started, so nobody assumes a second render', () => {
+    assert.ok(script.includes('response.data.duplicate'), 'reads the server duplicate flag');
+    assert.ok(script.includes('No new render was started.'), 'says that nothing new started');
   }],
   ['the button is disabled while a request is in flight (submitDirect)', () => {
     assert.ok(/function submitDirect[\s\S]*?button\.disabled = true/.test(script));

@@ -19,6 +19,7 @@ function setup(options) {
   let lockState = { waits: 0, releases: 0 };
   const context = vm.createContext({
     Utilities: { getUuid: randomUUID }, Logger: { log() {} },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({
       waitLock: () => { if (opts.lockBusy) throw new Error('Lock timeout'); lockState.waits++; },
       releaseLock: () => { lockState.releases++; }

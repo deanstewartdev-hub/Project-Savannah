@@ -332,3 +332,138 @@ test("the preflight reports the minimum required and the maximum allowed separat
 test("the location requirement is on in configuration by default", () => {
   assert.equal(config.footage.requireLocation, true);
 });
+
+// ---- Montage: one clip per place for a recap beat ----
+
+const { coverageCandidates } = await import("../src/pipeline/visualSelection.js");
+
+const RECAP = {
+  text: "You'd be mad to miss these gems!",
+  coverSeconds: 6,
+  montage: [
+    { location: "Burano", searchKeywords: "burano colourful houses" },
+    { location: "Santorini", searchKeywords: "santorini blue domes" },
+    { location: "Antelope Canyon", searchKeywords: "antelope canyon light" }
+  ]
+};
+
+function recapSearch({ withAntelope = true } = {}) {
+  return async (query) => {
+    if (query.includes("burano")) return [portraitClip(201, "colorful-houses-in-burano-canal")];
+    if (query.includes("santorini")) return [portraitClip(202, "santorini-blue-domes-view")];
+    if (query.includes("antelope") && withAntelope) return [portraitClip(203, "antelope-canyon-light-beams")];
+    return [];
+  };
+}
+
+test("a montage beat takes one clip per place, in order, with the beat's seconds shared equally", async () => {
+  const plan = await planBeatVisuals([RECAP], recapSearch(), { allowAiStills: false, landscapeFallback: true });
+  assert.equal(plan[0].type, "video");
+  assert.deepEqual(plan[0].segments.map((s) => s.pexelsId), [201, 202, 203]);
+  assert.ok(plan[0].segments.every((s) => s.sourceDurationSeconds >= 2), "each share fits its clip");
+});
+
+test("a montage with a missing place fails closed: a coverage error even when stills are allowed, never a still", async () => {
+  await assert.rejects(
+    planBeatVisuals([RECAP], recapSearch({ withAntelope: false }), { allowAiStills: true, landscapeFallback: true }),
+    (error) => error instanceof VisualCoverageError && /never turned into a still/.test(error.message)
+  );
+  await assert.rejects(
+    planBeatVisuals([RECAP], recapSearch({ withAntelope: false }), { allowAiStills: false, landscapeFallback: true }),
+    VisualCoverageError
+  );
+});
+
+test("a montage takes exactly one clip per part, even when a place has several clips", async () => {
+  const search = async (query) => {
+    if (query.includes("burano")) return [portraitClip(211, "colorful-houses-in-burano-canal"), portraitClip(212, "burano-canal-boats")];
+    if (query.includes("santorini")) return [portraitClip(213, "santorini-blue-domes-view")];
+    if (query.includes("antelope")) return [portraitClip(214, "antelope-canyon-light-beams")];
+    return [];
+  };
+  const plan = await planBeatVisuals([RECAP], search, { allowAiStills: false, landscapeFallback: true });
+  assert.equal(plan[0].segments.length, 3, "one segment per part, never an extra cut");
+  assert.deepEqual(plan[0].segments.map((s) => s.pexelsId), [211, 213, 214]);
+});
+
+test("timing: each part gets an equal share of the timed beat, and every clip covers its share", async () => {
+  const { segmentLengths } = await import("../src/pipeline/visualSelection.js");
+  const timed = { ...RECAP, coverSeconds: 7.3 };
+  const plan = await planBeatVisuals([timed], recapSearch(), { allowAiStills: false, landscapeFallback: true });
+  const durations = plan[0].segments.map((s) => s.sourceDurationSeconds);
+  const lengths = segmentLengths(durations, 7.3);
+  assert.ok(lengths, "the segments cover the altered timing");
+  for (const length of lengths) assert.ok(Math.abs(length - 7.3 / 3) < 1e-9, "each destination gets 7.3 / 3 seconds");
+});
+
+test("unique footage: a montage part never reuses a clip an earlier scene already used", async () => {
+  const search = async (query) => {
+    if (query.includes("burano")) return [portraitClip(221, "colorful-houses-in-burano-canal"), portraitClip(222, "burano-canal-boats")];
+    if (query.includes("santorini")) return [portraitClip(223, "santorini-blue-domes-view")];
+    if (query.includes("antelope")) return [portraitClip(224, "antelope-canyon-light-beams")];
+    return [];
+  };
+  const earlier = { text: "Burano.", visualQuery: "burano houses", imagePrompt: "burano", location: "Burano", coverSeconds: 3 };
+  const plan = await planBeatVisuals([earlier, RECAP], search, { allowAiStills: false, landscapeFallback: true });
+  const ids = plan.flatMap((entry) => entry.segments.map((s) => s.pexelsId));
+  assert.equal(new Set(ids).size, ids.length, "no clip is used twice across the job");
+  assert.equal(plan[0].segments[0].pexelsId, 221);
+  assert.equal(plan[1].segments[0].pexelsId, 222, "the recap's Burano part takes the next clip");
+});
+
+test("shared clip: an earlier scene that takes the only clip a montage part needs makes the montage fail closed", async () => {
+  const search = async (query) => {
+    if (query.includes("burano")) return [portraitClip(231, "colorful-houses-in-burano-canal")];
+    if (query.includes("santorini")) return [portraitClip(232, "santorini-blue-domes-view")];
+    if (query.includes("antelope")) return [portraitClip(233, "antelope-canyon-light-beams")];
+    return [];
+  };
+  const earlier = { text: "Burano.", visualQuery: "burano houses", imagePrompt: "burano", location: "Burano", coverSeconds: 3 };
+  await assert.rejects(
+    planBeatVisuals([earlier, RECAP], search, { allowAiStills: true, landscapeFallback: true }),
+    (error) => error instanceof VisualCoverageError && /Montage beat 2/.test(error.message)
+  );
+});
+
+test("preflight: two montage parts that can only share one clip refuse the job, whatever allowAiStills says", async () => {
+  const onlyOne = async (query) => (query.includes("burano") || query.includes("santorini") ? [portraitClip(241, "colorful-houses-in-burano-canal")] : []);
+  const twoPlaces = { text: "x", coverSeconds: 6, montage: [
+    { location: "Burano", searchKeywords: "burano colourful houses" },
+    { location: "Santorini", searchKeywords: "santorini blue domes" }
+  ] };
+  for (const allowAiStills of [false, true]) {
+    await assert.rejects(
+      preflightVisualSupply([twoPlaces], { allowAiStills, search: onlyOne, landscapeFallback: true, requireLocation: true }),
+      (error) => error instanceof VisualCoverageError && /never turned into a still/.test(error.message)
+    );
+  }
+});
+
+test("preflight: the still count is a labelled lower bound that counts only single-clip beats", async () => {
+  const unseen = { text: "x", visualQuery: "Unseen view", imagePrompt: "Unseen view", location: "Nowhere", coverSeconds: 3 };
+  const result = await preflightVisualSupply([unseen, RECAP], {
+    allowAiStills: true, search: recapSearch(), stillLimit: 2, landscapeFallback: true, requireLocation: true
+  });
+  assert.equal(result.lowerBound, 1, "the single-clip beat with no footage needs one still; the montage is not counted");
+  assert.equal(result.stills, 1);
+});
+
+test("coverage: a montage with a missing place is unsupported; with all places it is supported", async () => {
+  const missing = await unsupportedBeats([RECAP], recapSearch({ withAntelope: false }), { landscapeFallback: true });
+  assert.deepEqual(missing.map((m) => m.beatIndex), [0]);
+  const complete = await coverageCandidates([RECAP], recapSearch(), { landscapeFallback: true });
+  assert.equal(complete[0].candidateIds.size, 3, "the three places each contribute a candidate");
+});
+
+test("the location gate applies to every montage part: a part with no place is refused before any search", async () => {
+  let searches = 0;
+  const search = async () => { searches += 1; return []; };
+  const noPlacePart = { ...RECAP, montage: [...RECAP.montage, { location: "", searchKeywords: "sunset" }] };
+  await assert.rejects(
+    preflightVisualSupply([noPlacePart], { allowAiStills: true, search, landscapeFallback: true, requireLocation: true }),
+    (error) => error instanceof VisualCoverageError && /has no location/.test(error.message)
+  );
+  assert.equal(searches, 0);
+  const passed = await preflightVisualSupply([RECAP], { allowAiStills: false, search: recapSearch(), landscapeFallback: true, requireLocation: true });
+  assert.equal(passed.stills, 0);
+});

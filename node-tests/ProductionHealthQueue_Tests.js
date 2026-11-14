@@ -146,6 +146,7 @@ function controllerSandbox(options = {}) {
   const context = vm.createContext({
     Utilities: { getUuid: randomUUID }, Logger: { log() {} }, SHEETS: {},
     SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSheetByName: () => sheet, insertSheet: () => sheet }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     LoggingService: { STATUS: { WARNING: 'Warning' }, started() {}, success() {}, failure() {}, log() {} },
     MediaWorkerCallbackInbox: { processPending: () => ({}), processPendingLocked: () => ({}), recentReceipts: () => [] },
