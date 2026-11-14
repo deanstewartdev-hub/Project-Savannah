@@ -48,6 +48,8 @@ Serve the output file from a local web server (a file opened directly may not ru
 
 ## 5a. Rollout and requireSubmitIntent activation (rehearsed offline, not run in production)
 
+Superseded by `deployment-safety.md`, section 3: that sequence closes the submission gate before any deployment, so no old caller can start a paid render during the move. The steps below are kept as the rehearsed order of the switches only.
+
 Order that keeps legitimate renders working:
 
 1. Deploy the worker dispatcher with `requireSubmitIntent` off (the current default). Older Apps Script clients keep working. Rehearsed: a request without intent fields is accepted with the flag off.
@@ -82,3 +84,43 @@ The two 10 November renders (`cr-9b3bed34…` and `cr-8556be9c…`) have no stor
 - The label position against platform overlays is unjudged (section 2).
 - No operator tool releases a stranded version claim.
 - The prepared-task path refuses unless exactly four scenes are prepared, and the Photogenic script has five scenes. Photogenic goes through Create Short, so this does not block it, but the prepared path cannot render it. Not changed here.
+- Triggers: the owner must confirm which Apps Script code each trigger runs before any rollback (see `deployment-safety.md`, section 5). Not verifiable offline.
+
+## 9. Deployment safety (14 November 2026, development only)
+
+Added on `fix/photogenic-scene-metadata`. Built and tested; nothing deployed.
+
+- **Engineering blocker found and fixed:** `dispatcherConfig.js` never read `REQUIRE_SUBMIT_INTENT`, so the intent guard could not be enabled in production by configuration. It is now read from the environment (exact value `yes`).
+- **Submission maintenance gate:** worker `SUBMISSIONS_PAUSED=yes` refuses `POST /jobs` and `POST /jobs/recover` with HTTP 503 before any state is touched. The Apps Script Script property `SUBMISSIONS_PAUSED=yes` refuses every render start before any write or worker call. A paused prepared task stays READY and is marked retryable. Fails closed when the property cannot be read. Tests: `submissionGate.test.js` 5/5; `InitialRenderWorkflow_Tests.js` 17/17.
+- **Non-executing production contract check:** `tools/production/verify-worker-contract.mjs` sends only requests the dispatcher must refuse, checks identity and both switches, refuses staging identities, and never prints the secret. Tests: `productionContractCheck.test.js` 6/6.
+- **Rollout, rollback and version check:** see `deployment-safety.md` (gate, rollout order, rollback) and `next-version-check.md` (confirming the exact next version from production records before any paid click). The version rule reads `requestPayload.version`, not the row's optimistic-lock Version column.
+- **Visual comparison of the AI disclosure position:** `disclosure-comparison.png`, built by `build-disclosure-comparison.mjs`. Panel A is the current position (bottom third), which sits in the simulated bottom title block over the channel line. Panel B is raised to y 1000, clear of the captions and of the simulated right-hand column. The Shorts overlay is simulated with rough boxes, not measured from YouTube's interface. This is evidence for a human decision, not platform approval.
+
+Full Apps Script offline suite exits 0; worker suite passes (see the PR for the final counts).
+
+## 10. Final approval checklist (owner)
+
+Creative approach (approved in PR #32, 14 November, for development review):
+- [x] Two clearly labelled AI-generated Antelope Canyon illustrations for scenes 1 and 2, each with a visible "AI-GENERATED ILLUSTRATION" label for its whole appearance (maximum two stills).
+
+Not yet approved (each is a separate gate):
+- [ ] Generating the two images, or any other chargeable API call.
+- [ ] The visual appearance of the generated images.
+- [ ] Final footage choice and the 9:16 crop, including Antelope Canyon clip 29510336 (place identified by title and frames only).
+- [ ] Disclosure position: current bottom-third (A) or raised (B).
+- [ ] Deploying the worker or the Apps Script (section 3 of `deployment-safety.md`, steps 1–5).
+- [ ] Setting `SUBMISSIONS_PAUSED` and `REQUIRE_SUBMIT_INTENT` in production.
+- [ ] Turning on `REQUIRE_SUBMIT_INTENT` (rollout step 7).
+- [ ] The production script metadata change (after a dry run that confirms the narration matches byte for byte).
+- [ ] Confirming the next render version from production records (`next-version-check.md`) and recording the approval note.
+- [ ] One paid render (planned £5 ceiling, not technically enforced; an OpenAI project limit is the strongest practical cap).
+- [ ] Publishing to YouTube (a separate approval).
+- [ ] Merging PR #31 or PR #32.
+
+Engineering blockers that remain (none is a reason to run anything):
+- Real narration alignment is unmeasured (needs a paid run).
+- London Cloud Run rate and the ElevenLabs and OpenAI official prices are unconfirmed.
+- The apps-script trigger code versions are unverified (rollback depends on it).
+- No operator tool releases a stranded version claim.
+- The prepared-task path needs exactly four scenes; Photogenic has five and goes through Create Short.
+- The two 10 November Request JSON values are unread.
