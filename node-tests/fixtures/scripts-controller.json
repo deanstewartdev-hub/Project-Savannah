@@ -1,0 +1,4499 @@
+{
+ "generate: no request": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: A script-generation request is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: A script-generation request is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: null request": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: A script-generation request is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: A script-generation request is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: array request": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: A script-generation request is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: A script-generation request is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: string request": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: A script-generation request is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: A script-generation request is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: missing idea id": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Idea ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Idea ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: missing idea title": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Idea title is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Idea title is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: whitespace-only fields": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Idea ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Idea ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: options is a string": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-generation options must be an object.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-generation options must be an object.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: options is an array": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-generation options must be an object.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-generation options must be an object.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: idea given as an array falls back to the request": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully and the source idea was moved to Script Ready.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": true,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "Approved",
+     "status": "Script Ready",
+     "idea": {
+      "id": "IDEA-1",
+      "status": "Script Ready",
+      "videoIdea": "Five mistakes"
+     },
+     "warning": ""
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_MOVED_TO_SCRIPT_READY\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"previousStatus\":\"Approved\",\"status\":\"Script Ready\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"Flat title\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}",
+   "idea IDEA-1 -> Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: nested idea, all fields": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully and the source idea was moved to Script Ready.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": true,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "Approved",
+     "status": "Script Ready",
+     "idea": {
+      "id": "IDEA-1",
+      "status": "Script Ready",
+      "videoIdea": "Five mistakes"
+     },
+     "warning": ""
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_MOVED_TO_SCRIPT_READY\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"previousStatus\":\"Approved\",\"status\":\"Script Ready\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"Five mistakes\",\"hook\":\"Hook\",\"targetAudience\":\"Travellers\",\"niche\":\"Travel\"},\"options\":{\"temperature\":0.4,\"maxTokens\":900,\"minimumWordCount\":0,\"tone\":\"calm\",\"language\":\"en\",\"status\":\"FORMATTED\"}}",
+   "idea IDEA-1 -> Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: sheet-style keys": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully and the source idea was moved to Script Ready.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": true,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "Approved",
+     "status": "Script Ready",
+     "idea": {
+      "id": "IDEA-1",
+      "status": "Script Ready",
+      "videoIdea": "Five mistakes"
+     },
+     "warning": ""
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_MOVED_TO_SCRIPT_READY\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"previousStatus\":\"Approved\",\"status\":\"Script Ready\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"Sheet title\",\"hook\":\"H\",\"targetAudience\":\"TA\",\"niche\":\"N\"},\"options\":{}}",
+   "idea IDEA-1 -> Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: alternate keys and numeric id": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully, but the source idea status could not be updated.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "42",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": false,
+     "ideaId": "42",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "",
+     "status": "",
+     "idea": null,
+     "warning": "The source idea could not be found: 42"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_SCRIPT_READY_TRANSITION_FAILED\",\"ideaId\":\"42\",\"scriptId\":\"SCR-FORMATTED\",\"warning\":\"The source idea could not be found: 42\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"42\",\"videoIdea\":\"Topic title\",\"hook\":\"\",\"targetAudience\":\"Aud\",\"niche\":\"\"},\"options\":{\"targetDurationSeconds\":50,\"maximumWordCount\":125,\"minimumDurationSeconds\":30,\"maximumDurationSeconds\":60,\"durationToleranceSeconds\":2}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: key precedence (id over ideaId, videoIdea over title)": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully and the source idea was moved to Script Ready.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": true,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "Approved",
+     "status": "Script Ready",
+     "idea": {
+      "id": "IDEA-1",
+      "status": "Script Ready",
+      "videoIdea": "Five mistakes"
+     },
+     "warning": ""
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_MOVED_TO_SCRIPT_READY\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"previousStatus\":\"Approved\",\"status\":\"Script Ready\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"First\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}",
+   "idea IDEA-1 -> Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine returns minimal result": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully and the source idea was moved to Script Ready.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {},
+    "ai": {},
+    "validation": {},
+    "formatting": {},
+    "promptVersion": "",
+    "estimatedCost": 0,
+    "validationAttempts": 1,
+    "execution": {},
+    "engineVersion": "",
+    "ideaTransition": {
+     "attempted": true,
+     "success": true,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "Approved",
+     "status": "Script Ready",
+     "idea": {
+      "id": "IDEA-1",
+      "status": "Script Ready",
+      "videoIdea": "Five mistakes"
+     },
+     "warning": ""
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_MOVED_TO_SCRIPT_READY\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"previousStatus\":\"Approved\",\"status\":\"Script Ready\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}",
+   "idea IDEA-1 -> Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine returns no idea id, request id is used": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully and the source idea was moved to Script Ready.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-2",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": true,
+     "ideaId": "IDEA-2",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "Idea",
+     "status": "Script Ready",
+     "idea": {
+      "id": "IDEA-2",
+      "status": "Script Ready",
+      "videoIdea": "Second"
+     },
+     "warning": ""
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_MOVED_TO_SCRIPT_READY\",\"ideaId\":\"IDEA-2\",\"scriptId\":\"SCR-FORMATTED\",\"previousStatus\":\"Idea\",\"status\":\"Script Ready\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-2\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}",
+   "idea IDEA-2 -> Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: source idea not found": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully, but the source idea status could not be updated.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-MISSING",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": false,
+     "ideaId": "IDEA-MISSING",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "",
+     "status": "",
+     "idea": null,
+     "warning": "The source idea could not be found: IDEA-MISSING"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_SCRIPT_READY_TRANSITION_FAILED\",\"ideaId\":\"IDEA-MISSING\",\"scriptId\":\"SCR-FORMATTED\",\"warning\":\"The source idea could not be found: IDEA-MISSING\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-MISSING\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: idea status write does not stick": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully, but the source idea status could not be updated.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": false,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "",
+     "status": "",
+     "idea": null,
+     "warning": "The source idea did not persist the Script Ready status."
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_SCRIPT_READY_TRANSITION_FAILED\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"warning\":\"The source idea did not persist the Script Ready status.\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: ideas repository unavailable": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully, but the source idea status could not be updated.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": false,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "",
+     "status": "",
+     "idea": null,
+     "warning": "IdeasRepository is unavailable."
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_SCRIPT_READY_TRANSITION_FAILED\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"warning\":\"IdeasRepository is unavailable.\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: ideas repository has only updateIdeaStatus": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully and the source idea was moved to Script Ready.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": true,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "Approved",
+     "status": "Script Ready",
+     "idea": {
+      "id": "IDEA-1",
+      "status": "Script Ready"
+     },
+     "warning": ""
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_MOVED_TO_SCRIPT_READY\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"previousStatus\":\"Approved\",\"status\":\"Script Ready\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}",
+   "idea IDEA-1 updateIdeaStatus Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: ideas repository has no update method": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generated successfully, but the source idea status could not be updated.",
+   "data": {
+    "scriptId": "SCR-FORMATTED",
+    "ideaId": "IDEA-1",
+    "title": "Five Travel Mistakes to Avoid",
+    "status": "FORMATTED",
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "persistence": {
+     "saved": true,
+     "row": 7
+    },
+    "ai": {
+     "model": "test-model"
+    },
+    "validation": {
+     "valid": true
+    },
+    "formatting": {
+     "valid": true
+    },
+    "promptVersion": "p-1",
+    "estimatedCost": 0.0123,
+    "validationAttempts": 2,
+    "execution": {
+     "ms": 10
+    },
+    "engineVersion": "e-1",
+    "ideaTransition": {
+     "attempted": true,
+     "success": false,
+     "ideaId": "IDEA-1",
+     "scriptId": "SCR-FORMATTED",
+     "previousStatus": "",
+     "status": "",
+     "idea": null,
+     "warning": "The Ideas repository has no supported status-update method."
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"IDEA_SCRIPT_READY_TRANSITION_FAILED\",\"ideaId\":\"IDEA-1\",\"scriptId\":\"SCR-FORMATTED\",\"warning\":\"The Ideas repository has no supported status-update method.\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine returns nothing persisted": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: The script engine did not return a persisted script.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: The script engine did not return a persisted script.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ScriptEngineError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptEngineError",
+    "code": "SCRIPT_GENERATION_FAILED",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptEngineError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ScriptValidationError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptValidationError",
+    "code": "SCRIPT_VALIDATION_FAILED",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptValidationError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ScriptFormatterError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptFormatterError",
+    "code": "SCRIPT_FORMATTING_FAILED",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptFormatterError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ScriptModelError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptModelError",
+    "code": "SCRIPT_MODEL_ERROR",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptModelError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ScriptModelValidationError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptModelValidationError",
+    "code": "SCRIPT_MODEL_VALIDATION_FAILED",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptModelValidationError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ScriptsRepositoryError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsRepositoryError",
+    "code": "SCRIPT_REPOSITORY_ERROR",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsRepositoryError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ApprovalRepositoryError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ApprovalRepositoryError",
+    "code": "APPROVAL_REPOSITORY_ERROR",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ApprovalRepositoryError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ApprovalModelError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ApprovalModelError",
+    "code": "APPROVAL_MODEL_ERROR",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ApprovalModelError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ApprovalModelValidationError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ApprovalModelValidationError",
+    "code": "APPROVAL_VALIDATION_FAILED",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ApprovalModelValidationError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws AIServiceError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "AIServiceError",
+    "code": "AI_SERVICE_ERROR",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"AIServiceError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws ScriptsControllerError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws TypeError": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "TypeError",
+    "code": "SCRIPT_REQUEST_FAILED",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"TypeError\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: engine throws (blank name)": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "Error",
+    "code": "SCRIPT_REQUEST_FAILED",
+    "message": "Provider said no",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"Error\",\"errorMessage\":\"Provider said no\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: error message has a link and a stack": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "AIServiceError",
+    "code": "AI_SERVICE_ERROR",
+    "message": "Failed at [link removed] and [link removed]",
+    "runId": "RUN-9",
+    "ideaId": "IDEA-1"
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"AIServiceError\",\"errorMessage\":\"Failed at [link removed] and [link removed]\",\"runId\":\"RUN-9\",\"ideaId\":\"IDEA-1\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: a thrown string": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "Error",
+    "code": "SCRIPT_REQUEST_FAILED",
+    "message": "plain failure",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"Error\",\"errorMessage\":\"plain failure\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "generate: an error with an empty message": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script generation failed.",
+   "data": null,
+   "error": {
+    "name": "Error",
+    "code": "SCRIPT_REQUEST_FAILED",
+    "message": "Error",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"Error\",\"errorMessage\":\"Error\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generateScript {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "preview: valid": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script preview generated successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "writes": [
+   "engine.generatePreview {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{\"tone\":\"warm\"}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "preview: invalid request": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script preview generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Idea ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Idea ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "preview: engine throws": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script preview generation failed.",
+   "data": null,
+   "error": {
+    "name": "ScriptValidationError",
+    "code": "SCRIPT_VALIDATION_FAILED",
+    "message": "Too short",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptValidationError\",\"errorMessage\":\"Too short\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "engine.generatePreview {\"idea\":{\"id\":\"IDEA-1\",\"videoIdea\":\"T\",\"hook\":\"\",\"targetAudience\":\"\",\"niche\":\"\"},\"options\":{}}"
+  ],
+  "lockHeldAfter": false
+ },
+ "list: no request": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ODD",
+      "ideaId": "IDEA-4",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "DRAFT",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 0,
+      "wordCount": 41,
+      "provider": "",
+      "aiModel": "",
+      "promptVersion": "",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-13T08:00:00.000Z",
+      "updatedAt": "not a date",
+      "version": 1
+     }
+    ],
+    "count": 5,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: null request": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ODD",
+      "ideaId": "IDEA-4",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "DRAFT",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 0,
+      "wordCount": 41,
+      "provider": "",
+      "aiModel": "",
+      "promptVersion": "",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-13T08:00:00.000Z",
+      "updatedAt": "not a date",
+      "version": 1
+     }
+    ],
+    "count": 5,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: empty object": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ODD",
+      "ideaId": "IDEA-4",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "DRAFT",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 0,
+      "wordCount": 41,
+      "provider": "",
+      "aiModel": "",
+      "promptVersion": "",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-13T08:00:00.000Z",
+      "updatedAt": "not a date",
+      "version": 1
+     }
+    ],
+    "count": 5,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: by status, lower case and padded": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     }
+    ],
+    "count": 2,
+    "totalStored": 5,
+    "filters": {
+     "status": "PENDING_APPROVAL",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: by idea id": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     }
+    ],
+    "count": 2,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "IDEA-1",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: idea id wins over status": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     }
+    ],
+    "count": 2,
+    "totalStored": 5,
+    "filters": {
+     "status": "DRAFT",
+     "ideaId": "IDEA-1",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: unknown status": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [],
+    "count": 0,
+    "totalStored": 5,
+    "filters": {
+     "status": "NOPE",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: limit 1": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     }
+    ],
+    "count": 1,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 1
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: limit 2": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     }
+    ],
+    "count": 2,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 2
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: limit \"3\"": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     }
+    ],
+    "count": 3,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 3
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: limit 500": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ODD",
+      "ideaId": "IDEA-4",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "DRAFT",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 0,
+      "wordCount": 41,
+      "provider": "",
+      "aiModel": "",
+      "promptVersion": "",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-13T08:00:00.000Z",
+      "updatedAt": "not a date",
+      "version": 1
+     }
+    ],
+    "count": 5,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 200
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: limit 0": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-list limit must be a positive integer.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-list limit must be a positive integer.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "list: limit -1": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-list limit must be a positive integer.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-list limit must be a positive integer.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "list: limit 1.5": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-list limit must be a positive integer.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-list limit must be a positive integer.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "list: limit \"abc\"": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-list limit must be a positive integer.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-list limit must be a positive integer.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "list: limit \"\"": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ODD",
+      "ideaId": "IDEA-4",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "DRAFT",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 0,
+      "wordCount": 41,
+      "provider": "",
+      "aiModel": "",
+      "promptVersion": "",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-13T08:00:00.000Z",
+      "updatedAt": "not a date",
+      "version": 1
+     }
+    ],
+    "count": 5,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: limit null": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ODD",
+      "ideaId": "IDEA-4",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "DRAFT",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 0,
+      "wordCount": 41,
+      "provider": "",
+      "aiModel": "",
+      "promptVersion": "",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-13T08:00:00.000Z",
+      "updatedAt": "not a date",
+      "version": 1
+     }
+    ],
+    "count": 5,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: limit true": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     }
+    ],
+    "count": 1,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 1
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "list: request is a string": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-list request must be an object.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-list request must be an object.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "list: request is an array": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script-list request must be an object.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script-list request must be an object.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "list: controller called directly with undefined": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Scripts loaded successfully.",
+   "data": {
+    "scripts": [
+     {
+      "id": "SCR-APPROVED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "APPROVED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 111,
+      "provider": "padded-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-14T10:00:00.000Z",
+      "updatedAt": "2026-11-14T11:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-PENDING",
+      "ideaId": "IDEA-2",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-12T08:00:00.000Z",
+      "updatedAt": "2026-11-12T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ORPHAN-PENDING",
+      "ideaId": "IDEA-3",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "PENDING_APPROVAL",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-11T08:00:00.000Z",
+      "updatedAt": "2026-11-11T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-FORMATTED",
+      "ideaId": "IDEA-1",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "FORMATTED",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 3,
+      "wordCount": 41,
+      "provider": "test-provider",
+      "aiModel": "test-model",
+      "promptVersion": "script-prompt-test-v1.0",
+      "validationAttempts": 1,
+      "createdAt": "2026-11-10T08:00:00.000Z",
+      "updatedAt": "2026-11-10T09:00:00.000Z",
+      "version": 1
+     },
+     {
+      "id": "SCR-ODD",
+      "ideaId": "IDEA-4",
+      "title": "Five Travel Mistakes to Avoid",
+      "hook": "These five mistakes can ruin your next holiday.",
+      "status": "DRAFT",
+      "estimatedDurationSeconds": 45,
+      "sceneCount": 0,
+      "wordCount": 41,
+      "provider": "",
+      "aiModel": "",
+      "promptVersion": "",
+      "validationAttempts": 3,
+      "createdAt": "2026-11-13T08:00:00.000Z",
+      "updatedAt": "not a date",
+      "version": 1
+     }
+    ],
+    "count": 5,
+    "totalStored": 5,
+    "filters": {
+     "status": "",
+     "ideaId": "",
+     "limit": 50
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "get: by string id": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script loaded successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "FORMATTED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-10T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "get: by scriptId": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script loaded successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-APPROVED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "APPROVED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "  padded-provider ",
+      "wordCount": 111,
+      "usage": {
+       "attemptCount": 2.6
+      }
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-14T10:00:00.000Z",
+     "updatedAt": "2026-11-14T11:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "get: by id": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script loaded successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-PENDING",
+     "ideaId": "IDEA-2",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "PENDING_APPROVAL",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-12T08:00:00.000Z",
+     "updatedAt": "2026-11-12T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "get: scriptId wins over id": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script loaded successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-APPROVED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "APPROVED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "  padded-provider ",
+      "wordCount": 111,
+      "usage": {
+       "attemptCount": 2.6
+      }
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-14T10:00:00.000Z",
+     "updatedAt": "2026-11-14T11:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "get: not found": {
+  "returned": {
+   "success": false,
+   "statusCode": 404,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script was not found.",
+   "data": {
+    "scriptId": "SCR-NOPE"
+   },
+   "error": {
+    "name": "NotFoundError",
+    "code": "NOT_FOUND"
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "get: missing id": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "get: no request": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "get: number": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "latest: by string": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Latest script loaded successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-APPROVED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "APPROVED",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "  padded-provider ",
+      "wordCount": 111,
+      "usage": {
+       "attemptCount": 2.6
+      }
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-14T10:00:00.000Z",
+     "updatedAt": "2026-11-14T11:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "latest: by ideaId": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Latest script loaded successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-PENDING",
+     "ideaId": "IDEA-2",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "PENDING_APPROVAL",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-12T08:00:00.000Z",
+     "updatedAt": "2026-11-12T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    }
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "latest: by id": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "The latest script could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "TypeError",
+    "code": "SCRIPT_REQUEST_FAILED",
+    "message": "Cannot read properties of null (reading 'forEach')",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"TypeError\",\"errorMessage\":\"Cannot read properties of null (reading 'forEach')\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "latest: not found": {
+  "returned": {
+   "success": false,
+   "statusCode": 404,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "No script exists for this idea.",
+   "data": {
+    "ideaId": "IDEA-NOPE"
+   },
+   "error": {
+    "name": "NotFoundError",
+    "code": "NOT_FOUND"
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "latest: missing": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "The latest script could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Idea ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Idea ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "metrics: seeded scripts": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script metrics loaded successfully.",
+   "data": {
+    "totalScripts": 5,
+    "createdToday": 1,
+    "statusCounts": {
+     "DRAFT": 1,
+     "GENERATED": 0,
+     "VALIDATED": 0,
+     "FORMATTED": 1,
+     "PENDING_APPROVAL": 2,
+     "APPROVED": 1,
+     "REJECTED": 0,
+     "CHANGES_REQUESTED": 0,
+     "ARCHIVED": 0
+    },
+    "latestUpdatedAt": "2026-11-14T11:00:00.000Z"
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "metrics: no scripts": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script metrics loaded successfully.",
+   "data": {
+    "totalScripts": 0,
+    "createdToday": 0,
+    "statusCounts": {
+     "DRAFT": 0,
+     "GENERATED": 0,
+     "VALIDATED": 0,
+     "FORMATTED": 0,
+     "PENDING_APPROVAL": 0,
+     "APPROVED": 0,
+     "REJECTED": 0,
+     "CHANGES_REQUESTED": 0,
+     "ARCHIVED": 0
+    },
+    "latestUpdatedAt": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "metrics: unknown status and bad dates": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script metrics loaded successfully.",
+   "data": {
+    "totalScripts": 5,
+    "createdToday": 1,
+    "statusCounts": {
+     "DRAFT": 0,
+     "GENERATED": 0,
+     "VALIDATED": 0,
+     "FORMATTED": 1,
+     "PENDING_APPROVAL": 2,
+     "APPROVED": 1,
+     "REJECTED": 0,
+     "CHANGES_REQUESTED": 0,
+     "ARCHIVED": 0,
+     "MYSTERY": 1
+    },
+    "latestUpdatedAt": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "lockHeldAfter": false
+ },
+ "metrics: repository fails": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script metrics could not be loaded.",
+   "data": null,
+   "error": {
+    "name": "ScriptsRepositoryError",
+    "code": "SCRIPT_REPOSITORY_ERROR",
+    "message": "Sheet missing",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsRepositoryError\",\"errorMessage\":\"Sheet missing\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "review: formatted script is queued": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script sent for review successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "PENDING_APPROVAL",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-14T12:00:00.000Z",
+     "version": 2,
+     "modelVersion": "script-model-v1.0"
+    },
+    "approval": {
+     "id": "APR-00000003-0000-4000-8000-000000000000",
+     "scriptId": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "scriptVersion": 1,
+     "title": "Five Travel Mistakes to Avoid",
+     "status": "PENDING_APPROVAL",
+     "submittedAt": "2026-11-14T12:00:00.000Z",
+     "submittedBy": "Dean",
+     "reviewedAt": "",
+     "reviewedBy": "",
+     "reviewNotes": "Please check",
+     "decisionReason": "",
+     "metadata": {
+      "sourceType": "SCRIPT",
+      "sourceScriptStatus": "FORMATTED",
+      "sourceScriptModelVersion": "script-model-v1.0",
+      "requestId": "REQ-SCRIPT-00000002",
+      "submittedFrom": "SCRIPTS_WORKSPACE"
+     },
+     "createdAt": "2026-11-14T12:00:00.000Z",
+     "updatedAt": "2026-11-14T12:00:00.000Z",
+     "version": 1,
+     "modelVersion": "approval-model-v1.0"
+    },
+    "alreadyPending": false
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"SCRIPT_SENT_FOR_REVIEW\",\"requestId\":\"REQ-SCRIPT-00000002\",\"scriptId\":\"SCR-FORMATTED\",\"ideaId\":\"IDEA-1\",\"approvalId\":\"APR-00000003-0000-4000-8000-000000000000\",\"status\":\"PENDING_APPROVAL\"}"
+   }
+  ],
+  "writes": [
+   "approval saved for SCR-FORMATTED",
+   "script SCR-FORMATTED -> PENDING_APPROVAL",
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: by string id": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script sent for review successfully.",
+   "data": {
+    "script": {
+     "id": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "PENDING_APPROVAL",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-10T08:00:00.000Z",
+     "updatedAt": "2026-11-14T12:00:00.000Z",
+     "version": 2,
+     "modelVersion": "script-model-v1.0"
+    },
+    "approval": {
+     "id": "APR-00000003-0000-4000-8000-000000000000",
+     "scriptId": "SCR-FORMATTED",
+     "ideaId": "IDEA-1",
+     "scriptVersion": 1,
+     "title": "Five Travel Mistakes to Avoid",
+     "status": "PENDING_APPROVAL",
+     "submittedAt": "2026-11-14T12:00:00.000Z",
+     "submittedBy": "",
+     "reviewedAt": "",
+     "reviewedBy": "",
+     "reviewNotes": "",
+     "decisionReason": "",
+     "metadata": {
+      "sourceType": "SCRIPT",
+      "sourceScriptStatus": "FORMATTED",
+      "sourceScriptModelVersion": "script-model-v1.0",
+      "requestId": "REQ-SCRIPT-00000002",
+      "submittedFrom": "SCRIPTS_WORKSPACE"
+     },
+     "createdAt": "2026-11-14T12:00:00.000Z",
+     "updatedAt": "2026-11-14T12:00:00.000Z",
+     "version": 1,
+     "modelVersion": "approval-model-v1.0"
+    },
+    "alreadyPending": false
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\"controller\":\"ScriptsController\",\"action\":\"SCRIPT_SENT_FOR_REVIEW\",\"requestId\":\"REQ-SCRIPT-00000002\",\"scriptId\":\"SCR-FORMATTED\",\"ideaId\":\"IDEA-1\",\"approvalId\":\"APR-00000003-0000-4000-8000-000000000000\",\"status\":\"PENDING_APPROVAL\"}"
+   }
+  ],
+  "writes": [
+   "approval saved for SCR-FORMATTED",
+   "script SCR-FORMATTED -> PENDING_APPROVAL",
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: already pending returns the existing approval": {
+  "returned": {
+   "success": true,
+   "statusCode": 200,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "This script is already pending approval.",
+   "data": {
+    "script": {
+     "id": "SCR-PENDING",
+     "ideaId": "IDEA-2",
+     "title": "Five Travel Mistakes to Avoid",
+     "hook": "These five mistakes can ruin your next holiday.",
+     "voiceoverScript": "These five mistakes can ruin your next holiday. Plan your route before leaving the hotel. Avoid restaurants beside major landmarks. Keep your valuables secure in busy areas. Do not attempt every attraction in one day. Follow for more practical travel advice.",
+     "scenes": [
+      {
+       "sceneNumber": 1,
+       "narration": "These five mistakes can ruin your holiday.",
+       "onScreenText": "Avoid these mistakes",
+       "visualDirection": "Fast montage of a busy holiday destination.",
+       "estimatedSeconds": 8
+      },
+      {
+       "sceneNumber": 2,
+       "narration": "Plan carefully and avoid obvious tourist traps.",
+       "onScreenText": "Plan ahead",
+       "visualDirection": "Map planning followed by a restaurant menu.",
+       "estimatedSeconds": 18
+      },
+      {
+       "sceneNumber": 3,
+       "narration": "Protect your valuables and leave time to enjoy the trip.",
+       "onScreenText": "Stay secure · Slow down",
+       "visualDirection": "Crowded street followed by a relaxed café.",
+       "estimatedSeconds": 19
+      }
+     ],
+     "callToAction": "Follow for more practical travel advice.",
+     "estimatedDurationSeconds": 45,
+     "generationNotes": "",
+     "status": "PENDING_APPROVAL",
+     "validation": {
+      "valid": true
+     },
+     "formatting": {
+      "valid": true
+     },
+     "metadata": {
+      "provider": "test-provider"
+     },
+     "displayText": "Five Travel Mistakes to Avoid",
+     "promptVersion": "script-prompt-test-v1.0",
+     "aiModel": "test-model",
+     "createdAt": "2026-11-12T08:00:00.000Z",
+     "updatedAt": "2026-11-12T09:00:00.000Z",
+     "version": 1,
+     "modelVersion": "script-model-v1.0"
+    },
+    "approval": {
+     "id": "APR-00000001-0000-4000-8000-000000000000",
+     "scriptId": "SCR-PENDING",
+     "ideaId": "IDEA-2",
+     "scriptVersion": 1,
+     "title": "Five Travel Mistakes to Avoid",
+     "status": "PENDING_APPROVAL",
+     "submittedAt": "2026-11-14T12:00:00.000Z",
+     "submittedBy": "Writer",
+     "reviewedAt": "",
+     "reviewedBy": "",
+     "reviewNotes": "",
+     "decisionReason": "",
+     "metadata": {
+      "sourceType": "SCRIPT",
+      "sourceScriptStatus": "PENDING_APPROVAL",
+      "sourceScriptModelVersion": "script-model-v1.0"
+     },
+     "createdAt": "2026-11-14T12:00:00.000Z",
+     "updatedAt": "2026-11-14T12:00:00.000Z",
+     "version": 1,
+     "modelVersion": "approval-model-v1.0"
+    },
+    "alreadyPending": true
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "writes": [
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: pending without a queue record": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be sent for review.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: The script is pending approval but its queue record is missing.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: The script is pending approval but its queue record is missing.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: approved script is refused": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be sent for review.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Only a formatted script can be sent for review.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Only a formatted script can be sent for review.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: draft script is refused": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be sent for review.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Only a formatted script can be sent for review.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Only a formatted script can be sent for review.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: not found": {
+  "returned": {
+   "success": false,
+   "statusCode": 404,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script was not found.",
+   "data": {
+    "scriptId": "SCR-NOPE"
+   },
+   "error": {
+    "name": "NotFoundError",
+    "code": "NOT_FOUND"
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "writes": [
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: missing id": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be sent for review.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: Script ID is required.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: Script ID is required.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: formatted script that already has an active approval": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be sent for review.",
+   "data": null,
+   "error": {
+    "name": "ScriptsControllerError",
+    "code": "INVALID_REQUEST",
+    "message": "Scripts controller error: This script already has an active approval.",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"ScriptsControllerError\",\"errorMessage\":\"Scripts controller error: This script already has an active approval.\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: script status write fails, approval is rolled back": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be sent for review.",
+   "data": null,
+   "error": {
+    "name": "Error",
+    "code": "SCRIPT_REQUEST_FAILED",
+    "message": "Sheets write failed",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"Error\",\"errorMessage\":\"Sheets write failed\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "writes": [
+   "approval saved for SCR-FORMATTED",
+   "approval deleted",
+   "lock released"
+  ],
+  "lockHeldAfter": false
+ },
+ "review: lock is busy": {
+  "returned": {
+   "success": false,
+   "statusCode": 400,
+   "requestId": "REQ-SCRIPT-00000002",
+   "message": "Script could not be sent for review.",
+   "data": null,
+   "error": {
+    "name": "Error",
+    "code": "SCRIPT_REQUEST_FAILED",
+    "message": "Lock timeout",
+    "runId": "",
+    "ideaId": ""
+   },
+   "controllerVersion": "scripts-controller-v1.2"
+  },
+  "effects": [
+   {
+    "log": "{\"requestId\":\"REQ-SCRIPT-00000002\",\"controller\":\"ScriptsController\",\"errorName\":\"Error\",\"errorMessage\":\"Lock timeout\",\"runId\":\"\",\"ideaId\":\"\"}"
+   }
+  ],
+  "lockHeldAfter": false
+ },
+ "reconcile: idea with a saved script": {
+  "returned": {
+   "success": true,
+   "ideaId": "IDEA-1",
+   "scriptId": "SCR-APPROVED",
+   "scriptTitle": "Five Travel Mistakes to Avoid",
+   "status": "Script Ready",
+   "idea": {
+    "id": "IDEA-1",
+    "status": "Script Ready",
+    "videoIdea": "Five mistakes"
+   }
+  },
+  "effects": [
+   {
+    "flush": true
+   },
+   {
+    "log": "{\n  \"success\": true,\n  \"ideaId\": \"IDEA-1\",\n  \"scriptId\": \"SCR-APPROVED\",\n  \"scriptTitle\": \"Five Travel Mistakes to Avoid\",\n  \"status\": \"Script Ready\",\n  \"idea\": {\n    \"id\": \"IDEA-1\",\n    \"status\": \"Script Ready\",\n    \"videoIdea\": \"Five mistakes\"\n  }\n}"
+   },
+   {
+    "log": "Existing idea reconciled to Script Ready successfully."
+   }
+  ],
+  "writes": [
+   "idea IDEA-1 -> Script Ready"
+  ],
+  "lockHeldAfter": false
+ },
+ "reconcile: no id": {
+  "threw": {
+   "name": "Error",
+   "message": "An idea ID is required."
+  },
+  "lockHeldAfter": false
+ },
+ "reconcile: no saved script": {
+  "threw": {
+   "name": "Error",
+   "message": "No saved script exists for idea IDEA-NOPE. The status was not changed."
+  },
+  "lockHeldAfter": false
+ },
+ "version": {
+  "returned": "scripts-controller-v1.2",
+  "lockHeldAfter": false
+ }
+}
