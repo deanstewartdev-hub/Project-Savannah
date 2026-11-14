@@ -60,7 +60,7 @@ Legend: `[x]` done and verified · `[ ]` planned · `[~]` justified exception (s
 - [x] `App/ScriptsController.js` — 2,192 → 1,189 lines; request parsing, response shaping and value helpers now in `ScriptsController_Requests.js`, `_Responses.js`, `_Values.js` (94-scenario characterisation suite added first)
 - [x] `Scripts/Script_Engine.js` — 2,114 → 703 lines; idea and option resolution, prompt building, repair-loop support and result assembly now in `Script_Engine_Inputs.js`, `_Prompt.js`, `_Repair.js`, `_Results.js` (84-scenario characterisation suite added first)
 - [ ] `Models/Approval.js`
-- [ ] `Scripts/Scripts_Repository.js`
+- [x] `Scripts/Scripts_Repository.js` — 1,368 → 665 lines; row ↔ model mapping now in `Scripts_Repository_Rows.js`. The sheet schema (headers, column numbers) stays in the repository (70-scenario characterisation suite over an in-memory sheet added first)
 - [x] `AI/AI_AIService.js` — 1,229 → 322 lines; request validation, response normalisation and shared values now in `AI_AIService_Requests.js`, `_Responses.js`, `_Values.js`. The retry loop and provider routing stay in the service, untouched (100-scenario characterisation suite added first)
 - [ ] `Ideas/Ideas_Repository.js`, `App/IdeasController.js`
 - [ ] `App/App.js` (shell and routing)
