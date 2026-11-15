@@ -5,6 +5,18 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 15 November 2026 — Modular refactoring (no behaviour change, not deployed)
+
+Large files are split into focused sibling modules; the original files keep their public names and
+delegate. Split: ScriptsController, ScriptEngine, ScriptValidator, ScriptsRepository, AIService, the
+browser application script (dashboard, ideas and scripts sections) and the worker's visualSelection.js.
+Hand-run self-tests moved out of eight production files into Tests/. ProductionController and the files
+around it are deliberately not split. New safety nets: a global-scope contract test (all 307 global names,
+no duplicates, load-order independence), five characterisation suites (527 scenarios, captured before any
+code moved), a frontend structure test and a worker import-surface test. App runner 1,035 PASS / 0 FAIL
+(was 498), worker suite 435/435 (was 431). No sheet, property, payload or contract changed. See
+docs/refactor/COMPLETION_REPORT.md.
+
 ### 3 November 2026 — Creative-quality phase (not deployed)
 
 Background music can be used only from a verified manifest record (licence, source, verifier, date);

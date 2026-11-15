@@ -36,3 +36,4 @@ The fixture is the "before" picture. It is regenerated only on purpose
 | 2026-11-14 | Frontend script split | 856 PASS / 0 FAIL (853 + 3 structure checks) | not re-run (no worker file changed) | Dashboard, Ideas and Scripts pages loaded in a browser before and after: no errors, same server calls, same rendered text |
 | 2026-11-14 | Worker visualSelection split | not re-run (no app file changed) | 435 / 435 (431 + 4 import-surface checks) | 378 removed lines all present in the new modules; one line changed (`framingFor` gained `export`) |
 | 2026-11-14 | ScriptValidator split | 1,035 PASS / 0 FAIL (856 + 179 characterisation scenarios) | 435 / 435 (no worker file changed since) | 549 removed lines all present in the new modules |
+| 2026-11-15 | final, after all modules | **1,035 PASS / 0 FAIL**, exit 0 | **435 / 435** | both suites re-run in full; safety-critical areas unchanged by diff |

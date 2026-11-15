@@ -1,5 +1,8 @@
 # Architecture map and module inventory
 
+**This is the audit: the code as it was before the refactor.** The structure after it, with
+public interfaces and dependencies, is in [MODULES.md](MODULES.md).
+
 Audit of the code at `4e4967c` (tip of PR #32), 14 November 2026. Figures come from the
 repository itself: `git ls-files`, `node-tests/lib/appsScriptGlobalScope.cjs` and
 `tools/refactor/dependency-map.cjs` (re-run either to refresh them).

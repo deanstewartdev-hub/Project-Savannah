@@ -118,6 +118,30 @@ Savannah currently uses these worksheets:
 
 Worksheet schemas are repository-owned. Do not change columns manually without a migration.
 
+## Focused modules (November 2026 refactor)
+
+Several large files were split into focused sibling modules with no change in behaviour. The
+original file keeps its public name and delegates to the siblings, which only it calls:
+
+```text
+App/ScriptsController.js        + _Requests, _Responses, _Values
+Scripts/Script_Engine.js        + _Inputs, _Prompt, _Repair, _Results
+Scripts/Script_Validator.js     + _Scenes, _Text
+Scripts/Scripts_Repository.js   + _Rows
+AI/AI_AIService.js              + _Requests, _Responses, _Values
+Frontend/Assets/Scripts/Scripts.html  + Dashboard.html, Ideas.html, ScriptWorkspace.html
+media-worker/src/pipeline/visualSelection.js
+                                + visualQueries.js, clipSelection.js, montageRules.js, footagePreflight.js
+Tests/*_SelfTests.js            hand-run self-tests that used to sit inside production files
+```
+
+Apps Script has no module system: every pushed file shares one global scope. A sibling module
+is therefore one global object, and it must only be referenced from inside a function, never
+while a file is loading, so that file load order never matters.
+`node-tests/ApplicationScopeContract_Tests.js` enforces this. Module inventory, interfaces,
+dependencies and the rules for adding a module: [docs/refactor/MODULES.md](docs/refactor/MODULES.md)
+and [docs/refactor/COMPATIBILITY.md](docs/refactor/COMPATIBILITY.md).
+
 ## Boundaries
 
 - Frontend files render state and call public Apps Script functions.
