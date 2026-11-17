@@ -1,3 +1,9 @@
+// LOGICAL MODEL ONLY. This module does not read Cloud Run, Secret Manager or Apps Script, and it does not know which
+// revisions are reachable. The live facts (traffic, tags, which secret version each revision references, which versions
+// are enabled) come from a read-only inventory, assessed by tools/production/revision-inventory.mjs. Deployment approval
+// needs both (approvalReady). The state values below are assumptions that the owner must confirm against the live
+// system before any step is approved.
+//
 // Rollout and rollback rules for paid submissions, as a pure state machine. It is not connected to any deployment. For a
 // proposed step and the state the owner has observed, it answers whether the step may be taken, and it refuses any step
 // that would leave paid submissions open, unless it is the open step and that step's preconditions hold.

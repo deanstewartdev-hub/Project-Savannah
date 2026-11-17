@@ -1,0 +1,299 @@
+{
+  "snapshot": "read-only, 17 Nov 2026 (gcloud run services/revisions describe and list; Cloud Monitoring instance_count and request_count). No secret values.",
+  "project": "savannah-media-worker",
+  "service": "savannah-media-worker-dispatcher",
+  "region": "europe-west2",
+  "ingress": "all",
+  "invoker": "allUsers",
+  "liveRevision": "savannah-media-worker-dispatcher-00030-wam",
+  "secretVersions": {
+    "1": "disabled",
+    "2": "enabled"
+  },
+  "revisions": [
+    {
+      "name": "00030-wam",
+      "created": "2026-11-10",
+      "imageDigestPrefix": "sha256:576bb6de",
+      "trafficPercent": 100,
+      "tags": [
+        "candidate20"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00028-bay",
+      "created": "2026-11-10",
+      "imageDigestPrefix": "sha256:464de23a",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate19"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00026-zus",
+      "created": "2026-11-09",
+      "imageDigestPrefix": "sha256:08538864",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate18"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00023-jem",
+      "created": "2026-11-06",
+      "imageDigestPrefix": "sha256:6cd7b35c",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate17"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00021-waw",
+      "created": "2026-11-06",
+      "imageDigestPrefix": "sha256:e991a0ef",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate16"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00019-nih",
+      "created": "2026-11-06",
+      "imageDigestPrefix": "sha256:925215fb",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate15"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00017-toy",
+      "created": "2026-11-05",
+      "imageDigestPrefix": "sha256:80ca594c",
+      "trafficPercent": 0,
+      "tags": [
+        "cand367"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00015-bay",
+      "created": "2026-11-02",
+      "imageDigestPrefix": "sha256:d010ddcf",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate14"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00013-jin",
+      "created": "2026-10-30",
+      "imageDigestPrefix": "sha256:67fe1551",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate13"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00011-ctz",
+      "created": "2026-10-28",
+      "imageDigestPrefix": "sha256:72a8f7ac",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        }
+      ]
+    },
+    {
+      "name": "00010-ndp",
+      "created": "2026-10-27",
+      "imageDigestPrefix": "sha256:72a8f7ac",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "2"
+        },
+        {
+          "name": "JOB_SUBMIT_SECRET_PREVIOUS",
+          "version": "1"
+        }
+      ]
+    },
+    {
+      "name": "00009-man",
+      "created": "2026-10-27",
+      "imageDigestPrefix": "sha256:72a8f7ac",
+      "trafficPercent": 0,
+      "tags": [
+        "candidate"
+      ],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "1"
+        }
+      ]
+    },
+    {
+      "name": "00008-btl",
+      "created": "2026-08-13",
+      "imageDigestPrefix": "sha256:6afa195d",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    },
+    {
+      "name": "00007-725",
+      "created": "2026-08-13",
+      "imageDigestPrefix": "sha256:5b128a7c",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    },
+    {
+      "name": "00006-kdg",
+      "created": "2026-08-13",
+      "imageDigestPrefix": "sha256:187f52a9",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    },
+    {
+      "name": "00005-7wg",
+      "created": "2026-08-12",
+      "imageDigestPrefix": "sha256:5498d0f0",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    },
+    {
+      "name": "00004-xvx",
+      "created": "2026-08-11",
+      "imageDigestPrefix": "sha256:97dc553a",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    },
+    {
+      "name": "00003-cbk",
+      "created": "2026-08-11",
+      "imageDigestPrefix": "sha256:6341a052",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    },
+    {
+      "name": "00002-qcx",
+      "created": "2026-08-11",
+      "imageDigestPrefix": "sha256:53891768",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    },
+    {
+      "name": "00001-qqp",
+      "created": "2026-08-11",
+      "imageDigestPrefix": "sha256:c78020cd",
+      "trafficPercent": 0,
+      "tags": [],
+      "secretRefs": [
+        {
+          "name": "JOB_SUBMIT_SECRET",
+          "version": "latest"
+        }
+      ]
+    }
+  ]
+}
