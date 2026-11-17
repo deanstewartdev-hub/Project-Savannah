@@ -1,0 +1,1521 @@
+<script>
+  /*
+   * Project Savannah frontend application: Ideas workspace.
+   *
+   * Split out of Frontend/Assets/Scripts/Scripts.html (modular refactor, November 2026).
+   * Scripts.html defines SavannahApp and its shared helpers; Frontend/Index.html loads this
+   * file straight after it. The functions are unchanged.
+   */
+
+  /**
+   * Ideas workspace behaviour.
+   */
+  SavannahApp.ideas = {
+    state: {
+      ideas: [],
+      activeFilter: "all",
+      searchTerm: "",
+      activeView: "board",
+      isGenerating: false,
+      isLoading: false
+    },
+
+    /**
+     * Initialises Ideas page behaviour.
+     */
+    initialise: function () {
+      const refreshButton =
+        SavannahApp.dom.getById(
+          "ideas-refresh-button"
+        );
+
+      const generateButton =
+        SavannahApp.dom.getById(
+          "ideas-generate-button"
+        );
+
+      const emptyGenerateButton =
+        SavannahApp.dom.getById(
+          "ideas-empty-generate-button"
+        );
+
+      const searchInput =
+        SavannahApp.dom.getById(
+          "ideas-search-input"
+        );
+
+      const filterButtons =
+        document.querySelectorAll(
+          "[data-ideas-filter]"
+        );
+
+      const viewButtons =
+        document.querySelectorAll(
+          "[data-ideas-view]"
+        );
+
+      if (refreshButton) {
+        refreshButton.addEventListener(
+          "click",
+          function () {
+            SavannahApp.ideas.load();
+          }
+        );
+      }
+
+      if (generateButton) {
+        generateButton.addEventListener(
+          "click",
+          function () {
+            SavannahApp.ideas
+              .generate();
+          }
+        );
+      }
+
+      if (emptyGenerateButton) {
+        emptyGenerateButton
+          .addEventListener(
+            "click",
+            function () {
+              SavannahApp.ideas
+                .generate();
+            }
+          );
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener(
+          "input",
+          function () {
+            SavannahApp.ideas.state
+              .searchTerm =
+              String(
+                searchInput.value || ""
+              )
+                .trim()
+                .toLowerCase();
+
+            SavannahApp.ideas
+              .renderWorkspace();
+          }
+        );
+      }
+
+      filterButtons.forEach(
+        function (button) {
+          button.addEventListener(
+            "click",
+            function () {
+              SavannahApp.ideas
+                .setFilter(
+                  button.dataset
+                    .ideasFilter
+                );
+            }
+          );
+        }
+      );
+
+      viewButtons.forEach(
+        function (button) {
+          button.addEventListener(
+            "click",
+            function () {
+              SavannahApp.ideas
+                .setView(
+                  button.dataset
+                    .ideasView
+                );
+            }
+          );
+        }
+      );
+
+      SavannahApp.ideas.load();
+    },
+
+    /**
+     * Loads the complete Ideas workspace.
+     */
+    load: function () {
+      if (
+        SavannahApp.ideas.state
+          .isLoading
+      ) {
+        return;
+      }
+
+      SavannahApp.ideas.state
+        .isLoading = true;
+
+      SavannahApp.ideas
+        .clearMessages();
+
+      SavannahApp.ideas
+        .showColumnLoading();
+
+      google.script.run
+        .withSuccessHandler(
+          SavannahApp.ideas
+            .handleWorkspaceSuccess
+        )
+        .withFailureHandler(
+          SavannahApp.ideas
+            .handleServerFailure
+        )
+        .ideasGetWorkspace({
+          limit: 500,
+          newestFirst: true
+        });
+    },
+
+    /**
+     * Handles the workspace response.
+     *
+     * @param {Object} response Controller response.
+     */
+    handleWorkspaceSuccess: function (
+      response
+    ) {
+      SavannahApp.ideas.state
+        .isLoading = false;
+
+      if (
+        !response ||
+        response.success !== true ||
+        !response.data ||
+        !Array.isArray(
+          response.data.ideas
+        )
+      ) {
+        SavannahApp.ideas.showError(
+          SavannahApp.ideas
+            .resolveResponseError(
+              response,
+              "The Ideas workspace could not be loaded."
+            )
+        );
+
+        return;
+      }
+
+      SavannahApp.ideas.state.ideas =
+        response.data.ideas;
+
+      SavannahApp.ideas.renderMetrics(
+        response.data.metrics || {}
+      );
+
+      SavannahApp.ideas
+        .renderWorkspace();
+    },
+
+    /**
+     * Generates new ideas.
+     */
+    generate: function () {
+      if (
+        SavannahApp.ideas.state
+          .isGenerating
+      ) {
+        return;
+      }
+
+      SavannahApp.ideas
+        .clearMessages();
+
+      SavannahApp.ideas
+        .setGeneratingState(true);
+
+      google.script.run
+        .withSuccessHandler(
+          SavannahApp.ideas
+            .handleGenerationSuccess
+        )
+        .withFailureHandler(
+          SavannahApp.ideas
+            .handleGenerationFailure
+        )
+        .ideasGenerate();
+    },
+
+    /**
+     * Handles successful idea generation.
+     *
+     * @param {Object} response Controller response.
+     */
+    handleGenerationSuccess: function (
+      response
+    ) {
+      SavannahApp.ideas
+        .setGeneratingState(false);
+
+      if (
+        !response ||
+        response.success !== true
+      ) {
+        SavannahApp.ideas.showError(
+          SavannahApp.ideas
+            .resolveResponseError(
+              response,
+              "Ideas could not be generated."
+            )
+        );
+
+        return;
+      }
+
+      SavannahApp.ideas.showSuccess(
+        "New ideas were generated and saved successfully."
+      );
+
+      SavannahApp.ideas.load();
+    },
+
+    /**
+     * Handles failed idea generation.
+     *
+     * @param {*} error Browser/server error.
+     */
+    handleGenerationFailure: function (
+      error
+    ) {
+      SavannahApp.ideas
+        .setGeneratingState(false);
+
+      SavannahApp.ideas.showError(
+        error && error.message
+          ? error.message
+          : "Ideas could not be generated."
+      );
+    },
+
+    /**
+     * Handles general server failures.
+     *
+     * @param {*} error Browser/server error.
+     */
+    handleServerFailure: function (
+      error
+    ) {
+      SavannahApp.ideas.state
+        .isLoading = false;
+
+      SavannahApp.ideas
+        .setGeneratingState(false);
+
+      SavannahApp.ideas.showError(
+        error && error.message
+          ? error.message
+          : "The Ideas request failed."
+      );
+    },
+
+    /**
+     * Renders Ideas workspace metrics.
+     *
+     * @param {Object} metrics Metrics response.
+     */
+    renderMetrics: function (metrics) {
+      const safeMetrics =
+        metrics || {};
+
+      const statusCounts =
+        safeMetrics.statusCounts ||
+        {};
+
+      const totalIdeas =
+        Number(
+          safeMetrics.totalIdeas
+        ) || 0;
+
+      const newIdeas =
+        Number(
+          safeMetrics.newIdeas
+        ) || 0;
+
+      const approvedIdeas =
+        Number(
+          safeMetrics.approvedIdeas
+        ) || 0;
+
+      const scriptReadyIdeas =
+        Number(
+          statusCounts[
+            "Script Ready"
+          ]
+        ) || 0;
+
+      SavannahApp.dom.setText(
+        "ideas-total-count",
+        totalIdeas
+      );
+
+      SavannahApp.dom.setText(
+        "ideas-review-count",
+        newIdeas
+      );
+
+      SavannahApp.dom.setText(
+        "ideas-approved-count",
+        approvedIdeas
+      );
+
+      SavannahApp.dom.setText(
+        "ideas-script-ready-count",
+        scriptReadyIdeas
+      );
+    },
+
+    /**
+     * Re-renders the complete board.
+     */
+    renderWorkspace: function () {
+      const filteredIdeas =
+        SavannahApp.ideas
+          .getFilteredIdeas();
+
+      const reviewIdeas = [];
+      const approvedIdeas = [];
+      const scriptReadyIdeas = [];
+
+      filteredIdeas.forEach(
+        function (idea) {
+          const status =
+            SavannahApp.ideas
+              .normaliseStatus(
+                idea.status
+              );
+
+          if (
+            status === "approved"
+          ) {
+            approvedIdeas.push(idea);
+
+            return;
+          }
+
+          if (
+            status ===
+              "script ready" ||
+            status ===
+              "script-ready"
+          ) {
+            scriptReadyIdeas.push(
+              idea
+            );
+
+            return;
+          }
+
+          if (
+            status !== "rejected"
+          ) {
+            reviewIdeas.push(idea);
+          }
+        }
+      );
+
+      SavannahApp.ideas
+        .renderColumn(
+          "ideas-review-list",
+          reviewIdeas,
+          "review"
+        );
+
+      SavannahApp.ideas
+        .renderColumn(
+          "ideas-approved-list",
+          approvedIdeas,
+          "approved"
+        );
+
+      SavannahApp.ideas
+        .renderColumn(
+          "ideas-script-ready-list",
+          scriptReadyIdeas,
+          "script-ready"
+        );
+
+      SavannahApp.dom.setText(
+        "ideas-review-column-count",
+        reviewIdeas.length
+      );
+
+      SavannahApp.dom.setText(
+        "ideas-approved-column-count",
+        approvedIdeas.length
+      );
+
+      SavannahApp.dom.setText(
+        "ideas-script-ready-column-count",
+        scriptReadyIdeas.length
+      );
+
+      const emptyState =
+        SavannahApp.dom.getById(
+          "ideas-empty-state"
+        );
+
+      const board =
+        SavannahApp.dom.getById(
+          "ideas-board"
+        );
+
+      const hasAnyIdeas =
+        SavannahApp.ideas.state
+          .ideas.length > 0;
+
+      if (emptyState) {
+        emptyState.hidden =
+          hasAnyIdeas;
+      }
+
+      if (board) {
+        board.hidden =
+          !hasAnyIdeas;
+      }
+    },
+
+    /**
+     * Returns ideas matching search and filter state.
+     *
+     * @return {Object[]} Filtered ideas.
+     */
+    getFilteredIdeas: function () {
+      const searchTerm =
+        SavannahApp.ideas.state
+          .searchTerm;
+
+      const activeFilter =
+        SavannahApp.ideas.state
+          .activeFilter;
+
+      return SavannahApp.ideas.state
+        .ideas.filter(
+          function (idea) {
+            const status =
+              SavannahApp.ideas
+                .normaliseStatus(
+                  idea.status
+                );
+
+            const searchableText = [
+              idea.id,
+              idea.niche,
+              idea.videoIdea,
+              idea.hook,
+              idea.targetAudience,
+              idea.status
+            ]
+              .join(" ")
+              .toLowerCase();
+
+            const matchesSearch =
+              !searchTerm ||
+              searchableText.indexOf(
+                searchTerm
+              ) !== -1;
+
+            let matchesFilter = true;
+
+            if (
+              activeFilter ===
+              "review"
+            ) {
+              matchesFilter =
+                status === "new" ||
+                status === "";
+            }
+
+            if (
+              activeFilter ===
+              "approved"
+            ) {
+              matchesFilter =
+                status === "approved";
+            }
+
+            if (
+              activeFilter ===
+              "script-ready"
+            ) {
+              matchesFilter =
+                status ===
+                  "script ready" ||
+                status ===
+                  "script-ready";
+            }
+
+            return (
+              matchesSearch &&
+              matchesFilter
+            );
+          }
+        );
+    },
+
+    /**
+     * Renders one workflow column.
+     *
+     * @param {string} containerId Container ID.
+     * @param {Object[]} ideas Idea records.
+     * @param {string} column Workflow column.
+     */
+    renderColumn: function (
+      containerId,
+      ideas,
+      column
+    ) {
+      const container =
+        SavannahApp.dom.getById(
+          containerId
+        );
+
+      if (!container) {
+        return;
+      }
+
+      container.innerHTML = "";
+
+      if (
+        !Array.isArray(ideas) ||
+        ideas.length === 0
+      ) {
+        container.appendChild(
+          SavannahApp.ideas
+            .createColumnEmptyState(
+              column
+            )
+        );
+
+        return;
+      }
+
+      ideas.forEach(function (idea) {
+        container.appendChild(
+          SavannahApp.ideas
+            .createIdeaCard(
+              idea,
+              column
+            )
+        );
+      });
+    },
+
+    /**
+     * Creates one idea card.
+     *
+     * @param {Object} idea Idea model.
+     * @param {string} column Workflow column.
+     * @return {HTMLElement} Idea card.
+     */
+    createIdeaCard: function (
+      idea,
+      column
+    ) {
+      const card =
+        document.createElement(
+          "article"
+        );
+
+      const header =
+        document.createElement(
+          "div"
+        );
+
+      const category =
+        document.createElement(
+          "span"
+        );
+
+      const title =
+        document.createElement(
+          "h4"
+        );
+
+      const description =
+        document.createElement(
+          "p"
+        );
+
+      const meta =
+        document.createElement(
+          "div"
+        );
+
+      const audience =
+        document.createElement(
+          "span"
+        );
+
+      const model =
+        document.createElement(
+          "span"
+        );
+
+      const footer =
+        document.createElement(
+          "div"
+        );
+
+      const date =
+        document.createElement(
+          "span"
+        );
+
+      const actions =
+        document.createElement(
+          "div"
+        );
+
+      card.className =
+        "idea-workspace-card";
+
+      card.dataset.ideaId =
+        idea.id || "";
+
+      card.dataset.ideaStatus =
+        idea.status || "";
+
+      header.className =
+        "idea-workspace-card-header";
+
+      category.className =
+        "idea-workspace-card-category";
+
+      category.textContent =
+        idea.niche ||
+        "General";
+
+      header.appendChild(category);
+
+      title.textContent =
+        idea.videoIdea ||
+        "Untitled idea";
+
+      description.className =
+        "idea-workspace-card-description";
+
+      description.textContent =
+        idea.hook ||
+        "No hook has been recorded.";
+
+      meta.className =
+        "idea-workspace-card-meta";
+
+      audience.className =
+        "idea-workspace-card-stat";
+
+      audience.textContent =
+        idea.targetAudience ||
+        "General audience";
+
+      model.className =
+        "idea-workspace-card-stat";
+
+      model.textContent =
+        idea.aiModel ||
+        "AI generated";
+
+      meta.appendChild(audience);
+      meta.appendChild(model);
+
+      footer.className =
+        "idea-workspace-card-footer";
+
+      date.className =
+        "idea-workspace-card-date";
+
+      date.textContent =
+        SavannahApp.format.shortDate(
+          idea.createdAt
+        );
+
+      actions.className =
+        "idea-workspace-card-actions";
+
+      if (column === "review") {
+        actions.appendChild(
+          SavannahApp.ideas
+            .createStatusButton(
+              "Reject",
+              idea.id,
+              "Rejected",
+              false
+            )
+        );
+
+        actions.appendChild(
+          SavannahApp.ideas
+            .createStatusButton(
+              "Approve",
+              idea.id,
+              "Approved",
+              true
+            )
+        );
+      }
+
+      if (column === "approved") {
+        actions.appendChild(
+          SavannahApp.ideas
+            .createStatusButton(
+              "Return",
+              idea.id,
+              "New",
+              false
+            )
+        );
+
+        actions.appendChild(
+          SavannahApp.ideas
+            .createScriptButton(
+              idea
+            )
+        );
+      }
+
+      
+
+      if (
+        column ===
+        "script-ready"
+      ) {
+        actions.appendChild(
+          SavannahApp.ideas
+            .createViewScriptButton(
+              idea
+            )
+        );
+      }
+
+      footer.appendChild(date);
+      footer.appendChild(actions);
+
+      card.appendChild(header);
+      card.appendChild(title);
+      card.appendChild(description);
+      card.appendChild(meta);
+      card.appendChild(footer);
+
+      return card;
+    },
+
+          /**
+     * Creates a button that opens the latest saved
+     * script associated with a Script Ready idea.
+     *
+     * This does not start script generation and
+     * therefore prevents accidental duplicate scripts.
+     *
+     * @param {Object} idea Script Ready idea.
+     * @return {HTMLButtonElement} View button.
+     */
+    createViewScriptButton: function (
+      idea
+    ) {
+      const button =
+        document.createElement(
+          "button"
+        );
+
+      button.type = "button";
+
+      button.className =
+        "idea-card-action " +
+        "idea-card-action-primary";
+
+      button.textContent =
+        "View script";
+
+      button.addEventListener(
+        "click",
+        function () {
+          const navigation =
+            document.querySelector(
+              ".sidebar-navigation"
+            );
+
+          const webAppUrl =
+            navigation
+              ? String(
+                  navigation.dataset
+                    .webAppUrl || ""
+                ).trim()
+              : "";
+
+          const ideaId =
+            String(
+              idea &&
+              idea.id
+                ? idea.id
+                : ""
+            ).trim();
+
+          if (!webAppUrl) {
+            SavannahApp.ideas
+              .showError(
+                "The Scripts workspace URL is unavailable."
+              );
+
+            return;
+          }
+
+          if (!ideaId) {
+            SavannahApp.ideas
+              .showError(
+                "The selected idea has no Idea ID."
+              );
+
+            return;
+          }
+
+          const query = [
+            "page=scripts",
+
+            "ideaId=" +
+              encodeURIComponent(
+                ideaId
+              ),
+
+            "viewScript=latest"
+          ].join("&");
+
+          window.top.location.href =
+            webAppUrl +
+            "?" +
+            query;
+        }
+      );
+
+      return button;
+    },
+
+    /**
+     * Creates one status-update button.
+     *
+     * @param {string} label Button text.
+     * @param {string} ideaId Idea ID.
+     * @param {string} status Target status.
+     * @param {boolean} primary Primary style.
+     * @return {HTMLButtonElement} Button.
+     */
+    createStatusButton: function (
+      label,
+      ideaId,
+      status,
+      primary
+    ) {
+      const button =
+        document.createElement(
+          "button"
+        );
+
+      button.type = "button";
+
+      button.className =
+        "idea-card-action" +
+        (
+          primary
+            ? " idea-card-action-primary"
+            : ""
+        );
+
+      button.textContent = label;
+
+      button.addEventListener(
+        "click",
+        function () {
+          SavannahApp.ideas
+            .updateStatus(
+              ideaId,
+              status,
+              button
+            );
+        }
+      );
+
+      return button;
+    },
+
+    /**
+     * Creates a link to the Scripts workspace.
+     *
+     * @param {Object} idea Idea model.
+     * @return {HTMLButtonElement} Button.
+     */
+    createScriptButton: function (
+      idea
+    ) {
+      const button =
+        document.createElement(
+          "button"
+        );
+
+      button.type = "button";
+
+      button.className =
+        "idea-card-action " +
+        "idea-card-action-primary";
+
+      button.textContent =
+        "Create script";
+
+      button.addEventListener(
+        "click",
+        function () {
+          const navigation =
+            document.querySelector(
+              ".sidebar-navigation"
+            );
+
+          const webAppUrl =
+            navigation
+              ? String(
+                  navigation.dataset
+                    .webAppUrl || ""
+                ).trim()
+              : "";
+
+          if (!webAppUrl) {
+            SavannahApp.ideas
+              .showError(
+                "The Scripts workspace URL is unavailable."
+              );
+
+            return;
+          }
+
+          const query = [
+            "page=scripts",
+            "ideaId=" +
+              encodeURIComponent(
+                idea.id || ""
+              ),
+            "videoIdea=" +
+              encodeURIComponent(
+                idea.videoIdea || ""
+              ),
+            "hook=" +
+              encodeURIComponent(
+                idea.hook || ""
+              ),
+            "targetAudience=" +
+              encodeURIComponent(
+                idea.targetAudience ||
+                ""
+              ),
+            "niche=" +
+              encodeURIComponent(
+                idea.niche || ""
+              )
+          ].join("&");
+
+          window.top.location.href =
+            webAppUrl + "?" + query;
+        }
+      );
+
+      return button;
+    },
+
+    /**
+     * Updates one idea's workflow status.
+     *
+     * @param {string} ideaId Idea ID.
+     * @param {string} status Target status.
+     * @param {HTMLButtonElement} button Source button.
+     */
+    updateStatus: function (
+      ideaId,
+      status,
+      button
+    ) {
+      if (!ideaId) {
+        SavannahApp.ideas.showError(
+          "The selected idea has no ID."
+        );
+
+        return;
+      }
+
+      SavannahApp.ideas
+        .clearMessages();
+
+      const originalText =
+        button
+          ? button.textContent
+          : "";
+
+      if (button) {
+        button.disabled = true;
+
+        button.textContent =
+          "Updating...";
+      }
+
+      google.script.run
+        .withSuccessHandler(
+          function (response) {
+            if (button) {
+              button.disabled = false;
+
+              button.textContent =
+                originalText;
+            }
+
+            if (
+              !response ||
+              response.success !== true ||
+              !response.data ||
+              !response.data.idea
+            ) {
+              SavannahApp.ideas
+                .showError(
+                  SavannahApp.ideas
+                    .resolveResponseError(
+                      response,
+                      "The idea status could not be updated."
+                    )
+                );
+
+              return;
+            }
+
+            SavannahApp.ideas
+              .replaceIdea(
+                response.data.idea
+              );
+
+            SavannahApp.ideas
+              .renderMetrics(
+                response.data.metrics ||
+                {}
+              );
+
+            SavannahApp.ideas
+              .renderWorkspace();
+          }
+        )
+        .withFailureHandler(
+          function (error) {
+            if (button) {
+              button.disabled = false;
+
+              button.textContent =
+                originalText;
+            }
+
+            SavannahApp.ideas
+              .showError(
+                error &&
+                error.message
+                  ? error.message
+                  : "The idea status could not be updated."
+              );
+          }
+        )
+        .ideasUpdateStatus({
+          ideaId: ideaId,
+          status: status
+        });
+    },
+
+    /**
+     * Replaces one idea in local state.
+     *
+     * @param {Object} updatedIdea Updated idea.
+     */
+    replaceIdea: function (
+      updatedIdea
+    ) {
+      const ideas =
+        SavannahApp.ideas.state
+          .ideas;
+
+      const matchingIndex =
+        ideas.findIndex(
+          function (idea) {
+            return (
+              idea.id ===
+              updatedIdea.id
+            );
+          }
+        );
+
+      if (matchingIndex === -1) {
+        ideas.unshift(updatedIdea);
+
+        return;
+      }
+
+      ideas[matchingIndex] =
+        updatedIdea;
+    },
+
+    /**
+     * Changes the active status filter.
+     *
+     * @param {string} filter Filter name.
+     */
+    setFilter: function (filter) {
+      const safeFilter =
+        String(filter || "all");
+
+      SavannahApp.ideas.state
+        .activeFilter =
+        safeFilter;
+
+      const buttons =
+        document.querySelectorAll(
+          "[data-ideas-filter]"
+        );
+
+      buttons.forEach(
+        function (button) {
+          const isActive =
+            button.dataset
+              .ideasFilter ===
+            safeFilter;
+
+          button.classList.toggle(
+            "ideas-filter-button-active",
+            isActive
+          );
+
+          button.setAttribute(
+            "aria-pressed",
+            String(isActive)
+          );
+        }
+      );
+
+      SavannahApp.ideas
+        .renderWorkspace();
+    },
+
+    /**
+     * Changes the board display mode.
+     *
+     * @param {string} view View name.
+     */
+    setView: function (view) {
+      const safeView =
+        view === "list"
+          ? "list"
+          : "board";
+
+      SavannahApp.ideas.state
+        .activeView =
+        safeView;
+
+      const board =
+        SavannahApp.dom.getById(
+          "ideas-board"
+        );
+
+      const buttons =
+        document.querySelectorAll(
+          "[data-ideas-view]"
+        );
+
+      buttons.forEach(
+        function (button) {
+          const isActive =
+            button.dataset
+              .ideasView ===
+            safeView;
+
+          button.classList.toggle(
+            "ideas-view-button-active",
+            isActive
+          );
+
+          button.setAttribute(
+            "aria-pressed",
+            String(isActive)
+          );
+        }
+      );
+
+      if (board) {
+        board.classList.toggle(
+          "ideas-board-list-view",
+          safeView === "list"
+        );
+      }
+    },
+
+    /**
+     * Displays temporary loading states.
+     */
+    showColumnLoading: function () {
+      [
+        "ideas-review-list",
+        "ideas-approved-list",
+        "ideas-script-ready-list"
+      ].forEach(function (containerId) {
+        const container =
+          SavannahApp.dom.getById(
+            containerId
+          );
+
+        if (!container) {
+          return;
+        }
+
+        container.innerHTML = "";
+
+        const loading =
+          document.createElement(
+            "div"
+          );
+
+        loading.className =
+          "ideas-column-loading";
+
+        loading.textContent =
+          "Loading ideas…";
+
+        container.appendChild(
+          loading
+        );
+      });
+    },
+
+    /**
+     * Creates an empty column state.
+     *
+     * @param {string} column Column name.
+     * @return {HTMLElement} Empty state.
+     */
+    createColumnEmptyState: function (
+      column
+    ) {
+      const wrapper =
+        document.createElement(
+          "div"
+        );
+
+      const title =
+        document.createElement(
+          "strong"
+        );
+
+      const message =
+        document.createElement(
+          "p"
+        );
+
+      wrapper.className =
+        "ideas-column-empty";
+
+      if (column === "review") {
+        title.textContent =
+          "No ideas awaiting review";
+
+        message.textContent =
+          "Newly generated ideas will appear here.";
+      }
+
+      if (column === "approved") {
+        title.textContent =
+          "No approved ideas";
+
+        message.textContent =
+          "Approved ideas will appear here.";
+      }
+
+      if (
+        column ===
+        "script-ready"
+      ) {
+        title.textContent =
+          "No script-ready ideas";
+
+        message.textContent =
+          "Ideas will appear here after script generation.";
+      }
+
+      wrapper.appendChild(title);
+      wrapper.appendChild(message);
+
+      return wrapper;
+    },
+
+    /**
+     * Enables or disables generation UI.
+     *
+     * @param {boolean} isGenerating Loading state.
+     */
+    setGeneratingState: function (
+      isGenerating
+    ) {
+      SavannahApp.ideas.state
+        .isGenerating =
+        Boolean(isGenerating);
+
+      SavannahApp.dom.setDisabled(
+        "ideas-generate-button",
+        isGenerating
+      );
+
+      SavannahApp.dom.setDisabled(
+        "ideas-empty-generate-button",
+        isGenerating
+      );
+
+      SavannahApp.dom.setDisabled(
+        "ideas-refresh-button",
+        isGenerating
+      );
+
+      if (isGenerating) {
+        SavannahApp.dom.show(
+          "ideas-generation-status"
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-generation-status-title",
+          "Generating ideas"
+        );
+
+        SavannahApp.dom.setText(
+          "ideas-generation-status-message",
+          "Savannah is researching and preparing new content concepts."
+        );
+
+        return;
+      }
+
+      SavannahApp.dom.hide(
+        "ideas-generation-status"
+      );
+    },
+
+    /**
+     * Shows a success status.
+     *
+     * @param {string} message Message.
+     */
+    showSuccess: function (message) {
+      const banner =
+        SavannahApp.dom.getById(
+          "ideas-generation-status"
+        );
+
+      if (!banner) {
+        return;
+      }
+
+      SavannahApp.dom.setText(
+        "ideas-generation-status-title",
+        "Ideas generated"
+      );
+
+      SavannahApp.dom.setText(
+        "ideas-generation-status-message",
+        message
+      );
+
+      banner.hidden = false;
+
+      window.setTimeout(
+        function () {
+          if (
+            !SavannahApp.ideas.state
+              .isGenerating
+          ) {
+            banner.hidden = true;
+          }
+        },
+        3500
+      );
+    },
+
+    /**
+     * Shows an Ideas page error.
+     *
+     * @param {string} message Error message.
+     */
+    showError: function (message) {
+      const element =
+        SavannahApp.dom.getById(
+          "ideas-error-message"
+        );
+
+      if (!element) {
+        return;
+      }
+
+      element.textContent =
+        message ||
+        "An unexpected Ideas error occurred.";
+
+      element.hidden = false;
+    },
+
+    /**
+     * Clears Ideas page messages.
+     */
+    clearMessages: function () {
+      SavannahApp.dom.hide(
+        "ideas-error-message"
+      );
+
+      if (
+        !SavannahApp.ideas.state
+          .isGenerating
+      ) {
+        SavannahApp.dom.hide(
+          "ideas-generation-status"
+        );
+      }
+    },
+
+    /**
+     * Resolves controller error responses.
+     *
+     * @param {Object} response Controller response.
+     * @param {string} fallback Fallback message.
+     * @return {string} Safe message.
+     */
+    resolveResponseError: function (
+      response,
+      fallback
+    ) {
+      if (
+        response &&
+        response.error &&
+        response.error.message
+      ) {
+        return response.error.message;
+      }
+
+      if (
+        response &&
+        response.message
+      ) {
+        return response.message;
+      }
+
+      return fallback;
+    },
+
+    /**
+     * Normalises a status value.
+     *
+     * @param {*} status Status value.
+     * @return {string} Lowercase status.
+     */
+    normaliseStatus: function (
+      status
+    ) {
+      return String(status || "")
+        .trim()
+        .toLowerCase();
+    }
+  };
+</script>

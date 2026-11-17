@@ -5,6 +5,27 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 17 November 2026 — Hand-run self-test fixture corrected (test data only)
+
+The Rome fixture shared by the formatter and validator self-tests kept its narration in `voiceoverScript`,
+but since 15 August the validator counts the scene narration, so `testScriptFormatterAll` and
+`testScriptValidatorWithValidScript` failed. The fixture's scenes now carry the narration (114 words) and the
+short-narration test shortens what the validator counts. No validation rule or production file changed. New
+`node-tests/HandRunSelfTests_Tests.js` runs the pure hand-run self-tests in CI. PR #33 staging acceptance passed,
+including Dashboard, Ideas, Scripts and Approval Queue in the live staging web app (docs/refactor/STAGING_ACCEPTANCE.md).
+
+### 15 November 2026 — Modular refactoring (no behaviour change, not deployed)
+
+Large files are split into focused sibling modules; the original files keep their public names and
+delegate. Split: ScriptsController, ScriptEngine, ScriptValidator, ScriptsRepository, AIService, the
+browser application script (dashboard, ideas and scripts sections) and the worker's visualSelection.js.
+Hand-run self-tests moved out of eight production files into Tests/. ProductionController and the files
+around it are deliberately not split. New safety nets: a global-scope contract test (all 307 global names,
+no duplicates, load-order independence), five characterisation suites (527 scenarios, captured before any
+code moved), a frontend structure test and a worker import-surface test. App runner 1,035 PASS / 0 FAIL
+(was 498), worker suite 435/435 (was 431). No sheet, property, payload or contract changed. See
+docs/refactor/COMPLETION_REPORT.md.
+
 ### 3 November 2026 — Creative-quality phase (not deployed)
 
 Background music can be used only from a verified manifest record (licence, source, verifier, date);

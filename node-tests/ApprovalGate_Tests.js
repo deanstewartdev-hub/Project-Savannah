@@ -37,7 +37,7 @@ function setup(options) {
       }
     }
   });
-  for (const file of ['Models/Script.js', 'Models/Approval.js', 'App/QueueController.js']) {
+  for (const file of ['Models/Script.js', 'Models/Approval.js', 'Tests/ApprovalModel_SelfTests.js', 'App/QueueController.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   const pending = JSON.parse(vm.runInContext(`(function () {

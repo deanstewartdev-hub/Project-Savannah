@@ -42,7 +42,7 @@ function sourceWith(sceneFields) {
 function runPipeline(source) {
   const sandbox = { console, Utilities: { getUuid: () => '00000000-0000-4000-8000-000000000001' }, Logger: { log: () => {} } };
   vm.createContext(sandbox);
-  for (const file of ['Scripts/Script_Validator.js', 'Scripts/Script_Formatter.js', 'Models/Script.js']) {
+  for (const file of ['Scripts/Script_Validator.js', 'Scripts/Script_Validator_Text.js', 'Scripts/Script_Validator_Scenes.js', 'Scripts/Script_Formatter.js', 'Models/Script.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), sandbox, { filename: file });
   }
   const validated = vm.runInContext('ScriptValidator', sandbox).validate(source);

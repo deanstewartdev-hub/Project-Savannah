@@ -1,0 +1,45 @@
+{
+ "title": "Five Rome Mistakes Tourists Always Make",
+ "hook": "Visiting Rome? Avoid these five mistakes that ruin thousands of trips.",
+ "voiceoverScript": "Visiting Rome? Avoid these five mistakes that ruin thousands of trips. First, never eat beside the biggest tourist attractions, because prices rise while quality often drops. Walk a few streets away and look for smaller restaurants filled with local customers. Second, do not rely entirely on taxis, because central Rome is compact and best explored on foot. Third, remember that many churches enforce modest clothing, especially during warmer months. Carry something light to cover your shoulders and knees. Fourth, avoid trying to see every landmark in one day. Rome rewards slower travel, quiet streets, local cafés, and unexpected discoveries. Finally, keep valuables secure in crowded stations and around major attractions. Plan carefully, stay aware, and your first Roman holiday will be far more enjoyable. Follow for more practical travel advice before your next adventure.",
+ "scenes": [
+  {
+   "sceneNumber": 1,
+   "narration": "Visiting Rome? Avoid these five mistakes that ruin thousands of trips.",
+   "onScreenText": "Going to Rome?",
+   "visualDirection": "Fast aerial view of central Rome followed by crowded tourist streets.",
+   "estimatedSeconds": 7
+  },
+  {
+   "sceneNumber": 2,
+   "narration": "Avoid restaurants beside major attractions and walk a few streets away.",
+   "onScreenText": "Skip tourist-trap restaurants",
+   "visualDirection": "Contrast an overpriced tourist menu with a busy local restaurant.",
+   "estimatedSeconds": 10
+  },
+  {
+   "sceneNumber": 3,
+   "narration": "Explore central Rome on foot and carry clothing suitable for church visits.",
+   "onScreenText": "Walk more · Dress respectfully",
+   "visualDirection": "Walking shot through Rome followed by a church entrance sign.",
+   "estimatedSeconds": 11
+  },
+  {
+   "sceneNumber": 4,
+   "narration": "Slow down, avoid packing every landmark into one day, and protect valuables in crowds.",
+   "onScreenText": "Slow down · Stay aware",
+   "visualDirection": "Relaxed café scene transitioning to a crowded station.",
+   "estimatedSeconds": 13
+  },
+  {
+   "sceneNumber": 5,
+   "narration": "Plan carefully and follow for more useful travel advice.",
+   "onScreenText": "Follow for more travel tips",
+   "visualDirection": "Sunset view over Rome with a clean follow animation.",
+   "estimatedSeconds": 7
+  }
+ ],
+ "callToAction": "Follow for more practical travel advice before your next adventure.",
+ "estimatedDurationSeconds": 48,
+ "generationNotes": ""
+}

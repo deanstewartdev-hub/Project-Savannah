@@ -1,0 +1,1660 @@
+{
+ "files": 87,
+ "globals": {
+  "AIService": {
+   "type": "object",
+   "keys": [
+    "generate",
+    "generateStructuredContent",
+    "getProviders",
+    "getResponseFormats",
+    "getServiceVersion"
+   ]
+  },
+  "APP": {
+   "type": "object",
+   "keys": [
+    "NAME",
+    "PROMPT_VERSION",
+    "VERSION"
+   ]
+  },
+  "APP_ROUTES": {
+   "type": "object",
+   "keys": [
+    "ANALYTICS",
+    "DASHBOARD",
+    "IDEAS",
+    "PRODUCTION",
+    "QUEUE",
+    "SCRIPTS",
+    "SEO",
+    "SETTINGS"
+   ]
+  },
+  "APP_ROUTE_CONFIG": {
+   "type": "object",
+   "keys": [
+    "analytics",
+    "dashboard",
+    "ideas",
+    "production",
+    "queue",
+    "scripts",
+    "seo",
+    "settings"
+   ]
+  },
+  "APP_STATUS": {
+   "type": "object",
+   "keys": [
+    "CONNECTED",
+    "ERROR",
+    "NOT_CONNECTED",
+    "PENDING",
+    "READY"
+   ]
+  },
+  "AnalyticsController": {
+   "type": "object",
+   "keys": [
+    "getDashboard",
+    "refresh"
+   ]
+  },
+  "AnalyticsSnapshotRepository": {
+   "type": "object",
+   "keys": [
+    "getAll",
+    "getLatestByVideoId",
+    "save"
+   ]
+  },
+  "ApprovalModel": {
+   "type": "object",
+   "keys": [
+    "canTransition",
+    "clone",
+    "create",
+    "fromScript",
+    "getAllowedTransitions",
+    "getModelVersion",
+    "getStatuses",
+    "getTerminalStatuses",
+    "isTerminal",
+    "toObject",
+    "transition",
+    "update",
+    "validate"
+   ]
+  },
+  "ApprovalRepository": {
+   "type": "object",
+   "keys": [
+    "deleteApprovalById",
+    "ensureSheet",
+    "getActiveApprovalByScriptId",
+    "getAllApprovals",
+    "getApprovalById",
+    "getApprovalsByScriptId",
+    "getApprovalsByStatus",
+    "getHeaders",
+    "getRepositoryVersion",
+    "saveApproval",
+    "updateApproval"
+   ]
+  },
+  "CONTENT_STATUS": {
+   "type": "object",
+   "keys": [
+    "ACTIVE",
+    "APPROVED",
+    "COMPLETE",
+    "NEW",
+    "PENDING",
+    "REJECTED"
+   ]
+  },
+  "ChannelAnalyticsRepository": {
+   "type": "object",
+   "keys": [
+    "getAll",
+    "latest",
+    "save"
+   ]
+  },
+  "CloudRunFFmpegProvider": {
+   "type": "object",
+   "keys": [
+    "getRender",
+    "reconcileStatus",
+    "reserveRenderId",
+    "submitRender",
+    "testConnection"
+   ]
+  },
+  "CostService": {
+   "type": "object",
+   "keys": [
+    "recordAIUsage"
+   ]
+  },
+  "CreatomateProviderAdapter": {
+   "type": "object",
+   "keys": [
+    "getRender",
+    "submitRender",
+    "testConnection"
+   ]
+  },
+  "CreatomateService": {
+   "type": "object",
+   "keys": [
+    "buildPayload",
+    "createRender",
+    "getRender",
+    "testConnection"
+   ]
+  },
+  "DASHBOARD_STYLE": {
+   "type": "object",
+   "keys": [
+    "COLORS",
+    "FONT"
+   ]
+  },
+  "DEFAULTS": {
+   "type": "object",
+   "keys": [
+    "DAILY_IDEA_TARGET",
+    "DAILY_SCRIPT_TARGET",
+    "DAILY_SEO_TARGET",
+    "DAILY_VIDEO_TARGET",
+    "IDEAS_PER_RUN"
+   ]
+  },
+  "DEFAULT_MODEL": {
+   "type": "string"
+  },
+  "DashboardRepository": {
+   "type": "object",
+   "keys": [
+    "getDashboardData"
+   ]
+  },
+  "DashboardService": {
+   "type": "object",
+   "keys": [
+    "getDashboardModel"
+   ]
+  },
+  "IDEA_STATUS": {
+   "type": "object",
+   "keys": [
+    "APPROVED",
+    "NEW",
+    "REJECTED"
+   ]
+  },
+  "IdeasRepository": {
+   "type": "object",
+   "keys": [
+    "COLUMNS",
+    "COLUMN_COUNT",
+    "HEADER_ROW",
+    "STATUS",
+    "getIdeaById",
+    "getIdeaCount",
+    "getMetrics",
+    "getSheet_",
+    "getStatuses",
+    "getTimeValue_",
+    "listIdeas",
+    "mapRowToIdea_",
+    "markIdeaScriptReady",
+    "normaliseDateValue_",
+    "normaliseLimit_",
+    "normaliseStatus_",
+    "normaliseText_",
+    "saveIdeas",
+    "updateIdeaStatus",
+    "validateGeneratedIdea_"
+   ]
+  },
+  "LoggingService": {
+   "type": "object",
+   "keys": [
+    "STATUS",
+    "failure",
+    "log",
+    "started",
+    "success"
+   ]
+  },
+  "MODELS": {
+   "type": "object",
+   "keys": [
+    "DEFAULT_OPENAI_MODEL"
+   ]
+  },
+  "MediaWorkerCallbackInbox": {
+   "type": "object",
+   "keys": [
+    "processPending",
+    "processPendingLocked",
+    "recentReceipts",
+    "timeOf"
+   ]
+  },
+  "MediaWorkerCallbackService": {
+   "type": "object",
+   "keys": [
+    "handle"
+   ]
+  },
+  "MediaWorkerProbeService": {
+   "type": "object",
+   "keys": [
+    "probeBridge"
+   ]
+  },
+  "NotificationController": {
+   "type": "object",
+   "keys": [
+    "getFeed",
+    "markAllRead"
+   ]
+  },
+  "NotificationService": {
+   "type": "object",
+   "keys": [
+    "buildFeed",
+    "listRecent",
+    "markAllRead"
+   ]
+  },
+  "PROJECT_VERSION": {
+   "type": "string"
+  },
+  "ProductionController": {
+   "type": "object",
+   "keys": [
+    "abandonPublication",
+    "approveRender",
+    "controlPreparation",
+    "getAutomationStatus",
+    "getPublishingSchedule",
+    "getYouTubeConnection",
+    "listJobs",
+    "listReady",
+    "prepareNextScene",
+    "prepareScene",
+    "previewPublish",
+    "publish",
+    "reconcilePublication",
+    "refresh",
+    "refreshActive",
+    "refreshPublication",
+    "renderNewVersion",
+    "retry",
+    "reviewStalledTasks",
+    "setAutomation",
+    "startPreparation",
+    "submit",
+    "submitPrepared",
+    "testConnection"
+   ]
+  },
+  "ProductionErrorService": {
+   "type": "object",
+   "keys": [
+    "normalise",
+    "recordOccurrence"
+   ]
+  },
+  "ProductionFingerprintService": {
+   "type": "object",
+   "keys": [
+    "code",
+    "summarise"
+   ]
+  },
+  "ProductionHealthService": {
+   "type": "object",
+   "keys": [
+    "evaluate",
+    "thresholds"
+   ]
+  },
+  "ProductionQueueService": {
+   "type": "object",
+   "keys": [
+    "install",
+    "isDue",
+    "processNext",
+    "rankTasks",
+    "status",
+    "uninstall"
+   ]
+  },
+  "ProductionTaskRepository": {
+   "type": "object",
+   "keys": [
+    "create",
+    "getActiveByScriptId",
+    "getAll",
+    "getById",
+    "persist",
+    "save",
+    "update"
+   ]
+  },
+  "PublishingJobModel": {
+   "type": "object",
+   "keys": [
+    "create",
+    "getStatuses",
+    "update"
+   ]
+  },
+  "PublishingJobRepository": {
+   "type": "object",
+   "keys": [
+    "getAll",
+    "getByRenderJobId",
+    "save",
+    "update"
+   ]
+  },
+  "PublishingScheduleService": {
+   "type": "object",
+   "keys": [
+    "assertAvailable",
+    "suggestSlots",
+    "templates",
+    "upcoming"
+   ]
+  },
+  "QueueController": {
+   "type": "object",
+   "keys": [
+    "decide",
+    "getControllerVersion",
+    "getMetrics",
+    "list"
+   ]
+  },
+  "ReleaseReadinessService": {
+   "type": "object",
+   "keys": [
+    "run"
+   ]
+  },
+  "RenderJobModel": {
+   "type": "object",
+   "keys": [
+    "create",
+    "getStatuses",
+    "toObject",
+    "update"
+   ]
+  },
+  "RenderJobRepository": {
+   "type": "object",
+   "keys": [
+    "getAll",
+    "getById",
+    "getByRenderId",
+    "save",
+    "update"
+   ]
+  },
+  "RenderQualityService": {
+   "type": "object",
+   "keys": [
+    "assertPublishable",
+    "evaluate"
+   ]
+  },
+  "RenderReviewService": {
+   "type": "object",
+   "keys": [
+    "approve",
+    "assertApproved",
+    "get"
+   ]
+  },
+  "SHEETS": {
+   "type": "object",
+   "keys": [
+    "ANALYTICS",
+    "APPROVAL_QUEUE",
+    "CHANNEL_ANALYTICS",
+    "COSTS",
+    "DASHBOARD",
+    "IDEAS",
+    "LOGS",
+    "PRODUCTION_TASKS",
+    "PUBLISHING_JOBS",
+    "RENDER_JOBS",
+    "SCRIPTS",
+    "SEO_PACK",
+    "SETTINGS"
+   ]
+  },
+  "ScenePlanService": {
+   "type": "object",
+   "keys": [
+    "create",
+    "fitToDuration",
+    "fitToSlotDurations"
+   ]
+  },
+  "Schemas": {
+   "type": "object",
+   "keys": [
+    "getScriptSchema",
+    "getVideoIdeasSchema"
+   ]
+  },
+  "ScriptEngine": {
+   "type": "object",
+   "keys": [
+    "__test_buildCorrectionPrompt",
+    "__test_normaliseGeneratedTiming",
+    "__test_resolveOptions",
+    "generatePreview",
+    "generateScript",
+    "getEngineVersion",
+    "prepareRequest"
+   ]
+  },
+  "ScriptFormatter": {
+   "type": "object",
+   "keys": [
+    "buildDisplayText",
+    "format",
+    "getFormatVersion"
+   ]
+  },
+  "ScriptModel": {
+   "type": "object",
+   "keys": [
+    "clone",
+    "create",
+    "fromFormattedResult",
+    "fromIdea",
+    "fromValidatedResult",
+    "getModelVersion",
+    "getStatuses",
+    "toObject",
+    "update",
+    "validate",
+    "withStatus"
+   ]
+  },
+  "ScriptPromptLibrary": {
+   "type": "object",
+   "keys": [
+    "buildScriptPrompt",
+    "getDefaultOptions",
+    "getPromptVersion"
+   ]
+  },
+  "ScriptRevisionMaintenance": {
+   "type": "object",
+   "keys": [
+    "EXPECTED_IDEA_ID",
+    "REVISED_SCENES",
+    "run",
+    "runForIdea"
+   ]
+  },
+  "ScriptValidator": {
+   "type": "object",
+   "keys": [
+    "countWords",
+    "getDefaultRules",
+    "validate"
+   ]
+  },
+  "ScriptsController": {
+   "type": "object",
+   "keys": [
+    "generatePreview",
+    "generateScript",
+    "getControllerVersion",
+    "getLatestScriptForIdea",
+    "getMetrics",
+    "getScript",
+    "listScripts",
+    "sendForReview"
+   ]
+  },
+  "ScriptsRepository": {
+   "type": "object",
+   "keys": [
+    "deleteScriptById",
+    "ensureSheet",
+    "exists",
+    "getAllScripts",
+    "getHeaders",
+    "getLatestScriptByIdeaId",
+    "getRepositoryVersion",
+    "getScriptById",
+    "getScriptCount",
+    "getScriptsByIdeaId",
+    "getScriptsByStatus",
+    "saveOrUpdateScript",
+    "saveScript",
+    "updateScript"
+   ]
+  },
+  "Secrets": {
+   "type": "object",
+   "keys": [
+    "deleteOpenAIApiKey",
+    "getCreatomateApiKey",
+    "getCreatomateTemplateId",
+    "getMediaWorkerCallbackUrl",
+    "getMediaWorkerJobSubmitSecret",
+    "getMediaWorkerSharedSecret",
+    "getMediaWorkerUrl",
+    "getOpenAIApiKey",
+    "getProductionBranding",
+    "getVideoProvider",
+    "hasCreatomateApiKey",
+    "hasOpenAIApiKey",
+    "setCreatomateApiKey",
+    "setCreatomateTemplateId",
+    "setMediaWorkerCallbackUrl",
+    "setMediaWorkerJobSubmitSecret",
+    "setMediaWorkerSharedSecret",
+    "setMediaWorkerUrl",
+    "setOpenAIApiKey",
+    "setProductionBranding",
+    "setVideoProvider"
+   ]
+  },
+  "SeoController": {
+   "type": "object",
+   "keys": [
+    "generate",
+    "list",
+    "listEligible"
+   ]
+  },
+  "SeoEngine": {
+   "type": "object",
+   "keys": [
+    "generate",
+    "getEngineVersion"
+   ]
+  },
+  "SeoPackModel": {
+   "type": "object",
+   "keys": [
+    "create",
+    "getStatuses",
+    "toObject",
+    "update"
+   ]
+  },
+  "SeoPromptLibrary": {
+   "type": "object",
+   "keys": [
+    "build",
+    "getPromptVersion",
+    "getSchema"
+   ]
+  },
+  "SeoRepository": {
+   "type": "object",
+   "keys": [
+    "getAll",
+    "getById",
+    "getByScriptId",
+    "save"
+   ]
+  },
+  "Settings": {
+   "type": "object",
+   "keys": [
+    "getApiKey",
+    "getIdeasPerRun",
+    "getMaxTokens",
+    "getModel",
+    "getNiche",
+    "getProvider",
+    "getTargetAudience",
+    "getTemperature",
+    "getValue"
+   ]
+  },
+  "SettingsController": {
+   "type": "object",
+   "keys": [
+    "getIntegrations",
+    "saveCreatomate",
+    "saveProductionBranding"
+   ]
+  },
+  "StagingVerificationService": {
+   "type": "object",
+   "keys": [
+    "attachRenderRow",
+    "publishSafety",
+    "reportRenderRow",
+    "seed",
+    "verify"
+   ]
+  },
+  "VideoLinkService": {
+   "type": "object",
+   "keys": [
+    "assertUsable",
+    "expiresAt",
+    "isSameArtifactRefresh",
+    "refreshChanges"
+   ]
+  },
+  "VideoProcessingProvider": {
+   "type": "object",
+   "keys": [
+    "RENDER_ID_PREFIX",
+    "forJob",
+    "get",
+    "isCloudRunRenderId"
+   ]
+  },
+  "VisualAssetService": {
+   "type": "object",
+   "keys": [
+    "prepareSceneVisual",
+    "prepareSceneVisuals"
+   ]
+  },
+  "VisualFieldsMaintenance": {
+   "type": "object",
+   "keys": [
+    "APPROVED_SCENES",
+    "EXPECTED_IDEA_ID",
+    "EXPECTED_SCRIPT_ID",
+    "restore",
+    "run"
+   ]
+  },
+  "VoiceoverService": {
+   "type": "object",
+   "keys": [
+    "authoriseDrive",
+    "prepareContinuousAudio",
+    "prepareSceneAudio"
+   ]
+  },
+  "YouTubeAnalyticsService": {
+   "type": "object",
+   "keys": [
+    "buildChannelHealth",
+    "buildChannelTrend",
+    "buildContentInsights",
+    "buildPeriodReports",
+    "capture",
+    "classifyHook",
+    "parseDuration",
+    "summary"
+   ]
+  },
+  "YouTubeService": {
+   "type": "object",
+   "keys": [
+    "findUpload",
+    "getChannel",
+    "getVideo",
+    "previewUpload",
+    "requireAuthorization",
+    "upload"
+   ]
+  },
+  "analyticsGetDashboard": {
+   "type": "function",
+   "keys": []
+  },
+  "analyticsRefresh": {
+   "type": "function",
+   "keys": []
+  },
+  "applyChefchaouenVisualFields": {
+   "type": "function",
+   "keys": []
+  },
+  "assertLiveTestAllowed_": {
+   "type": "function",
+   "keys": []
+  },
+  "assertNotStaging_": {
+   "type": "function",
+   "keys": []
+  },
+  "authorizeProductionDrive": {
+   "type": "function",
+   "keys": []
+  },
+  "authorizeYouTubePublishing": {
+   "type": "function",
+   "keys": []
+  },
+  "buildDashboard": {
+   "type": "function",
+   "keys": []
+  },
+  "buildOpenAIResponsesPayload": {
+   "type": "function",
+   "keys": []
+  },
+  "buildRenderBeats": {
+   "type": "function",
+   "keys": []
+  },
+  "buildVideoIdeasPrompt": {
+   "type": "function",
+   "keys": []
+  },
+  "callAIService": {
+   "type": "function",
+   "keys": []
+  },
+  "callOpenAI": {
+   "type": "function",
+   "keys": []
+  },
+  "cleanupScriptsRepositoryTestRecord_": {
+   "type": "function",
+   "keys": []
+  },
+  "configureOpenAIKey": {
+   "type": "function",
+   "keys": []
+  },
+  "createActionButton": {
+   "type": "function",
+   "keys": []
+  },
+  "createApprovalModelScriptFixture_": {
+   "type": "function",
+   "keys": []
+  },
+  "createDashboardControllerResponse_": {
+   "type": "function",
+   "keys": []
+  },
+  "createHeaderSheetIfMissing_": {
+   "type": "function",
+   "keys": []
+  },
+  "createIdeaId": {
+   "type": "function",
+   "keys": []
+  },
+  "createIdeasControllerResponse_": {
+   "type": "function",
+   "keys": []
+  },
+  "createKpiCard": {
+   "type": "function",
+   "keys": []
+  },
+  "createPageContext_": {
+   "type": "function",
+   "keys": []
+  },
+  "createRunId": {
+   "type": "function",
+   "keys": []
+  },
+  "createScriptEngineIdeaFixture_": {
+   "type": "function",
+   "keys": []
+  },
+  "createScriptFormatterFixture_": {
+   "type": "function",
+   "keys": []
+  },
+  "createScriptModelTestFixture_": {
+   "type": "function",
+   "keys": []
+  },
+  "createScriptPrefillContext_": {
+   "type": "function",
+   "keys": []
+  },
+  "createScriptsRepositoryFixture_": {
+   "type": "function",
+   "keys": []
+  },
+  "createSectionHeader": {
+   "type": "function",
+   "keys": []
+  },
+  "createTable": {
+   "type": "function",
+   "keys": []
+  },
+  "createTitleBlock": {
+   "type": "function",
+   "keys": []
+  },
+  "createValidScriptValidatorFixture_": {
+   "type": "function",
+   "keys": []
+  },
+  "deleteSheetIfExists": {
+   "type": "function",
+   "keys": []
+  },
+  "diagnoseCallbackInbox": {
+   "type": "function",
+   "keys": []
+  },
+  "diagnoseProductionFingerprint": {
+   "type": "function",
+   "keys": []
+  },
+  "diagnoseReleaseReadiness": {
+   "type": "function",
+   "keys": []
+  },
+  "doGet": {
+   "type": "function",
+   "keys": []
+  },
+  "doPost": {
+   "type": "function",
+   "keys": []
+  },
+  "drainCallbackInboxNow": {
+   "type": "function",
+   "keys": []
+  },
+  "extractOpenAIOutputText": {
+   "type": "function",
+   "keys": []
+  },
+  "finalDashboardPolish": {
+   "type": "function",
+   "keys": []
+  },
+  "formatHeaderRow": {
+   "type": "function",
+   "keys": []
+  },
+  "generateIdeasWorkflow": {
+   "type": "function",
+   "keys": []
+  },
+  "generateScriptWorkflow": {
+   "type": "function",
+   "keys": []
+  },
+  "generateThreeVideoIdeas": {
+   "type": "function",
+   "keys": []
+  },
+  "getAppNavigation": {
+   "type": "function",
+   "keys": []
+  },
+  "getApprovalQueueTotalFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getCostRecordsFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getDashboardControllerErrorMessage_": {
+   "type": "function",
+   "keys": []
+  },
+  "getDashboardData": {
+   "type": "function",
+   "keys": []
+  },
+  "getDashboardDataForApp": {
+   "type": "function",
+   "keys": []
+  },
+  "getIdeasControllerErrorMessage_": {
+   "type": "function",
+   "keys": []
+  },
+  "getIdeasTodayFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getIdeasTotalFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getOrCreateSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "getRunsLoggedFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getScriptsTodayFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getScriptsTotalFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getSeoTodayFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getSeoTotalFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "getSettingValue": {
+   "type": "function",
+   "keys": []
+  },
+  "getTotalCostFormula": {
+   "type": "function",
+   "keys": []
+  },
+  "handleIdeasControllerError_": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasApprove": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasGenerate": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasGet": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasGetMetrics": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasGetWorkspace": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasList": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasReject": {
+   "type": "function",
+   "keys": []
+  },
+  "ideasUpdateStatus": {
+   "type": "function",
+   "keys": []
+  },
+  "includeFrontend": {
+   "type": "function",
+   "keys": []
+  },
+  "isStagingEnvironment_": {
+   "type": "function",
+   "keys": []
+  },
+  "limitAppRequestText_": {
+   "type": "function",
+   "keys": []
+  },
+  "montageForScene_": {
+   "type": "function",
+   "keys": []
+  },
+  "myFunction": {
+   "type": "function",
+   "keys": []
+  },
+  "normaliseAppRequestText_": {
+   "type": "function",
+   "keys": []
+  },
+  "normaliseIdeasControllerText_": {
+   "type": "function",
+   "keys": []
+  },
+  "notificationsGetFeed": {
+   "type": "function",
+   "keys": []
+  },
+  "notificationsMarkAllRead": {
+   "type": "function",
+   "keys": []
+  },
+  "onOpen": {
+   "type": "function",
+   "keys": []
+  },
+  "prepareDashboardCanvas": {
+   "type": "function",
+   "keys": []
+  },
+  "previewChefchaouenVisualFieldsDryRun": {
+   "type": "function",
+   "keys": []
+  },
+  "previewChefchaouenVisualFieldsRestore": {
+   "type": "function",
+   "keys": []
+  },
+  "processProductionQueue": {
+   "type": "function",
+   "keys": []
+  },
+  "productionAbandonPublication": {
+   "type": "function",
+   "keys": []
+  },
+  "productionApproveRender": {
+   "type": "function",
+   "keys": []
+  },
+  "productionControlPreparation": {
+   "type": "function",
+   "keys": []
+  },
+  "productionGetAutomationStatus": {
+   "type": "function",
+   "keys": []
+  },
+  "productionGetPublishingSchedule": {
+   "type": "function",
+   "keys": []
+  },
+  "productionGetYouTubeConnection": {
+   "type": "function",
+   "keys": []
+  },
+  "productionListJobs": {
+   "type": "function",
+   "keys": []
+  },
+  "productionListReady": {
+   "type": "function",
+   "keys": []
+  },
+  "productionPrepareNextScene": {
+   "type": "function",
+   "keys": []
+  },
+  "productionPrepareScene": {
+   "type": "function",
+   "keys": []
+  },
+  "productionPreviewPublish": {
+   "type": "function",
+   "keys": []
+  },
+  "productionPublish": {
+   "type": "function",
+   "keys": []
+  },
+  "productionReconcilePublication": {
+   "type": "function",
+   "keys": []
+  },
+  "productionRefresh": {
+   "type": "function",
+   "keys": []
+  },
+  "productionRefreshActive": {
+   "type": "function",
+   "keys": []
+  },
+  "productionRefreshPublication": {
+   "type": "function",
+   "keys": []
+  },
+  "productionRenderNewVersion": {
+   "type": "function",
+   "keys": []
+  },
+  "productionRetry": {
+   "type": "function",
+   "keys": []
+  },
+  "productionSetAutomation": {
+   "type": "function",
+   "keys": []
+  },
+  "productionStartPreparation": {
+   "type": "function",
+   "keys": []
+  },
+  "productionSubmit": {
+   "type": "function",
+   "keys": []
+  },
+  "productionSubmitPrepared": {
+   "type": "function",
+   "keys": []
+  },
+  "productionTestConnection": {
+   "type": "function",
+   "keys": []
+  },
+  "qualityFixture_": {
+   "type": "function",
+   "keys": []
+  },
+  "queueDecide": {
+   "type": "function",
+   "keys": []
+  },
+  "queueGetMetrics": {
+   "type": "function",
+   "keys": []
+  },
+  "queueList": {
+   "type": "function",
+   "keys": []
+  },
+  "reconcileExistingScriptReadyIdea": {
+   "type": "function",
+   "keys": []
+  },
+  "renderAppView": {
+   "type": "function",
+   "keys": []
+  },
+  "renderFrontendTemplate": {
+   "type": "function",
+   "keys": []
+  },
+  "renderNavigation": {
+   "type": "function",
+   "keys": []
+  },
+  "resetSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "resolveAppRoute": {
+   "type": "function",
+   "keys": []
+  },
+  "resolveWebAppUrl_": {
+   "type": "function",
+   "keys": []
+  },
+  "restoreChefchaouenVisualFieldsFromBackup": {
+   "type": "function",
+   "keys": []
+  },
+  "reviseChefchaouenScriptApply": {
+   "type": "function",
+   "keys": []
+  },
+  "reviseChefchaouenScriptDryRun": {
+   "type": "function",
+   "keys": []
+  },
+  "runBridgeSecretProbe": {
+   "type": "function",
+   "keys": []
+  },
+  "runCloudRunReconciliationTests": {
+   "type": "function",
+   "keys": []
+  },
+  "runProductionHardeningTests": {
+   "type": "function",
+   "keys": []
+  },
+  "runPromptAlignmentTests": {
+   "type": "function",
+   "keys": []
+  },
+  "runScriptDurationValidationTests": {
+   "type": "function",
+   "keys": []
+  },
+  "runScriptEngineOptionsResolutionTests": {
+   "type": "function",
+   "keys": []
+  },
+  "scriptsGeneratePreview": {
+   "type": "function",
+   "keys": []
+  },
+  "scriptsGenerateScript": {
+   "type": "function",
+   "keys": []
+  },
+  "scriptsGet": {
+   "type": "function",
+   "keys": []
+  },
+  "scriptsGetLatestForIdea": {
+   "type": "function",
+   "keys": []
+  },
+  "scriptsGetMetrics": {
+   "type": "function",
+   "keys": []
+  },
+  "scriptsList": {
+   "type": "function",
+   "keys": []
+  },
+  "scriptsSendForReview": {
+   "type": "function",
+   "keys": []
+  },
+  "seoGenerate": {
+   "type": "function",
+   "keys": []
+  },
+  "seoListEligibleScripts": {
+   "type": "function",
+   "keys": []
+  },
+  "seoListPacks": {
+   "type": "function",
+   "keys": []
+  },
+  "settingsGetIntegrations": {
+   "type": "function",
+   "keys": []
+  },
+  "settingsGetReleaseReadiness": {
+   "type": "function",
+   "keys": []
+  },
+  "settingsSaveCreatomate": {
+   "type": "function",
+   "keys": []
+  },
+  "settingsSaveProductionBranding": {
+   "type": "function",
+   "keys": []
+  },
+  "setupApprovalQueueSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "setupCostsSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "setupDashboardSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "setupIdeasSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "setupLogsSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "setupProjectSavannah": {
+   "type": "function",
+   "keys": []
+  },
+  "setupScriptsSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "setupSeoPackSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "setupSettingsSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingAttachRenderRow": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingAttachS7FailedRow": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingPublishSafetyRun": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingReportS5Row": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingReportS7Row": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingRowCounts": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingSeedRenderJobs": {
+   "type": "function",
+   "keys": []
+  },
+  "stagingVerifyRun": {
+   "type": "function",
+   "keys": []
+  },
+  "testAIServiceAll": {
+   "type": "function",
+   "keys": []
+  },
+  "testAIServiceLiveConnection": {
+   "type": "function",
+   "keys": []
+  },
+  "testAIServiceRejectsInvalidPrompt": {
+   "type": "function",
+   "keys": []
+  },
+  "testAIServiceRejectsInvalidSchema": {
+   "type": "function",
+   "keys": []
+  },
+  "testAIServiceUnitTests": {
+   "type": "function",
+   "keys": []
+  },
+  "testAppRoutes": {
+   "type": "function",
+   "keys": []
+  },
+  "testApplicationTemplate": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelAll": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelApprovesPendingRecord": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelCloneIsIndependent": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelCreatesFromScript": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelCreatesPendingApproval": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelRejectsInvalidTransition": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelRejectsMissingDecisionReason": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelRejectsWithReason": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelRequestsChanges": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalModelUpdatesVersion": {
+   "type": "function",
+   "keys": []
+  },
+  "testApprovalRepositoryRoundTrip": {
+   "type": "function",
+   "keys": []
+  },
+  "testCostService": {
+   "type": "function",
+   "keys": []
+  },
+  "testCreatomatePayload": {
+   "type": "function",
+   "keys": []
+  },
+  "testDashboardController": {
+   "type": "function",
+   "keys": []
+  },
+  "testDashboardRepository": {
+   "type": "function",
+   "keys": []
+  },
+  "testDashboardService": {
+   "type": "function",
+   "keys": []
+  },
+  "testIdeaGenerationWithTracking": {
+   "type": "function",
+   "keys": []
+  },
+  "testIdeasController": {
+   "type": "function",
+   "keys": []
+  },
+  "testLoggingService": {
+   "type": "function",
+   "keys": []
+  },
+  "testMarkIdeaScriptReady": {
+   "type": "function",
+   "keys": []
+  },
+  "testOpenAIConnection": {
+   "type": "function",
+   "keys": []
+  },
+  "testProductionTaskRepositoryModel": {
+   "type": "function",
+   "keys": []
+  },
+  "testPublishingJobModel": {
+   "type": "function",
+   "keys": []
+  },
+  "testQueueControllerInvalidDecision": {
+   "type": "function",
+   "keys": []
+  },
+  "testRenderJobModel": {
+   "type": "function",
+   "keys": []
+  },
+  "testScenePlanPreservesCompleteVoiceover": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptEngineLiveWorkflow": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptEnginePreparesRequest": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptEngineRejectsInvalidIdea": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptEngineUnitTests": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptFormatterAll": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptFormatterDoesNotMutateSource": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptFormatterRejectsInvalidInput": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptFormatterWithDirectScript": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptFormatterWithValidatedScript": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptModelAll": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptModelCloneIsIndependent": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptModelCreatesDraft": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptModelCreatesFromFormatter": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptModelCreatesFromIdea": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptModelRejectsIncompleteGeneratedScript": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptModelUpdatesVersion": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptPrefillPageContext": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptPromptLibrary": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptSchemaDefinition": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptValidatorRejectsInvalidScenes": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptValidatorRejectsShortVoiceover": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptValidatorRejectsWeakHook": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptValidatorWithValidScript": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsControllerAll": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsControllerListsScripts": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsControllerMetrics": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsControllerRejectsInvalidRequest": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsRepositoryAll": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsRepositoryEnsuresSheet": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsRepositoryFindsByIdeaId": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsRepositoryRejectsDuplicateId": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsRepositorySaveAndRetrieve": {
+   "type": "function",
+   "keys": []
+  },
+  "testScriptsRepositoryUpdate": {
+   "type": "function",
+   "keys": []
+  },
+  "testSeoControllerInvalidRequest": {
+   "type": "function",
+   "keys": []
+  },
+  "testSeoPackModelRejectsInvalidData": {
+   "type": "function",
+   "keys": []
+  },
+  "testSettingsRejectsMissingCreatomateKey": {
+   "type": "function",
+   "keys": []
+  },
+  "testYouTubeAnalyticsChannelHealth": {
+   "type": "function",
+   "keys": []
+  },
+  "testYouTubeAnalyticsContentInsights": {
+   "type": "function",
+   "keys": []
+  },
+  "testYouTubeAnalyticsDurationParsing": {
+   "type": "function",
+   "keys": []
+  },
+  "testYouTubeAnalyticsPeriodReports": {
+   "type": "function",
+   "keys": []
+  },
+  "testYouTubeAnalyticsTrendBuilding": {
+   "type": "function",
+   "keys": []
+  },
+  "validateGeneratedIdeas_": {
+   "type": "function",
+   "keys": []
+  }
+ }
+}

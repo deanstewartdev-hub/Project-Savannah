@@ -1,0 +1,488 @@
+<script>
+  /*
+   * Project Savannah frontend application: dashboard page.
+   *
+   * Split out of Frontend/Assets/Scripts/Scripts.html (modular refactor, November 2026).
+   * Scripts.html defines SavannahApp and its shared helpers; Frontend/Index.html loads this
+   * file straight after it. The functions are unchanged.
+   */
+
+  /**
+   * Dashboard page behaviour.
+   */
+  SavannahApp.dashboard = {
+    load: function () {
+      SavannahApp.dom.show(
+        "dashboard-loading-message"
+      );
+
+      SavannahApp.dom.hide(
+        "dashboard-error-message"
+      );
+
+      google.script.run
+        .withSuccessHandler(
+          SavannahApp.dashboard
+            .handleSuccess
+        )
+        .withFailureHandler(
+          SavannahApp.dashboard
+            .handleFailure
+        )
+        .getDashboardDataForApp();
+    },
+
+    handleSuccess: function (
+      response
+    ) {
+      SavannahApp.dom.hide(
+        "dashboard-loading-message"
+      );
+
+      if (
+        !response ||
+        response.success !== true ||
+        !response.data
+      ) {
+        SavannahApp.dashboard.showError(
+          response &&
+          response.error
+            ? (
+                response.error.message ||
+                response.error
+              )
+            : "Dashboard data could not be loaded."
+        );
+
+        return;
+      }
+
+      SavannahApp.dashboard.render(
+        response.data
+      );
+    },
+
+    handleFailure: function (
+      error
+    ) {
+      SavannahApp.dom.hide(
+        "dashboard-loading-message"
+      );
+
+      SavannahApp.dashboard.showError(
+        error && error.message
+          ? error.message
+          : "Dashboard data could not be loaded."
+      );
+    },
+
+    showError: function (message) {
+      const errorElement =
+        SavannahApp.dom.getById(
+          "dashboard-error-message"
+        );
+
+      if (!errorElement) {
+        return;
+      }
+
+      errorElement.textContent =
+        typeof message === "string"
+          ? message
+          : "Dashboard data could not be loaded.";
+
+      errorElement.hidden = false;
+    },
+
+    render: function (model) {
+      SavannahApp.dashboard
+        .renderSystemStatus(
+          model.system
+        );
+
+      SavannahApp.dashboard
+        .renderKpis(
+          model.kpis
+        );
+
+      SavannahApp.dashboard
+        .renderTotals(
+          model.totals
+        );
+
+      SavannahApp.dashboard
+        .renderPipeline(
+          model.pipeline
+        );
+
+      SavannahApp.dashboard
+        .renderActivity(
+          model.recentActivity
+        );
+    },
+
+    renderSystemStatus: function (
+      system
+    ) {
+      const statusElement =
+        SavannahApp.dom.getById(
+          "dashboard-system-status"
+        );
+
+      if (!statusElement) {
+        return;
+      }
+
+      const isOperational =
+        system &&
+        system.status ===
+          "operational";
+
+      statusElement.textContent =
+        system &&
+        system.statusLabel
+          ? system.statusLabel
+          : "System status unknown";
+
+      statusElement.className =
+        "badge " +
+        (
+          isOperational
+            ? "badge-success"
+            : "badge-warning"
+        );
+    },
+
+    renderKpis: function (kpis) {
+      const safeKpis = kpis || {};
+
+      const ideas =
+        safeKpis
+          .ideasGeneratedToday || {};
+
+      const scripts =
+        safeKpis
+          .scriptsCreatedToday || {};
+
+      const approval =
+        safeKpis.approvalQueue || {};
+
+      const totalCost =
+        safeKpis.totalCost || {};
+
+      SavannahApp.dom.animateCount(
+        "dashboard-ideas-today",
+        ideas.value || 0
+      );
+
+      SavannahApp.dom.setText(
+        "dashboard-ideas-target",
+        "Daily target: " +
+          (ideas.target || 0) +
+          " · " +
+          (
+            ideas
+              .progressPercentage || 0
+          ) +
+          "%"
+      );
+
+      SavannahApp.dom.animateCount(
+        "dashboard-scripts-today",
+        scripts.value || 0
+      );
+
+      SavannahApp.dom.setText(
+        "dashboard-scripts-target",
+        "Daily target: " +
+          (scripts.target || 0) +
+          " · " +
+          (
+            scripts
+              .progressPercentage || 0
+          ) +
+          "%"
+      );
+
+      SavannahApp.dom.animateCount(
+        "dashboard-approval-count",
+        approval.value || 0
+      );
+
+      SavannahApp.dom.setText(
+        "dashboard-total-cost",
+        totalCost.formattedValue ||
+          "£0.0000"
+      );
+    },
+
+    renderTotals: function (totals) {
+      const safeTotals = totals || {};
+
+      SavannahApp.dom.animateCount(
+        "dashboard-total-ideas",
+        safeTotals.ideas || 0
+      );
+
+      SavannahApp.dom.animateCount(
+        "dashboard-total-scripts",
+        safeTotals.scripts || 0
+      );
+
+      SavannahApp.dom.animateCount(
+        "dashboard-total-seo",
+        safeTotals.seoPacks || 0
+      );
+
+      SavannahApp.dom.animateCount(
+        "dashboard-total-logs",
+        safeTotals.logs || 0
+      );
+    },
+
+    renderPipeline: function (
+      pipeline
+    ) {
+      const stepper =
+        SavannahApp.dom.getById(
+          "dashboard-pipeline-stepper"
+        );
+
+      if (!stepper) {
+        return;
+      }
+
+      stepper.innerHTML = "";
+
+      if (
+        !Array.isArray(pipeline) ||
+        pipeline.length === 0
+      ) {
+        const emptyMessage =
+          document.createElement("p");
+
+        emptyMessage.className = "form-help";
+
+        emptyMessage.textContent =
+          "No pipeline data available.";
+
+        stepper.appendChild(emptyMessage);
+
+        return;
+      }
+
+      pipeline.forEach(
+        function (stage, index) {
+          const step =
+            document.createElement("div");
+
+          step.className = "pipeline-step";
+
+          step.setAttribute(
+            "data-status",
+            stage.status || "planned"
+          );
+
+          const icon =
+            document.createElement("div");
+
+          icon.className = "pipeline-step-icon";
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML =
+            SavannahApp.dashboard.pipelineIcon_(
+              stage.name
+            );
+
+          const name =
+            document.createElement("span");
+
+          name.className = "pipeline-step-name";
+          name.textContent = stage.name || "Unknown";
+
+          const count =
+            document.createElement("span");
+
+          count.className = "pipeline-step-count";
+          count.textContent =
+            (Number(stage.recordCount) || 0) +
+            " " +
+            (stage.statusLabel || "");
+
+          step.appendChild(icon);
+          step.appendChild(name);
+          step.appendChild(count);
+          stepper.appendChild(step);
+
+          if (index < pipeline.length - 1) {
+            const connector =
+              document.createElement("div");
+
+            connector.className =
+              "pipeline-connector";
+
+            connector.setAttribute(
+              "data-filled",
+              stage.status === "active"
+                ? "true"
+                : "false"
+            );
+
+            const fill =
+              document.createElement("div");
+
+            fill.className =
+              "pipeline-connector-fill";
+
+            connector.appendChild(fill);
+            stepper.appendChild(connector);
+          }
+        }
+      );
+    },
+
+    /**
+     * Returns an inline SVG icon for a pipeline stage name.
+     * Falls back to a plain dot for unrecognised stages.
+     *
+     * @param {string} stageName
+     * @return {string} Raw SVG markup.
+     * @private
+     */
+    pipelineIcon_: function (stageName) {
+      const icons = {
+        Ideas:
+          '<svg viewBox="0 0 24 24"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M8.5 14.5A7 7 0 1 1 15.5 14.5c-.9.7-1.5 1.5-1.5 2.5h-4c0-1-.6-1.8-1.5-2.5Z"></path></svg>',
+        Scripts:
+          '<svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"></path><path d="M14 3v4h4"></path><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>',
+        Approval:
+          '<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>',
+        SEO:
+          '<svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 5 5"></path><path d="M7 10h6"></path><path d="M10 7v6"></path></svg>',
+        Production:
+          '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m10 9 5 3-5 3Z"></path></svg>',
+        Published:
+          '<svg viewBox="0 0 24 24"><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>'
+      };
+
+      return (
+        icons[stageName] ||
+        '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle></svg>'
+      );
+    },
+
+    renderActivity: function (
+      activityRecords
+    ) {
+      const activityContainer =
+        SavannahApp.dom.getById(
+          "dashboard-recent-activity"
+        );
+
+      if (!activityContainer) {
+        return;
+      }
+
+      activityContainer.innerHTML = "";
+
+      if (
+        !Array.isArray(
+          activityRecords
+        ) ||
+        activityRecords.length === 0
+      ) {
+        const emptyMessage =
+          document.createElement(
+            "div"
+          );
+
+        emptyMessage.className =
+          "alert alert-info";
+
+        emptyMessage.textContent =
+          "No recent activity has been recorded yet.";
+
+        activityContainer
+          .appendChild(
+            emptyMessage
+          );
+
+        return;
+      }
+
+      activityRecords.forEach(
+        function (activity) {
+          const card =
+            document.createElement(
+              "article"
+            );
+
+          const header =
+            document.createElement(
+              "div"
+            );
+
+          const content =
+            document.createElement(
+              "div"
+            );
+
+          const badge =
+            document.createElement(
+              "span"
+            );
+
+          const time =
+            document.createElement(
+              "span"
+            );
+
+          const message =
+            document.createElement(
+              "p"
+            );
+
+          card.className = "card";
+
+          header.className =
+            "card-body page-header";
+
+          badge.className =
+            "badge " +
+            (
+              activity.badgeClass ||
+              ""
+            );
+
+          badge.textContent =
+            activity.status ||
+            "Info";
+
+          time.className =
+            "text-muted text-small";
+
+          time.textContent =
+            activity.displayTime || "";
+
+          message.className =
+            "card-description";
+
+          message.textContent =
+            activity.message ||
+            activity.action ||
+            "Activity recorded";
+
+          content.appendChild(badge);
+          content.appendChild(message);
+
+          header.appendChild(content);
+          header.appendChild(time);
+
+          card.appendChild(header);
+
+          activityContainer
+            .appendChild(card);
+        }
+      );
+    }
+  };
+</script>
