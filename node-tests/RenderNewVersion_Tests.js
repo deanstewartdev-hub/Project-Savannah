@@ -29,6 +29,7 @@ function fixture(options = {}) {
   };
   const context = vm.createContext({
     Utilities: { getUuid: randomUUID }, Logger: { log() {} },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({
       tryLock: () => { if (lockHeld) return false; lockHeld = true; return true; },
       releaseLock: () => { lockHeld = false; }
@@ -154,16 +155,16 @@ const cases = [
     assert.equal(f.rows[1].status, 'FAILED');
     assert.equal(versionOf(f.rows[1]), 2);
   }],
-  ['retrying a failed version keeps its version number', () => {
+  ['retrying a failed version takes the next version number', () => {
     const f = fixture();
     f.seedRow({});
     f.worker.fail = new Error('worker rejected the job');
     assert.throws(() => newVersion(f, 'req-mmmmmmmm'));
     f.worker.fail = null;
-    f.call('ProductionController.retry({ jobId: "' + f.rows[1].id + '" })');
+    f.call('ProductionController.retry({ jobId: "' + f.rows[1].id + '", clientRequestId: "rq-retry-0001" })');
     const retried = f.rows[f.rows.length - 1];
-    assert.equal(versionOf(retried), 2, 'same version number as the failed attempt');
-    assert.equal(f.rows.filter(r => versionOf(r) === 2).length, 2, 'the failed attempt and its retry share version 2');
+    assert.equal(versionOf(retried), 3, 'the next version number: a failed attempt is never re-rendered under its own number');
+    assert.equal(f.rows.filter(r => versionOf(r) === 2).length, 1, 'the failed attempt keeps version 2');
   }],
   ['a new version is refused without the cost confirmation, before any row is written', () => {
     const f = fixture();
@@ -188,7 +189,7 @@ const cases = [
   ['the client forceRerender flag is ignored: a completed script cannot be re-rendered through submit', () => {
     const f = fixture();
     f.seedRow({});
-    assert.throws(() => f.call('ProductionController.submit({scriptId:"' + SCRIPT_ID + '",forceRerender:true})'), /Render New Version/);
+    assert.throws(() => f.call('ProductionController.submit({scriptId:"' + SCRIPT_ID + '",forceRerender:true,clientRequestId:"rq-direct-0004"})'), /Render New Version/);
     assert.equal(f.worker.calls.length, 0);
   }],
   ['a protected upload of the script blocks a new version', () => {

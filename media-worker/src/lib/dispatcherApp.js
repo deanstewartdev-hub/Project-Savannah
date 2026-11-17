@@ -5,7 +5,8 @@ import { validateBeats } from "./validateBeats.js";
 import { validateMusicRequest, musicSummary } from "./musicLicence.js";
 import { MUSIC_PROTOCOL, assertRenderJobAcceptsMusic } from "./renderJobGuard.js";
 import { buildStatusResponse as defaultBuildStatusResponse } from "./jobStatus.js";
-import { reserveJob, failBeforeStart, markUncertain, recoverJob, recoveryConfirmation, JOB_STATES } from "./jobState.js";
+import { reserveJob, failBeforeStart, markUncertain, recoverJob, recoveryConfirmation, statePath, JOB_STATES } from "./jobState.js";
+import { prepareSubmission, validateIntentFields, intentPath } from "./submitIntent.js";
 import { callbackAllowed } from "./environment.js";
 
 // The dispatcher's HTTP surface, separated from its Cloud Run, Cloud Storage and job-state clients so the same
@@ -46,13 +47,25 @@ export function createDispatcherApp({
   // /health reports the contract (musicProtocol) and the identity of this deployment. The staging verifier requires
   // environment, project and service to match what it was told to expect, so a staging check cannot run against
   // a production deployment that merely has "staging" in its hostname.
+  // Reports the maintenance and intent switches too, so a non-executing check can confirm what a deployment is doing.
+  // Neither value is secret.
   const health = (req, res) => res.status(200).json({
     status: "ok",
     musicProtocol: MUSIC_PROTOCOL,
     environment: config.environment || "production",
     project: config.project,
-    service: config.serviceName || ""
+    service: config.serviceName || "",
+    submissionsPaused: config.submissionsPaused === true,
+    requireSubmitIntent: config.requireSubmitIntent === true
   });
+
+  // While submissions are paused, no route may read the job state for a start, reserve a job, recover one or start an
+  // execution. The check comes before any of that, so a paused worker writes nothing.
+  function refusedWhilePaused(res) {
+    if (config.submissionsPaused !== true) return false;
+    res.status(503).json({ error: "Submissions are paused for maintenance. No render was started.", paused: true });
+    return true;
+  }
   app.get("/healthz", health);
   app.get("/health", health);
 
@@ -76,8 +89,14 @@ export function createDispatcherApp({
     if (typeof jobId !== "string" || !/^[A-Za-z0-9-]{8,80}$/.test(jobId)) {
       return { status: 400, error: "jobId must be 8 to 80 letters, digits or hyphens." };
     }
+    // Cross-submission idempotency fields. Required once the deployment has them enabled (requireSubmitIntent).
+    const intentError = validateIntentFields(body, { requireIntent: config.requireSubmitIntent === true });
+    if (intentError) return { status: 400, error: intentError };
     // Optional and off by default. A scene with no acceptable footage becomes a labelled AI still only when set.
-    return { fields: { jobId, beats, callbackUrl, callbackSecret, dryRun: dryRun === true, allowAiStills: body.allowAiStills === true, music: music } };
+    return { fields: {
+      jobId, beats, callbackUrl, callbackSecret, dryRun: dryRun === true, allowAiStills: body.allowAiStills === true, music: music,
+      submitIntentId: body.submitIntentId, scriptId: body.scriptId, renderVersion: body.renderVersion
+    } };
   }
 
   // Refuses any job whose video was already delivered, and any jobId with a request still waiting. These checks
@@ -88,6 +107,34 @@ export function createDispatcherApp({
       storage.objectExists(`renders/${jobId}/final.mp4`)
     ]);
     return requestWaiting || videoDelivered;
+  }
+
+  // The recorded state of a job, for replies about an earlier submission. Never throws: an unreadable state is "unknown".
+  async function readJobState(jobId) {
+    if (!jobId) return "unknown";
+    try {
+      const entry = await jobStore.read(statePath(jobId));
+      return entry && entry.value ? entry.value.status : "unknown";
+    } catch (error) {
+      return "unknown";
+    }
+  }
+
+  // True when this job's reservation was made by a request of the same owner action (the same submitIntentId) and
+  // that intent's record names this jobId. This is how the request that created an intent recognises that its own
+  // duplicate overtook it: it is told about the job, not refused. A reservation made by another intent, or an older
+  // one with no intent recorded, never matches. Never throws: an unreadable record counts as "no", which keeps the
+  // refusal (fail closed). Either way this request starts nothing.
+  async function reservedBySameIntent(jobId, submitIntentId, knownRecord) {
+    if (typeof submitIntentId !== "string" || !jobId) return false;
+    try {
+      const record = knownRecord !== undefined ? knownRecord : ((await jobStore.read(statePath(jobId))) || {}).value;
+      if (!record || record.jobId !== jobId || record.submitIntentId !== submitIntentId) return false;
+      const intent = await jobStore.read(intentPath(submitIntentId));
+      return !!(intent && intent.value && intent.value.jobId === jobId);
+    } catch (error) {
+      return false;
+    }
   }
 
   async function checkRenderImage(res) {
@@ -165,6 +212,7 @@ export function createDispatcherApp({
   }
 
   app.post("/jobs", requireAuth(acceptedSubmitSecrets), async (req, res) => {
+    if (refusedWhilePaused(res)) return;
     const checked = validateSubmission(req.body);
     if (checked.error) {
       res.status(checked.status).json({ error: checked.error });
@@ -172,8 +220,42 @@ export function createDispatcherApp({
     }
     const fields = checked.fields;
     if (!(await checkRenderImage(res))) return;
+    // Cross-submission preparation comes before any jobId work. A replay of the same intent adopts the job that intent
+    // first named and reports that job's state; it does not start a render unless no state was ever recorded for it.
+    // A different submission for the same script and render version is refused. A storage error refuses (fail closed).
+    let prepared;
+    try {
+      prepared = await prepareSubmission(jobStore, {
+        submitIntentId: fields.submitIntentId, scriptId: fields.scriptId, renderVersion: fields.renderVersion,
+        jobId: fields.jobId, now: now()
+      });
+    } catch (error) {
+      log.error("Submission could not be recorded; no render was started:", error);
+      res.status(503).json({ error: "Could not record this submission; no render was started." });
+      return;
+    }
+    if (prepared.status === "refused") {
+      const state = await readJobState(prepared.existingJobId);
+      res.status(409).json({
+        error: prepared.reason + " No render was started. A new render version is needed for another paid render.",
+        jobId: prepared.existingJobId, state: state
+      });
+      return;
+    }
+    fields.jobId = prepared.jobId;
+    // The replay report: the original job, its recorded state, and no new start. Success status, original jobId.
+    const replayReport = async () => ({ jobId: prepared.jobId, status: "already-submitted", duplicate: true, state: await readJobState(prepared.jobId) });
+    if (prepared.replay && (await readJobState(prepared.jobId)) !== "unknown") {
+      res.status(200).json(await replayReport());
+      return;
+    }
     try {
       if (await legacyDuplicate(fields.jobId)) {
+        // A replay, or the intent's creator overtaken by its own duplicate (which reserved and stored the request first).
+        if (prepared.replay || (await reservedBySameIntent(fields.jobId, fields.submitIntentId))) {
+          res.status(200).json(await replayReport());
+          return;
+        }
         res.status(409).json({ error: "This jobId was already submitted. No render was started." });
         return;
       }
@@ -185,13 +267,19 @@ export function createDispatcherApp({
     const attemptId = uuid();
     let reservation;
     try {
-      reservation = await reserveJob(jobStore, { jobId: fields.jobId, attemptId, now: now() });
+      reservation = await reserveJob(jobStore, { jobId: fields.jobId, attemptId, now: now(), submitIntentId: fields.submitIntentId });
     } catch (error) {
       log.error("Job state could not be reserved; no render was started:", error);
       res.status(503).json({ error: "Could not reserve the jobId; no render was started." });
       return;
     }
     if (!reservation.reserved) {
+      if (prepared.replay || (await reservedBySameIntent(fields.jobId, fields.submitIntentId, reservation.existing))) {
+        // Another request with the same intent reserved this job first (a race): report it, start nothing. This
+        // includes the request that created the intent, when its own duplicate reserved the job before it did.
+        res.status(200).json(await replayReport());
+        return;
+      }
       const state = reservation.existing ? reservation.existing.status : "unknown";
       res.status(409).json({
         error: "This jobId has already been submitted. No render was started. A failed or uncertain job needs the explicit recovery operation.",
@@ -205,6 +293,7 @@ export function createDispatcherApp({
   // Explicit recovery: the only way to start a job again with the same ID. It needs the exact confirmation phrase
   // (it states that no execution is running), a job that is not succeeded, and no delivered video.
   app.post("/jobs/recover", requireAuth(acceptedSubmitSecrets), async (req, res) => {
+    if (refusedWhilePaused(res)) return;
     const jobId = req.body && req.body.jobId;
     const checked = validateSubmission(req.body);
     if (checked.error) {

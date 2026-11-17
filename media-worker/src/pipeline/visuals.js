@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import OpenAI from "openai";
 import { config } from "../config.js";
-import { planBeatVisuals, coverageCandidates, maxDistinctAssignment, memoizeSearch, VisualCoverageError } from "./visualSelection.js";
+import { planBeatVisuals, coverageCandidates, matchedFlags, maxDistinctAssignment, memoizeSearch, VisualCoverageError } from "./visualSelection.js";
 import { beatRenderSeconds } from "./beatTiming.js";
 
 const openai = new OpenAI({ apiKey: config.openaiApiKey });
@@ -86,6 +86,14 @@ async function generateFallbackStill(prompt, destPath) {
   return generateStillWithClient(openai, prompt, destPath);
 }
 
+// A beat has a place when it names one, or, for a montage, when every part names one.
+function beatHasPlace(beat) {
+  if (Array.isArray(beat.montage) && beat.montage.length > 0) {
+    return beat.montage.every((part) => String(part.location || "").trim());
+  }
+  return Boolean(String(beat.location || "").trim());
+}
+
 // Unpaid preflight, run before narration. Uses Pexels searches only (no ElevenLabs, Whisper or image calls).
 // A beat with no relevant clip in any orientation would need a still whatever its timing, so such beats are
 // counted here. Refuses the job when footage is missing and stills are not allowed, or when more beats are
@@ -103,7 +111,7 @@ export async function preflightVisualSupply(beats, {
   if (requireLocation) {
     const missing = beats
       .map((beat, index) => ({ beat, index }))
-      .filter(({ beat }) => !beat.locationExempt && !String(beat.location || "").trim())
+      .filter(({ beat }) => !beat.locationExempt && !beatHasPlace(beat))
       .map(({ index }) => index);
     if (missing.length > 0) {
       throw new VisualCoverageError(
@@ -113,10 +121,25 @@ export async function preflightVisualSupply(beats, {
     }
   }
   const coverage = await coverageCandidates(beats, search, { landscapeFallback });
-  // Lower bound on stills: beats that cannot each get a different clip. It counts only candidate existence,
-  // not clip duration, framing, subject position or per-beat narration timing, so it is a minimum, not a guarantee.
-  const lowerBound = beats.length - maxDistinctAssignment(coverage.map((entry) => entry.candidateIds));
-  const unsupported = coverage.filter((entry) => entry.candidateIds.size === 0);
+  // Montage parts: every part needs its own clip, and a montage is never turned into a still. A part that cannot be
+  // matched refuses the job, whatever allowAiStills says.
+  const parts = coverage
+    .filter((entry) => entry.montage)
+    .flatMap((entry) => entry.parts.map((set) => ({ beatIndex: entry.beatIndex, set })));
+  const partFlags = matchedFlags(parts.map((part) => part.set));
+  const failedPart = parts.find((_, index) => !partFlags[index]);
+  if (failedPart) {
+    throw new VisualCoverageError(
+      `Montage beat ${failedPart.beatIndex + 1} has a place with no distinct relevant clip. A montage is never turned into a still. Checked before narration; nothing was generated.`,
+      failedPart.beatIndex
+    );
+  }
+  // Lower bound on stills: the single-clip beats that cannot each get a different clip, matched among themselves.
+  // Montage clips are not counted against them, so this can understate the stills. It counts candidate existence only,
+  // not clip duration, framing, subject position or per-beat narration timing: a minimum, not a guarantee.
+  const normal = coverage.filter((entry) => !entry.montage);
+  const lowerBound = normal.length - maxDistinctAssignment(normal.map((entry) => entry.candidateIds));
+  const unsupported = normal.filter((entry) => entry.candidateIds.size === 0);
   if (lowerBound === 0) return { stills: 0, lowerBound, stillLimit, unsupported };
   if (!allowAiStills) {
     const first = unsupported[0] || { beatIndex: 0, queriesTried: [] };

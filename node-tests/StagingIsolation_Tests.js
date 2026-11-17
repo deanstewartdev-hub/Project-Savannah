@@ -31,7 +31,7 @@ const CALL_SITES = [
   ['Production/VisualAsset_Service.js', 'OpenAI image generation', 'UrlFetchApp.fetch(IMAGE_URL'],
   ['Production/Voiceover_Service.js', 'OpenAI voiceover generation', 'UrlFetchApp.fetch(SPEECH_URL'],
   ['Production/Creatomate_Service.js', 'Creatomate rendering', 'UrlFetchApp.fetch(API_BASE + path'],
-  ['Production/VideoProcessingProvider.js', 'Cloud Run render submission', 'request_("post", "/jobs", {'],
+  ['Production/VideoProcessingProvider.js', 'Cloud Run render submission', 'request_("post", "/jobs", Object.assign({'],
   ['Production/YouTube_Service.js', 'YouTube upload', 'YouTube.Videos.insert(']
 ];
 

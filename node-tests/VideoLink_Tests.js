@@ -107,6 +107,7 @@ function inboxRun(job, body) {
   let stored = JSON.parse(JSON.stringify(job));
   const writes = [];
   const context = load(['Models/RenderJob.js', 'Production/VideoLink_Service.js', 'Production/MediaWorkerCallbackInbox_Service.js'], {
+    PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
     SpreadsheetApp: { getActiveSpreadsheet: () => ({ getSheetByName: () => sheet }) },
     RenderJobRepository: { getByRenderId: id => (id === stored.renderId ? JSON.parse(JSON.stringify(stored)) : null),
@@ -150,6 +151,7 @@ test('legacy callback route: same-artifact refresh updates the link, others are 
     const context = load(['Models/RenderJob.js', 'Production/VideoLink_Service.js', 'Production/MediaWorkerCallback_Service.js'], {
       Secrets: { getMediaWorkerSharedSecret: () => 's' },
       VideoProcessingProvider: { isCloudRunRenderId: id => id.startsWith('cr-') },
+      PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) },
       LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
       RenderJobRepository: { getByRenderId: id => (id === stored.renderId ? JSON.parse(JSON.stringify(stored)) : null),
         update: j => { writes.push(j); stored = JSON.parse(JSON.stringify(j)); return j; } }

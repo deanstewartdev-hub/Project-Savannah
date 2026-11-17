@@ -1,4 +1,5 @@
 import { writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { ffmpeg } from "../lib/ffmpeg.js";
 import { writeWordPopAss } from "../lib/ass.js";
 import { config } from "../config.js";
@@ -16,6 +17,16 @@ function escapeForFilter(filePath) {
   return filePath.replace(/\\/g, "/").replace(/:/g, "\\:");
 }
 
+// The visible disclosure drawn on every AI still for its whole length: a boxed caption along the bottom third.
+// Throws when the font is missing, so a still can never be rendered without its label.
+export function stillLabelFilter(label = config.aiStillLabel) {
+  if (!existsSync(label.fontFile)) {
+    throw new Error(`AI still label font not found at ${label.fontFile}; refusing to render an unlabelled AI still.`);
+  }
+  return `drawtext=fontfile='${escapeForFilter(label.fontFile)}':text='${label.text}':fontsize=44:fontcolor=white:` +
+    "box=1:boxcolor=black@0.6:boxborderw=24:x=(w-text_w)/2:y=h-260";
+}
+
 // Normalizes one beat's resolved visual (real clip or AI still) into a silent clip of
 // exactly the beat's duration, filled and cropped to the target vertical frame. Stills
 // get a slow Ken Burns push so the hybrid mix doesn't read as "some clips move, some don't".
@@ -28,12 +39,17 @@ export async function normalizeBeatClip(visual, durationSeconds, outPath) {
   // than shaving encode time - a fast multi-threaded encode that gets OOM-killed is slower
   // than a slim single-threaded one that finishes.
   if (visual.type === "still") {
-    const zoompan = `zoompan=z='min(zoom+0.0012,1.15)':d=${frames}:s=${width}x${height}:fps=${fps}`;
+    // The zoom reaches its end exactly at the end of the beat, so a still never holds still for long. (The old rate
+    // stopped after about 4 s, which left a 9 s still frozen for its last 5 s.)
+    const zoompan = `zoompan=z='1+0.15*on/${frames}':d=${frames}:s=${width}x${height}:fps=${fps}`;
+    // Every AI still is labelled on the picture for its whole length. Without a usable font the still is not rendered:
+    // an unlabelled AI image must never reach a video.
+    const label = stillLabelFilter();
     await ffmpeg([
       "-loop", "1",
       "-i", visual.path,
       "-t", String(durationSeconds),
-      "-vf", `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},${zoompan},format=yuv420p`,
+      "-vf", `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},${zoompan},${label},format=yuv420p`,
       "-r", String(fps),
       "-c:v", "libx264",
       "-preset", "veryfast",

@@ -1,0 +1,11 @@
+{
+  "pexelsId": 29510336,
+  "pexelsPage": "https://www.pexels.com/video/antelope-canyon-sunlight-through-red-rocks-29510336/",
+  "uploader": "Eclipse Chasers",
+  "seconds": 7,
+  "fileUsed": "4096x2160 mp4 (the planner's lowest-upscale landscape file)",
+  "frames": "antelope-29510336-source-frames.png: one frame per second of the source. antelope-29510336-crop-9x16-frames.png: the same frames after the assembler's crop (scale to 1920 high, centre 1080 wide).",
+  "crop": { "keptWidthPercent": 29.6, "upscale": 0.89 },
+  "visualCheck": "Red sandstone slot canyon with light shafts in every frame, with the light patches inside the 9:16 crop. Consistent with Antelope Canyon style. Identity rests on the Pexels title and uploader; the footage itself does not name the place.",
+  "residualRisk": "Place identity is by title only. A human should confirm the place before the render."
+}

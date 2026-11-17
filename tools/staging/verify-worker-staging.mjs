@@ -115,8 +115,11 @@ async function main(env) {
 
 // Runs only when executed directly, so the identity functions can be imported by tests without side effects.
 if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
-  main(process.env).then((code) => process.exit(code), (error) => {
+  // Set the exit code and let the process end on its own. Calling process.exit() while keep-alive HTTP sockets are
+  // still open can trip a libuv assertion on Windows (UV_HANDLE_CLOSING): every check had passed, then the process
+  // crashed with a non-zero code. The idle sockets close themselves within seconds, so the process ends cleanly.
+  main(process.env).then((code) => { process.exitCode = code; }, (error) => {
     console.error(error.message);
-    process.exit(1);
+    process.exitCode = 1;
   });
 }
