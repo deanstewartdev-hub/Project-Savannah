@@ -6,7 +6,7 @@ import { validateMusicRequest, musicSummary } from "./musicLicence.js";
 import { MUSIC_PROTOCOL, assertRenderJobAcceptsMusic } from "./renderJobGuard.js";
 import { buildStatusResponse as defaultBuildStatusResponse } from "./jobStatus.js";
 import { reserveJob, failBeforeStart, markUncertain, recoverJob, recoveryConfirmation, statePath, JOB_STATES } from "./jobState.js";
-import { prepareSubmission, validateIntentFields } from "./submitIntent.js";
+import { prepareSubmission, validateIntentFields, intentPath } from "./submitIntent.js";
 import { callbackAllowed } from "./environment.js";
 
 // The dispatcher's HTTP surface, separated from its Cloud Run, Cloud Storage and job-state clients so the same
@@ -117,6 +117,23 @@ export function createDispatcherApp({
       return entry && entry.value ? entry.value.status : "unknown";
     } catch (error) {
       return "unknown";
+    }
+  }
+
+  // True when this job's reservation was made by a request of the same owner action (the same submitIntentId) and
+  // that intent's record names this jobId. This is how the request that created an intent recognises that its own
+  // duplicate overtook it: it is told about the job, not refused. A reservation made by another intent, or an older
+  // one with no intent recorded, never matches. Never throws: an unreadable record counts as "no", which keeps the
+  // refusal (fail closed). Either way this request starts nothing.
+  async function reservedBySameIntent(jobId, submitIntentId, knownRecord) {
+    if (typeof submitIntentId !== "string" || !jobId) return false;
+    try {
+      const record = knownRecord !== undefined ? knownRecord : ((await jobStore.read(statePath(jobId))) || {}).value;
+      if (!record || record.jobId !== jobId || record.submitIntentId !== submitIntentId) return false;
+      const intent = await jobStore.read(intentPath(submitIntentId));
+      return !!(intent && intent.value && intent.value.jobId === jobId);
+    } catch (error) {
+      return false;
     }
   }
 
@@ -234,7 +251,8 @@ export function createDispatcherApp({
     }
     try {
       if (await legacyDuplicate(fields.jobId)) {
-        if (prepared.replay) {
+        // A replay, or the intent's creator overtaken by its own duplicate (which reserved and stored the request first).
+        if (prepared.replay || (await reservedBySameIntent(fields.jobId, fields.submitIntentId))) {
           res.status(200).json(await replayReport());
           return;
         }
@@ -249,15 +267,16 @@ export function createDispatcherApp({
     const attemptId = uuid();
     let reservation;
     try {
-      reservation = await reserveJob(jobStore, { jobId: fields.jobId, attemptId, now: now() });
+      reservation = await reserveJob(jobStore, { jobId: fields.jobId, attemptId, now: now(), submitIntentId: fields.submitIntentId });
     } catch (error) {
       log.error("Job state could not be reserved; no render was started:", error);
       res.status(503).json({ error: "Could not reserve the jobId; no render was started." });
       return;
     }
     if (!reservation.reserved) {
-      if (prepared.replay) {
-        // Another request with the same intent reserved this job first (a race): report it, start nothing.
+      if (prepared.replay || (await reservedBySameIntent(fields.jobId, fields.submitIntentId, reservation.existing))) {
+        // Another request with the same intent reserved this job first (a race): report it, start nothing. This
+        // includes the request that created the intent, when its own duplicate reserved the job before it did.
         res.status(200).json(await replayReport());
         return;
       }
