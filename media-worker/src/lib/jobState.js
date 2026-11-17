@@ -64,8 +64,11 @@ async function change(store, jobId, expectedStatuses, attemptId, next) {
 }
 
 // Creates the state for a new submission. Only one caller can create it; the others get { reserved: false }.
-export async function reserveJob(store, { jobId, attemptId, now }) {
+// submitIntentId (optional) records which owner action made the reservation, so a request of that same action that
+// loses the race can be told about the job instead of being refused. It is only a label: it never permits a start.
+export async function reserveJob(store, { jobId, attemptId, now, submitIntentId }) {
   const record = newRecord(jobId, attemptId, JOB_STATES.QUEUED, now);
+  if (typeof submitIntentId === "string") record.submitIntentId = submitIntentId;
   const created = await store.createIfAbsent(statePath(jobId), record);
   if (created.ok) return { reserved: true, record: record };
   const existing = await store.read(statePath(jobId));
