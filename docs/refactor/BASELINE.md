@@ -37,3 +37,4 @@ The fixture is the "before" picture. It is regenerated only on purpose
 | 2026-11-14 | Worker visualSelection split | not re-run (no app file changed) | 435 / 435 (431 + 4 import-surface checks) | 378 removed lines all present in the new modules; one line changed (`framingFor` gained `export`) |
 | 2026-11-14 | ScriptValidator split | 1,035 PASS / 0 FAIL (856 + 179 characterisation scenarios) | 435 / 435 (no worker file changed since) | 549 removed lines all present in the new modules |
 | 2026-11-15 | final, after all modules | **1,035 PASS / 0 FAIL**, exit 0 | **435 / 435** | both suites re-run in full; safety-critical areas unchanged by diff |
+| 2026-11-17 | `d0811a2` staging acceptance | **1,035 PASS / 0 FAIL**, exit 0 | **435 / 435** | pushed to the staging Apps Script project only; 15 of 16 in-app checks completed on base and refactor alike, 1 pre-existing failure on both (STAGING_ACCEPTANCE.md) |

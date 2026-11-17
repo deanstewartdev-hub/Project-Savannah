@@ -96,9 +96,11 @@ and an in-memory sheet.
 ## What the owner still needs to do
 
 1. **Review and merge order.** PR #33 sits on #32. Merge the stack bottom-up as usual; #33 last.
-2. **Staging check before any production deployment.** Push this branch to the staging Apps
-   Script project and click through Ideas, Scripts and Queue once. The offline model and the
-   browser check are strong evidence, but neither is a real Apps Script run.
+2. **Staging check before any production deployment.** Done on 17 November 2026, except one
+   step: [STAGING_ACCEPTANCE.md](STAGING_ACCEPTANCE.md). `d0811a2` runs in the staging project
+   and passed the same in-app checks as its base in real Apps Script. Still to do by the owner:
+   open the staging web app in a window signed in only to the staging account and click through
+   Dashboard, Ideas, Scripts and Approval Queue (blocked here by a multi-account browser).
 3. **Decide on the Production controller.** Approve, change or decline the proposed design in
    COMPATIBILITY.md. Until then it stays as it is.
 4. If PR #32 gets more commits, merge them into this branch using the procedure in
