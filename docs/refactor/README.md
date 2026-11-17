@@ -13,7 +13,7 @@ This folder is the canonical record of the refactor. A new session resumes from 
 | [MODULES.md](MODULES.md) | Module inventory after the refactor, public interfaces, dependencies, guarding tests |
 | [COMPATIBILITY.md](COMPATIBILITY.md) | Rules that keep behaviour identical, migration notes, PR #31/#32 handling, risks, justified exceptions |
 | [COMPLETION_REPORT.md](COMPLETION_REPORT.md) | What was done, the evidence, and what is left for the owner |
-| [STAGING_ACCEPTANCE.md](STAGING_ACCEPTANCE.md) | Staging push and in-app checks of `d0811a2` against its base, with the remaining owner step |
+| [STAGING_ACCEPTANCE.md](STAGING_ACCEPTANCE.md) | Staging acceptance: in-app checks against the base, live web-app pages, the fixture correction and a PR #32 defect |
 
 ## Goal and limits
 

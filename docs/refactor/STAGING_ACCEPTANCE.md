@@ -1,12 +1,80 @@
 # PR #33 staging acceptance
 
-17 November 2026 · tested commit **`d0811a2`** (branch `refactor/modular-architecture`), compared in
-the same staging project with its PR #32 base **`4e4967c`**.
+Two rounds, both on 17 November 2026. **Round 2 is the current state.** Round 1 is kept below
+as the original record.
 
 Nothing was deployed to production, rendered, uploaded, published or paid for. No live sheet,
-production property or trigger was touched. IDs below are shortened to their last six characters.
+production property or trigger was touched. IDs are shortened to their last six characters.
 
-## Result
+## Round 2: integrated with PR #32, fixture corrected, live pages checked
+
+Branch tip after this round: see the PR. Code under test: **`2fca32c`**, which is `d0811a2` plus
+the merge of PR #32 (`277b34f`) and the self-test fixture correction (`2fca32c`). Later commits on
+the branch change documentation only.
+
+| Area | Result |
+|---|---|
+| PR #32 synchronised | **PASS**: 2 new commits (`6d4601d`, `4a0a1c9`) merged with a merge commit, no rebase, no force-push. They touch only worker review docs, one new worker test and fixture, and two production tools: no overlap with the refactor, no conflicts |
+| App runner, `node node-tests/run-local.cjs` | **PASS**: exit 0, **1,047 PASS / 0 FAIL** (1,035 before + 12 new hand-run self-test checks) |
+| Media worker, `npm test` | **PASS on rerun**: 445 / 445. One earlier full run failed 1 test (444 / 445), see Defects |
+| Characterisation suites (controller 94, engine 84, validator 179, repository 70, AI service 100), scope contract 7, frontend structure 3 | **PASS**, unchanged |
+| Approval gate 8, render-submission idempotency 21, upload recovery 54, publishing-safety and refresh suites | **PASS** |
+| Staging push of `2fca32c` (guarded tool, staging ID only) | **PASS**: read-only clone identical (132 non-empty files, manifest) |
+| Formatter and validator self-tests in real Apps Script | **PASS**: `testScriptFormatterAll` 4/4 and all four validator self-tests now pass in the staging editor |
+| **Live staging web app: Dashboard, Ideas, Scripts, Approval Queue** | **PASS**: see below |
+| Production unchanged | **PASS**: deployments HEAD, @99, @1; 99 versions (read-only) |
+
+### Live staging web app (owner signed in, single-account browser)
+
+The multi-account problem was solved without bypassing anything: the owner signed in as the
+staging account in the app's separate browser pane, which has no other Google sessions. The
+test deployment (HEAD, owner-only) then opened normally. Pages were reached through the app's
+own navigation menu, not typed URLs. Generate was not pressed.
+
+| Page | Loaded | Server calls (all HTTP 200, `success: true`) | Console errors |
+|---|---|---|---|
+| Dashboard | yes | `getDashboardDataForApp` (pipeline: 13 renders, 4 SEO packs, 1 published, matching staging row counts), `notificationsGetFeed` (3 unread), plus one call whose body was not retained after navigating | none |
+| Ideas (via menu) | yes | `ideasGetWorkspace` (0 ideas: the staging Ideas sheet is empty), notifications | none |
+| Scripts (via menu) | yes | `scriptsGetMetrics`, `scriptsList` (`scripts-controller-v1.2`), notifications | none |
+| Approval Queue (via menu) | yes | `queueList`, `queueGetMetrics` (`queue-controller-v1.0`), notifications | none |
+
+Limits, stated plainly: Google serves the app inside a sandboxed frame from another origin, so
+the console read here is the outer page's; the app frame's own console cannot be read by the
+tool. Every server call and render succeeded, and the same pages showed no errors in the
+client-side check (round 1). The "API key required" badge is expected: staging deliberately
+has no provider key.
+
+### Fixture correction (test data only, separate commit `2fca32c`)
+
+| | |
+|---|---|
+| Symptom | `testScriptFormatterAll` and `testScriptValidatorWithValidScript` fail: "Voiceover contains 57 words; minimum is 90" |
+| Cause | Commit `e9e417b` (15 August 2026) made the validator count and time the **scene narration** instead of the AI's separate `voiceoverScript`. The shared Rome fixture kept its narration in `voiceoverScript`; its five scenes held only 57 words |
+| Change | The fixture's scenes now carry the narration (same Rome sentences, two supporting ones dropped to fit the 130-word maximum: 114 words, about 49.6 s, no scene over 15 s), and `voiceoverScript` equals the joined narration. `testScriptValidatorRejectsShortVoiceover` also shortens the scene narration: with a valid fixture, shortening `voiceoverScript` alone is accepted, so the old test would have stopped testing anything |
+| Not changed | Validation rules, the formatter, any production file |
+| Guard | `node-tests/HandRunSelfTests_Tests.js` runs the pure hand-run self-tests offline (12 checks); against the old fixtures it fails 4 of 12 |
+| Golden master | The ScriptEngine characterisation suite now reads a frozen copy of the old fixture (`node-tests/fixtures/legacy-rome-script.json`): its recorded results are unchanged byte for byte |
+| Verified | Locally (12/12) and in the staging editor (formatter 4/4; validator valid, scene-order, short-narration and weak-hook tests) |
+
+### Defect found in PR #32 (not fixed here)
+
+| | |
+|---|---|
+| Test | `media-worker/test/submitConcurrentProcesses.test.js`, "eight simultaneous submissions with one request ID start exactly one execution, and all name one job" |
+| Frequency | 2 failures in 52 runs on this Windows machine (1 in a full run, 1 in 20 isolated runs, 0 in 30). PR #32's own CI (Linux) has not shown it |
+| What fails | Only "every answer names the same job". Exactly one execution and exactly one acceptance held in every run: **no duplicate paid render is possible** |
+| Cause (reproduced and traced) | `media-worker/src/lib/dispatcherApp.js`, `POST /jobs`. When the job reservation is refused, only a request flagged `replay` gets the 200 replay report. The request that **created** the intent record is not flagged `replay`. If a duplicate of the same intent adopts its jobId and reserves the job first, the creator falls through to **409 "This jobId has already been submitted… needs the explicit recovery operation"**, with no jobId in the body, although its own render did start. Captured round: originator 409, duplicate 202, six others 200 |
+| Origin | PR #32 commits `9c732d0` and `f0ee7e4` (13 November). The worker files are identical on this branch and on PR #32 |
+| Why not fixed here | It changes the idempotency behaviour of PR #32's code, and PR #33 is a no-behaviour-change PR. It belongs in PR #32 |
+| Suggested fix | In the `!reservation.reserved` branch, treat a request whose intent record names this jobId (prepared by the same intent) like a replay and return the replay report. Add a deterministic test where the replay reserves first |
+
+### Blockers
+
+None for staging acceptance. Open item outside this PR: the PR #32 reply defect above.
+
+## Round 1: `d0811a2` against its base `4e4967c`
+
+### Result (round 1)
 
 | Area | Result |
 |---|---|
@@ -21,10 +89,10 @@ production property or trigger was touched. IDs below are shortened to their las
 | Spreadsheet compatibility | **PASS** |
 | Missing functions | **PASS**: none |
 | Pages in a browser, client side (static build, server mocked) | **PASS**: identical before and after |
-| Pages in a browser against the live staging web app | **BLOCKED**: see Blockers |
+| Pages in a browser against the live staging web app | **BLOCKED** in round 1 (multi-account browser); **PASS** in round 2 |
 | Production unchanged | **PASS** |
 
-## Evidence
+### Evidence (round 1)
 
 ### Repository
 
@@ -132,15 +200,15 @@ Deployments HEAD, @99 and @1; 99 versions. No clasp command in this session used
 ID except these two read-only listings, and every push ran from a staging-bound folder after a
 production-ID check.
 
-## Defects
+### Defects (round 1)
 
 | Defect | Where | Status |
 |---|---|---|
-| `testScriptFormatterAll` fails: its fixture has 57 words, the validator's minimum is 90 | Hand-run self-test fixture; present at the PR #32 base `4e4967c` with the same message | **Pre-existing, not a refactor regression, not fixed here.** Changing the fixture is a test-data change outside a behaviour-preserving refactor. The validator self-tests in `Tests/ScriptValidator_SelfTests.gs` share that fixture and probably fail the same way (not run) |
+| `testScriptFormatterAll` fails: its fixture has 57 words, the validator's minimum is 90 | Hand-run self-test fixture; present at the PR #32 base `4e4967c` with the same message | **Pre-existing, not a refactor regression. Resolved in round 2 (`2fca32c`).** Changing the fixture is a test-data change outside a behaviour-preserving refactor. The validator self-tests in `Tests/ScriptValidator_SelfTests.gs` share that fixture and probably fail the same way (not run) |
 
 No defect was found that needed a fix for staging compatibility, so no code was changed.
 
-## Blockers
+### Blockers (round 1, since cleared)
 
 | Blocker | Cause | What would clear it |
 |---|---|---|
@@ -148,6 +216,6 @@ No defect was found that needed a fix for staging compatibility, so no code was 
 
 ## Staging state now
 
-Staging runs the refactored application `d0811a2`, test deployment HEAD only. To return it to
-what it ran before (closest to `6ef795a`), push that commit with the same guarded tool, or
-restore from the saved snapshot held outside the repository.
+Staging runs `2fca32c` (test deployment HEAD only). To return it to what it ran before this work
+(closest to `6ef795a`), push that commit with the same guarded tool, or restore from the saved
+snapshot held outside the repository.

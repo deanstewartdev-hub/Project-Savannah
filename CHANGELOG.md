@@ -5,6 +5,15 @@ Notable changes to Project Savannah. Format loosely follows
 
 ## [Unreleased] — v1.4 Professional Output (in progress)
 
+### 17 November 2026 — Hand-run self-test fixture corrected (test data only)
+
+The Rome fixture shared by the formatter and validator self-tests kept its narration in `voiceoverScript`,
+but since 15 August the validator counts the scene narration, so `testScriptFormatterAll` and
+`testScriptValidatorWithValidScript` failed. The fixture's scenes now carry the narration (114 words) and the
+short-narration test shortens what the validator counts. No validation rule or production file changed. New
+`node-tests/HandRunSelfTests_Tests.js` runs the pure hand-run self-tests in CI. PR #33 staging acceptance passed,
+including Dashboard, Ideas, Scripts and Approval Queue in the live staging web app (docs/refactor/STAGING_ACCEPTANCE.md).
+
 ### 15 November 2026 — Modular refactoring (no behaviour change, not deployed)
 
 Large files are split into focused sibling modules; the original files keep their public names and
