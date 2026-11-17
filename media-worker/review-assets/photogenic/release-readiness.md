@@ -139,3 +139,26 @@ Two blocking review findings are addressed in `deployment-safety.md`:
 - **Rollback.** A rollback never moves worker traffic to a revision that accepts the legacy value or lacks the intent guard while submissions could open. Script properties belong to the project, so an Apps Script rollback does not change them. Reopening always repeats the forward sequence.
 
 Tests added: `rolloutGuard.test.js` (15, the state machine: every rule above), `secretBlock.test.js` (4, the independent block on the real dispatcher), `productionContractCheck.test.js` (9, now including the legacy-value 401 check and a legacy revision that reports no switches), and `submissionGate.test.js` (5). The rollout tests run offline; they touch no deployment.
+
+## 12. Verified prerequisites for the secret rotation (read-only, 17 November 2026)
+
+Full evidence and the read-only commands are in `deployment-safety.md`, section 2a. The snapshot is `media-worker/test/fixtures/dispatcher-revisions-2026-11-17.json`, and the rule is in `tools/production/revision-inventory.mjs`.
+
+- The service is publicly invokable (`allUsers`), so the bearer secret is the only application gate.
+- The live revision (`00030-wam`, 100% traffic) references JOB_SUBMIT_SECRET version 2 and has no previous-secret entry. Its instances were created after version 2 existed, so none holds the legacy value.
+- Version 1 is disabled, not destroyed. Re-enabling it is the release runbook's undo step.
+- **The rotation is NOT approved, because of one reachable legacy revision:** `00009-man` is tagged `candidate` (a public URL at 0% traffic) and references version 1. The regression test (`revisionInventory.test.js`) shows deployment approval is refused while it stays reachable, even when the rollout plan itself passes.
+- No instance of any revision except the live one has run in seven days, and no instance is running now. This is metric evidence, not an instance list.
+- Cloud Run resolves secret references when an instance starts, and a failed fetch stops the instance from starting (official documentation, cited in `deployment-safety.md`).
+
+Owner prerequisites, in order (none is run by this work):
+
+- [ ] **P1.** Confirm the Apps Script's MEDIA_WORKER_JOB_SUBMIT_SECRET matches version 2, using the release-record comparison (no value printed). If it holds version 1, production submissions are already refused.
+- [ ] **P2.** Remove the `candidate` tag from `00009-man` (and the other candidate tags) with an approved traffic change. Then re-run the inventory and confirm `assessRevisions` reports safe.
+- [ ] **P3.** Decide `00010-ndp`: leave it untagged, or delete it. Never tag it without re-running the assessment.
+- [ ] **P4.** Agree the policy that version 1 stays disabled, despite the runbook's undo step, unless the assessment is re-run first.
+- [ ] **P5.** Review the `latest` references (`00001`–`00008`) before anything disables version 2.
+- [ ] **P6.** Re-run the read-only inventory immediately before any approval, and assess it.
+- [ ] **P7.** If reachability cannot be closed, decide on a separate ingress control. Until it exists, the deployment is blocked.
+
+Still a deployment blocker: the production rotation, the tag removal and the Apps Script comparison are owner actions, and none has been performed.
