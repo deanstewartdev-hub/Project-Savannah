@@ -1,10 +1,47 @@
 # PR #33 staging acceptance
 
-Two rounds, both on 17 November 2026. **Round 2 is the current state.** Round 1 is kept below
-as the original record.
+Three rounds, all on 17 November 2026. **Round 3 is the current state.** Rounds 2 and 1 are kept
+below as the record.
 
 Nothing was deployed to production, rendered, uploaded, published or paid for. No live sheet,
 production property or trigger was touched. IDs are shortened to their last six characters.
+
+## Round 3: PR #34 integrated, PR #31 CI explained, interactive browser checks
+
+Integrated commit: **`bca17b4`** (merge of PR #34 into this branch). Later commits change docs only.
+
+| Area | Result |
+|---|---|
+| PR #34 (fix for the PR #32 reply race) reviewed | **PASS**: one commit on PR #32's tip (`8427129`), 2 production files and 1 test file. A reservation now records the `submitIntentId` that made it; only a request of that same intent whose intent record names the job gets the replay report. Different intents, versions, older jobs and unreadable records keep their 409 (fail closed). State transitions copy the whole record, so the label survives every status change |
+| PR #34 integrated here | **Merged into this branch** (`bca17b4`, merge commit, no rebase, no force-push) so the integrated code can be verified. **Not merged into PR #32's branch**: that is PR #34's destination and needs the owner. PR #34 stays a draft; GitHub reports it MERGEABLE/CLEAN with 4 of 4 checks passing |
+| App runner | **PASS**: exit 0, **1,047 PASS / 0 FAIL** |
+| Media worker | **PASS**: **452 / 452** (445 + PR #34's 7) |
+| `submitConcurrentProcesses.test.js` (the flaky test) | **PASS 50 / 50** (was 2 failures in 52 before the fix) |
+| Characterisation, scope contract, frontend structure, hand-run self-tests, approval gate, idempotency, upload recovery, publishing safety | **PASS**, unchanged |
+| Staging code | Unchanged since round 2: no Apps Script or frontend file differs between `2fca32c` (on staging) and `bca17b4`, so the live checks below apply to the integrated commit |
+| Production | Unchanged (nothing touched it) |
+
+### Interactive browser checks (live staging web app, owner signed in)
+
+| Check | Result |
+|---|---|
+| Sidebar navigation: Ideas → Scripts → Approval Queue | **PASS**: each link loads its page |
+| Ideas: Approved filter, list-view toggle, search box (split `Ideas.html`) | **PASS**: controls respond (active filter, active view, typed search with clear button) and, as designed, make no server call |
+| Scripts: Refresh (split `ScriptWorkspace.html`) | **PASS**: re-calls `scriptsGetMetrics` and `scriptsList`, both `success: true` (`scripts-controller-v1.2`) |
+| Approval Queue: Refresh | **PASS**: re-calls `queueList` and `queueGetMetrics`, both `success: true` (`queue-controller-v1.0`) |
+| Outer-page console errors | none |
+| The unidentified Dashboard call from round 2 | **Identified**: `Notifications.html` (unchanged by the refactor) refreshes the notification feed every 60 seconds (`setInterval(load, 60000)`); repeated calls while a page stays open are that poll |
+| App frame console | **Not readable** by the browser tool: Google serves the app from a sandboxed `googleusercontent.com` frame of another origin. Not worked around; covered instead by the successful calls, working controls and the client-side check in round 1 |
+
+### PR #31's four failed CI checks
+
+| | |
+|---|---|
+| Which | `app-checks` and `media-worker`, push and pull-request runs, on PR #31's head `98b9928` (11 November) |
+| Cause | Both jobs fail on `spawn ffmpeg ENOENT` (`ChainIntegration_Tests.cjs`, the narration gate tests). PR #31's own `.github/workflows/validate.yml` has no FFmpeg install step |
+| Fixed where | `2e3378d` "ci: install ffmpeg and ffprobe in both Savannah validation jobs" and `7cf851b` (12 November), which are in PR #32, whose CI passes |
+| Code verified | PR #31's exact tree run locally with FFmpeg: app runner exit 0, **464 PASS / 0 FAIL**; worker **343 / 343** |
+| Verdict | **Historical and environmental**, not a code defect. The red checks will stay on PR #31's page (re-running uses #31's own workflow). They matter only if #31 is ever judged or merged alone; merging the stack bottom-up brings the workflow fix with #32. If wanted, the two workflow commits can be added to #31 (owner decision; not done here) |
 
 ## Round 2: integrated with PR #32, fixture corrected, live pages checked
 
@@ -56,7 +93,7 @@ has no provider key.
 | Golden master | The ScriptEngine characterisation suite now reads a frozen copy of the old fixture (`node-tests/fixtures/legacy-rome-script.json`): its recorded results are unchanged byte for byte |
 | Verified | Locally (12/12) and in the staging editor (formatter 4/4; validator valid, scene-order, short-narration and weak-hook tests) |
 
-### Defect found in PR #32 (not fixed here)
+### Defect found in PR #32 (fixed in PR #34, see round 3)
 
 | | |
 |---|---|
@@ -70,7 +107,7 @@ has no provider key.
 
 ### Blockers
 
-None for staging acceptance. Open item outside this PR: the PR #32 reply defect above.
+None for staging acceptance. The PR #32 reply defect is fixed in PR #34 (round 3).
 
 ## Round 1: `d0811a2` against its base `4e4967c`
 
@@ -216,6 +253,6 @@ No defect was found that needed a fix for staging compatibility, so no code was 
 
 ## Staging state now
 
-Staging runs `2fca32c` (test deployment HEAD only). To return it to what it ran before this work
+Staging runs `2fca32c` (test deployment HEAD only), whose Apps Script code is identical to the integrated `bca17b4`. To return it to what it ran before this work
 (closest to `6ef795a`), push that commit with the same guarded tool, or restore from the saved
 snapshot held outside the repository.

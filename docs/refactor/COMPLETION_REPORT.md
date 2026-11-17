@@ -56,7 +56,7 @@ worker modules.
 | Suite | Baseline (`4e4967c`) | Final |
 |---|---|---|
 | App runner, `node node-tests/run-local.cjs` | exit 0 · 498 PASS / 0 FAIL | exit 0 · **1,047 PASS / 0 FAIL** (after merging PR #32 and the fixture correction; 1,035 at `d0811a2`) |
-| Media worker, `npm test` | 431 / 431 | **445 / 445** (PR #32 added 10 tests); one intermittent PR #32 failure, see below |
+| Media worker, `npm test` | 431 / 431 | **452 / 452** (PR #32 added 10 tests, PR #34 added 7; the intermittent PR #32 failure is fixed by #34) |
 | GitHub Actions "Validate Savannah" | — | success on the branch (both jobs) |
 
 The 537 extra app checks are the new safety-net suites (7 scope-contract checks, 527
@@ -100,9 +100,9 @@ and an in-memory sheet.
    [STAGING_ACCEPTANCE.md](STAGING_ACCEPTANCE.md). The integrated code runs in the staging
    project, passed the in-app checks in real Apps Script, and Dashboard, Ideas, Scripts and
    Approval Queue load in the live staging web app with every server call succeeding.
-3. **PR #32 reply defect.** Fix it in PR #32, not here: under a narrow race the request that
-   created a submission intent can be answered 409 although its render started (one execution
-   still holds). Cause and suggested fix are in STAGING_ACCEPTANCE.md.
+3. **PR #32 reply defect: fixed in draft PR #34.** It targets PR #32 and is merged into this branch
+   for verification (worker 452/452; the flaky concurrency test 50/50). Merging #34 into #32 is
+   yours to approve.
 4. **Decide on the Production controller.** Approve, change or decline the proposed design in
    COMPATIBILITY.md. Until then it stays as it is.
 4. If PR #32 gets more commits, merge them into this branch using the procedure in
