@@ -115,8 +115,11 @@ function build() {
   // A generated script the engine's default rules accept (110 scene words, about 48 seconds),
   // built the same way Tests/ScriptDurationValidation_Tests.js builds its fixtures.
   const valid = validGeneratedScript([20, 25, 25, 20, 20]);
-  const selfTestFixture = sandbox.observe('createValidScriptValidatorFixture_()').returned;
-  if (!selfTestFixture) throw new Error('The validator self-test fixture could not be read.');
+  // A frozen copy of the 57-word Rome script the validator's hand-run self-tests used when this suite was
+  // captured. Those self-tests now use a corrected fixture (November 2026); this suite keeps the original input
+  // so its recorded results stay comparable.
+  const selfTestFixture = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'legacy-rome-script.json'), 'utf8'));
+  sandbox.context.__legacyRomeScript = JSON.stringify(selfTestFixture);
   const response = (data, extra) => Object.assign({
     success: true, provider: 'test-provider', model: 'test-model', data,
     usage: { inputTokens: 100, outputTokens: 200, totalTokens: 300 }, execution: { durationMs: 5 }
@@ -228,7 +231,7 @@ scenario('preview: invalid idea', run('generatePreview', {}));
 // --- test hooks and version ------------------------------------------------------
 scenario('version', 'ScriptEngine.getEngineVersion()');
 scenario('hook: resolve options', 'ScriptEngine.__test_resolveOptions({ targetDurationSeconds: 55 })');
-scenario('hook: normalise timing', '(function () { var s = createValidScriptValidatorFixture_(); ScriptEngine.__test_normaliseGeneratedTiming(s); return s; })()');
+scenario('hook: normalise timing', '(function () { var s = JSON.parse(__legacyRomeScript); ScriptEngine.__test_normaliseGeneratedTiming(s); return s; })()');
 scenario('hook: correction prompt', '(function () { var e = new Error(' + JSON.stringify('Generated script failed validation:\n- Voiceover contains 15 words; minimum is 99.') + ');' +
   ' e.name = "ScriptValidationError";' +
   ' return ScriptEngine.__test_buildCorrectionPrompt("ORIGINAL PROMPT", ' + JSON.stringify(tooShort()) + ', e,' +
