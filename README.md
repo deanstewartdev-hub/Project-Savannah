@@ -170,6 +170,34 @@ Do not run `clasp pull` unless the Apps Script copy is intentionally becoming ca
 
 ## Testing
 
+Run the Apps Script fixtures and Node-only callback/UI checks with Node.js 24:
+
+```sh
+node node-tests/run-local.cjs
+```
+
+The runner parses the main app's JavaScript and executable frontend blocks, then
+runs pure Apps Script fixtures and mocked upload-recovery integration tests.
+Node-only tooling stays in `node-tests/`, outside the root clasp upload allowlist.
+The separate callback bridge is validated by its existing Node tests.
+
+Run the Cloud Run worker's tests separately:
+
+```sh
+cd media-worker
+npm ci
+npm test
+```
+
+GitHub Actions runs both commands. These tests require no provider credentials
+and do not replace Google-hosted smoke checks or a rendered-video review.
+
+For uncertain YouTube uploads, **Find existing YouTube upload** searches up to
+250 channel uploads for the publishing job's unique metadata tag. One owned
+match reconnects the video; missing or multiple matches keep retries blocked.
+Legacy untagged uploads still need manual review in YouTube Studio. A missing
+search result does not establish that no upload exists.
+
 Safe local checks:
 
 - Run `node --check` across server-side JavaScript.

@@ -15,7 +15,7 @@ const PublishingScheduleService = (() => {
     const requested = normalise_(publishAt);
     if (!requested) return { scheduled: false, publishAt: "", conflicts: [] };
     const config = options || {}, timezoneOffsetMinutes = boundedInteger_(config.timezoneOffsetMinutes, -840, 840, 0);
-    const maxPerDay = boundedInteger_(config.maxPerDay, 1, 5, 2), existing = upcoming(jobs);
+    const maxPerDay = boundedInteger_(config.maxPerDay, 1, 5, 2), existing = slots_(jobs);
     const conflicts = existing.filter(function (slot) {
       return slot.renderJobId !== String(excludeRenderJobId || "").trim() &&
         Math.abs(new Date(slot.publishAt).getTime() - new Date(requested).getTime()) < MINIMUM_GAP_MS;
@@ -39,6 +39,13 @@ const PublishingScheduleService = (() => {
 
   function upcoming(jobs) {
     const now = Date.now();
+    return slots_(jobs).filter(function (slot) {
+      return new Date(slot.publishAt).getTime() > now;
+    });
+  }
+
+  // Elapsed slots still count toward daily limits and the gap after publication.
+  function slots_(jobs) {
     return (Array.isArray(jobs) ? jobs : []).map(function (job) {
       const publishAt = normalise_(job && job.providerResponse && job.providerResponse.publishAt, true);
       return publishAt ? {
@@ -50,7 +57,7 @@ const PublishingScheduleService = (() => {
         privacyStatus: String(job.privacyStatus || "private")
       } : null;
     }).filter(function (slot) {
-      return slot && new Date(slot.publishAt).getTime() > now;
+      return slot !== null;
     }).sort(function (a, b) {
       return new Date(a.publishAt) - new Date(b.publishAt);
     });
@@ -66,7 +73,7 @@ const PublishingScheduleService = (() => {
     const dailyTimes = normaliseTimes_(config.dailyTimes || template.dailyTimes);
     const now = config.now ? new Date(config.now).getTime() : Date.now();
     if (!isFinite(now)) throw error_("The scheduling reference time is invalid.");
-    const scheduled = upcomingAt_(jobs, now), counts = {};
+    const scheduled = slots_(jobs), counts = {};
     scheduled.forEach(function (slot) {
       const key = localDateKey_(new Date(slot.publishAt).getTime(), timezoneOffsetMinutes);
       counts[key] = (counts[key] || 0) + 1;
@@ -108,14 +115,6 @@ const PublishingScheduleService = (() => {
     const key = String(value || "balanced").trim().toLowerCase();
     if (!TEMPLATES[key]) throw error_("The selected recurring schedule template is invalid.");
     return TEMPLATES[key];
-  }
-
-  function upcomingAt_(jobs, now) {
-    return (Array.isArray(jobs) ? jobs : []).map(function (job) {
-      const publishAt = normalise_(job && job.providerResponse && job.providerResponse.publishAt, true);
-      return publishAt ? { publishingJobId: String(job.id || ""), renderJobId: String(job.renderJobId || ""),
-        title: String(job.title || "Untitled Short"), publishAt: publishAt } : null;
-    }).filter(function (slot) { return slot && new Date(slot.publishAt).getTime() > now; });
   }
 
   function normaliseTimes_(times) {

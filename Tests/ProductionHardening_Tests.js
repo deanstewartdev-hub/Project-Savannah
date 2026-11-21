@@ -257,6 +257,72 @@ function runProductionHardeningTests() {
     }
   });
 
+  test("Publishing schedule protects the gap after a recent publication", function () {
+    const now = Date.now();
+    let blocked = false;
+    try {
+      PublishingScheduleService.assertAvailable(new Date(now + 10 * 60000).toISOString(), [{
+        id: "PUB-RECENT", renderJobId: "RND-RECENT", title: "Recent Short",
+        providerResponse: { publishAt: new Date(now - 20 * 60000).toISOString() }
+      }], "RND-NEXT");
+    } catch (error) { blocked = error.name === "PublishingScheduleError"; }
+    if (!blocked) throw new Error("Publication less than an hour after a recent Short was accepted.");
+  });
+
+  test("Publishing schedule accepts an exact one-hour gap", function () {
+    const now = Date.now();
+    const result = PublishingScheduleService.assertAvailable(new Date(now + 40 * 60000).toISOString(), [{
+      id: "PUB-RECENT", renderJobId: "RND-RECENT", title: "Recent Short",
+      providerResponse: { publishAt: new Date(now - 20 * 60000).toISOString() }
+    }], "RND-NEXT");
+    if (!result.scheduled) throw new Error("Exact one-hour gap was rejected.");
+  });
+
+  test("Upcoming schedule still excludes past publications", function () {
+    const now = Date.now();
+    const slots = PublishingScheduleService.upcoming([
+      { id: "PAST", providerResponse: { publishAt: new Date(now - 20 * 60000).toISOString() } },
+      { id: "FUTURE", providerResponse: { publishAt: new Date(now + 40 * 60000).toISOString() } }
+    ]);
+    if (slots.length !== 1 || slots[0].publishingJobId !== "FUTURE") {
+      throw new Error("Upcoming schedule included a past publication or lost a future one.");
+    }
+  });
+
+  test("Suggested slots protect the gap after an elapsed publication", function () {
+    const result = PublishingScheduleService.suggestSlots([{
+      id: "PUB-RECENT", renderJobId: "RND-RECENT",
+      providerResponse: { publishAt: "2026-10-19T12:00:00.000Z" }
+    }], { now: "2026-10-19T12:20:00.000Z", dailyTimes: ["12:30", "18:00"],
+      daysAhead: 1, timezoneOffsetMinutes: 0 });
+    if (result.slots.length !== 1 || result.slots[0].publishAt !== "2026-10-19T18:00:00.000Z") {
+      throw new Error("Suggestions did not preserve the gap after an elapsed publication.");
+    }
+  });
+
+  test("Suggested slots count elapsed publications toward the daily limit", function () {
+    const result = PublishingScheduleService.suggestSlots([
+      { id: "PUB-A", providerResponse: { publishAt: "2026-10-19T10:00:00.000Z" } },
+      { id: "PUB-B", providerResponse: { publishAt: "2026-10-19T11:00:00.000Z" } }
+    ], { now: "2026-10-19T12:20:00.000Z", dailyTimes: ["18:00"],
+      daysAhead: 1, timezoneOffsetMinutes: 0, maxPerDay: 2 });
+    if (result.slots.length) throw new Error("Suggestions exceeded the daily limit after publications elapsed.");
+  });
+
+  test("Manual scheduling counts elapsed publications in the local day", function () {
+    const originalNow = Date.now;
+    Date.now = function () { return new Date("2026-10-19T12:00:00.000Z").getTime(); };
+    let blocked = false;
+    try {
+      PublishingScheduleService.assertAvailable("2026-10-19T18:00:00.000Z", [
+        { id: "PUB-A", renderJobId: "RND-A", providerResponse: { publishAt: "2026-10-19T00:30:00.000Z" } },
+        { id: "PUB-B", renderJobId: "RND-B", providerResponse: { publishAt: "2026-10-19T10:00:00.000Z" } }
+      ], "RND-C", { timezoneOffsetMinutes: -60, maxPerDay: 2 });
+    } catch (error) { blocked = /daily publishing limit/.test(error.message); }
+    finally { Date.now = originalNow; }
+    if (!blocked) throw new Error("Manual scheduling exceeded the daily limit after publications elapsed.");
+  });
+
   const failures = results.filter(function (result) { return !result.passed; });
   if (failures.length) throw new Error("Production hardening tests failed: " + JSON.stringify(failures));
   return { passed: true, total: results.length, results: results };
